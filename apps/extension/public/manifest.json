@@ -3,9 +3,21 @@
   "name": "AI-buddy",
   "version": "0.1.0",
   "description": "Быстрая помощь с адаптацией и инструментами.",
+  "permissions": ["storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "assets/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["assets/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
     "default_title": "Открыть AI-buddy",
     "default_popup": "index.html"
-  },
-  "permissions": ["activeTab"]
+  }
 }
