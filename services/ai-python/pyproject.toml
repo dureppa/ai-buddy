@@ -1,0 +1,30 @@
+[project]
+name = "ai-buddy-ai"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "flask>=3.1,<4",
+    "mcp>=1.12,<2",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19,<3",
+    "pytest>=9,<10",
+    "pytest-cov>=7,<8",
+    "ruff>=0.15,<1",
+]
+
+[tool.uv]
+package = false
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+exclude = ["^\\.venv/"]
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+extend-select = ["I"]

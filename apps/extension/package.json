@@ -1,0 +1,12 @@
+{
+  "name": "@ai-buddy/extension",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.0"
+  }
+}
