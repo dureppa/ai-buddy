@@ -6,7 +6,10 @@ const extensionFile = (relativePath: string) => new URL(relativePath, import.met
 export default defineConfig({
   plugins: [react()],
   base: './',
+  root: new URL('.', import.meta.url).pathname,
   build: {
+    outDir: '../dist',
+    emptyOutDir: true,
     rollupOptions: {
       input: {
         popup: extensionFile('./index.html'),
