@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
-import buddy from '../../web/src/assets/buddy.webp';
 import './styles.css';
 
 import { getPageHelp } from './context';
 
 const webUrl = import.meta.env.VITE_WEB_URL || 'http://localhost:5173/';
+const buddy = './buddy.webp';
 
 function Popup() {
   const [question, setQuestion] = useState('');
