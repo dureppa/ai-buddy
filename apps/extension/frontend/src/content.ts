@@ -8,7 +8,8 @@ const defaultState: WidgetState = { minimized: false };
 if (!document.getElementById(hostId)) {
   const host = document.createElement('div');
   host.id = hostId;
-  host.style.cssText = 'all: initial; position: fixed; z-index: 2147483647; right: 24px; bottom: 24px; width: 72px; height: 72px;';
+  host.style.cssText =
+    'all: initial; position: fixed; z-index: 2147483647; right: 24px; bottom: 24px; width: 72px; height: 72px;';
   document.documentElement.appendChild(host);
   const shadow = host.attachShadow({ mode: 'open' });
 
@@ -73,11 +74,14 @@ if (!document.getElementById(hostId)) {
   let answerArea: HTMLElement | null = null;
   let input: HTMLInputElement | null = null;
   let submit: HTMLButtonElement | null = null;
-  let history: Array<{ from: 'user' | 'buddy'; text: string; source?: string }> = [];
+  const history: Array<{ from: 'user' | 'buddy'; text: string; source?: string }> = [];
 
   function renderMessages() {
     if (!answerArea) return;
-    answerArea.innerHTML = history.length === 0 ? '<div class="empty">Спроси меня о текущей странице. Я подскажу, где найти нужный раздел или что делать дальше.</div>' : '';
+    answerArea.innerHTML =
+      history.length === 0
+        ? '<div class="empty">Спроси меня о текущей странице. Я подскажу, где найти нужный раздел или что делать дальше.</div>'
+        : '';
     for (const message of history) {
       const element = document.createElement('div');
       element.className = 'message' + (message.from === 'user' ? ' message--user' : '');
@@ -144,14 +148,22 @@ if (!document.getElementById(hostId)) {
     thinking.innerHTML = '<i></i><i></i><i></i>';
     answerArea?.appendChild(thinking);
     try {
-      const page: PageContext = { url: location.href, title: document.title, selectedText: window.getSelection()?.toString() };
-      const response = await chrome.runtime.sendMessage({ type: 'ask-buddy', question, page }) as BuddyAnswer;
+      const page: PageContext = {
+        url: location.href,
+        title: document.title,
+        selectedText: window.getSelection()?.toString(),
+      };
+      const response = (await chrome.runtime.sendMessage({ type: 'ask-buddy', question, page })) as BuddyAnswer;
       thinking.remove();
       history.push({ from: 'buddy', text: response.text, source: response.source });
       renderMessages();
     } catch {
       thinking.remove();
-      const fallback = answerFromPage(question, { url: location.href, title: document.title, selectedText: window.getSelection()?.toString() });
+      const fallback = answerFromPage(question, {
+        url: location.href,
+        title: document.title,
+        selectedText: window.getSelection()?.toString(),
+      });
       history.push({ from: 'buddy', text: fallback.text, source: fallback.source });
       renderMessages();
     } finally {

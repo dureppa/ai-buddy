@@ -1,0 +1,7 @@
+node_modules
+dist
+.venv
+uv.lock
+package-lock.json
+*.webp
+*.woff2
