@@ -4,8 +4,12 @@ export function getPageHelp(tabUrl: string | undefined, webUrl: string, question
     const page = new URL(tabUrl);
     const web = new URL(webUrl);
     const knownHosts = new Set(['localhost', '127.0.0.1']);
-    const sameSite = page.origin === web.origin ||
-      (knownHosts.has(page.hostname) && knownHosts.has(web.hostname) && page.port === web.port && page.protocol === web.protocol);
+    const sameSite =
+      page.origin === web.origin ||
+      (knownHosts.has(page.hostname) &&
+        knownHosts.has(web.hostname) &&
+        page.port === web.port &&
+        page.protocol === web.protocol);
     if (sameSite && page.pathname.replace(/\/$/, '') === '/tools') {
       if (/инструкц|описан|как работать/i.test(question)) {
         return 'Нажми на карточку нужного сервиса. В подробностях есть инструкция и контакт ответственного.';

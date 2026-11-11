@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm exec -- prettier --check apps/web/frontend apps/extension/frontend eslint.config.mjs prettier.config.mjs
+      - run: npm exec -- eslint apps/web/frontend apps/extension/frontend
+      - run: npm run typecheck --workspaces
+      - run: npm test --workspaces
+      - run: npm run build --workspaces
+
+  python:
+    name: python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: services/ai-python/.python-version
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/ai-python/uv.lock
+      - working-directory: services/ai-python
+        run: |
+          uv sync --locked
+          if rg --files . -g '*.py' | rg -q .; then
+            uv run --locked ruff format --check .
+            uv run --locked ruff check .
+            uv run --locked mypy .
+            uv run --locked pytest --cov=. --cov-report=term-missing --cov-fail-under=80
+          else
+            echo 'Python прикладного кода пока нет, проверки пропущены.'
+          fi
+
+  go:
+    name: go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/backend-go/go.mod
+          cache-dependency-path: services/backend-go/go.sum
+      - working-directory: services/backend-go
+        run: |
+          if rg --files . -g '*.go' | rg -q .; then
+            test -z "$(gofmt -l .)"
+            go vet ./...
+            go test ./...
+            go test -race ./...
+            go test -coverprofile=coverage.out -covermode=atomic ./...
+            go tool cover -func=coverage.out
+          else
+            echo 'Go прикладного кода пока нет, проверки пакетов пропущены.'
+          fi
+
+  repository:
+    name: repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: git diff --check HEAD^ HEAD
+      - run: test -f README.md && test -f AGENTS.md && test -f justfile
+      - run: test -f .github/pull_request_template.md && test -f .github/CODEOWNERS
+      - run: test -z "$(git ls-files | rg '(^|/)dist/|(^|/)\.venv/' || true)"
+      - run: node -e "const fs=require('fs'); for (const p of ['package.json','package-lock.json','apps/web/package.json','apps/extension/package.json','services/ai-python/pyproject.toml','services/backend-go/go.mod']) { if (!fs.existsSync(p)) throw new Error('Missing '+p) }"

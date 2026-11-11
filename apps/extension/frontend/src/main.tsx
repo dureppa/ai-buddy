@@ -40,17 +40,37 @@ function Popup() {
 
   return (
     <main>
-      <header><span>AI-buddy</span><img src={buddy} alt="" /></header>
+      <header>
+        <span>AI-buddy</span>
+        <img src={buddy} alt="" />
+      </header>
       <h1>Помочь с этой страницей?</h1>
       <p>Могу подсказать, где посмотреть инструменты и как запросить доступ.</p>
       <form onSubmit={submit}>
         <label htmlFor="question">Вопрос о странице</label>
-        <input id="question" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Где здесь запросить доступ?" maxLength={300} />
-        <button type="submit" disabled={!question.trim() || pending}>{pending ? 'Смотрю…' : 'Спросить'}</button>
+        <input
+          id="question"
+          value={question}
+          onChange={(event) => setQuestion(event.target.value)}
+          placeholder="Где здесь запросить доступ?"
+          maxLength={300}
+        />
+        <button type="submit" disabled={!question.trim() || pending}>
+          {pending ? 'Смотрю…' : 'Спросить'}
+        </button>
       </form>
-      <button type="button" className="suggestion" disabled={pending} onClick={() => void ask('Где здесь запросить доступ?')}>Где здесь запросить доступ?</button>
+      <button
+        type="button"
+        className="suggestion"
+        disabled={pending}
+        onClick={() => void ask('Где здесь запросить доступ?')}
+      >
+        Где здесь запросить доступ?
+      </button>
       <div aria-live="polite">{answer && <p className="answer">{answer}</p>}</div>
-      <button type="button" className="open-web" onClick={openWeb}>Открыть AI-buddy <span aria-hidden="true">↗</span></button>
+      <button type="button" className="open-web" onClick={openWeb}>
+        Открыть AI-buddy <span aria-hidden="true">↗</span>
+      </button>
     </main>
   );
 }

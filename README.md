@@ -19,3 +19,5 @@ npm run dev --workspace=@ai-buddy/web
 ```
 
 Открой `http://localhost:5173/`. Переключение между демонстрационными профилями находится в меню профиля. Расширение собирается командой `npm run build --workspace=@ai-buddy/extension`, после чего каталог `apps/extension/dist/` можно загрузить в Chromium как unpacked extension. После установки питомец появляется справа внизу на обычных веб-страницах, а при наведении показывает действие «Задать вопрос». Chrome запрашивает доступ к сайтам при установке расширения один раз.
+
+Полный локальный набор проверок запускается командой `just check`. Отдельные проверки frontend, Python и Go доступны через `just frontend-check`, `just python-check` и `just go-check`.

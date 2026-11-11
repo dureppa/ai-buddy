@@ -5,11 +5,13 @@ import type { Tone } from './data';
 const iconPaths = {
   home: 'm3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z',
   map: 'm3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zm6-3v15m6-12v15',
-  users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.9M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zm4-4a4 4 0 0 1 0 8',
+  users:
+    'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.9M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zm4-4a4 4 0 0 1 0 8',
   grid: 'M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z',
   layers: 'm12 2 10 5-10 5L2 7zm-10 10 10 5 10-5M2 17l10 5 10-5',
   sparkles: 'M12 2l2.7 7.3L22 12l-7.3 2.7L12 22l-2.7-7.3L2 12l7.3-2.7zM5 2v6M2 5h6m12 12v5m-2.5-2.5h5',
-  settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8zm8 4-2 1 .1 2.2-2 2.1-2.2-.2L13 19h-2l-.9-1.9-2.2.2-2-2.1L6 13l-2-1 2-1-.1-2.2 2-2.1 2.2.2L11 5h2l.9 1.9 2.2-.2 2 2.1L18 11z',
+  settings:
+    'M12 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8zm8 4-2 1 .1 2.2-2 2.1-2.2-.2L13 19h-2l-.9-1.9-2.2.2-2-2.1L6 13l-2-1 2-1-.1-2.2 2-2.1 2.2.2L11 5h2l.9 1.9 2.2-.2 2 2.1L18 11z',
   search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm6-2 4 4',
   bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 12a2 2 0 0 0 4 0',
   chevron: 'm9 18 6-6-6-6',
@@ -30,16 +32,35 @@ const iconPaths = {
   message: 'M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.9-3.9a8.5 8.5 0 1 1 15.1-4.6z',
   copy: 'M8 8h12v13H8zM16 8V3H3v13h5',
   info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-11v6m0-10h.01',
-  heart: 'M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6l1.2 1.2L12 21l7.6-7.6 1.2-1.2a5.4 5.4 0 0 0 0-7.6z',
+  heart:
+    'M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6l1.2 1.2L12 21l7.6-7.6 1.2-1.2a5.4 5.4 0 0 0 0-7.6z',
 } as const;
 export type IconName = keyof typeof iconPaths;
 
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={iconPaths[name]} /></svg>;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={iconPaths[name]} />
+    </svg>
+  );
 }
 
 export function Avatar({ initials, tone = 'lilac' }: { initials: string; tone?: Tone }) {
-  return <span className={'avatar tone-' + tone} aria-hidden="true">{initials}</span>;
+  return (
+    <span className={'avatar tone-' + tone} aria-hidden="true">
+      {initials}
+    </span>
+  );
 }
 
 export type Mood = 'happy' | 'thinking' | 'surprised' | 'supportive' | 'celebrating';
@@ -56,7 +77,12 @@ export function Buddy({ mood = 'happy', compact = false }: { mood?: Mood; compac
   );
 }
 
-export function Modal({ title, onClose, children, side = false }: {
+export function Modal({
+  title,
+  onClose,
+  children,
+  side = false,
+}: {
   title: string;
   onClose: () => void;
   children: ReactNode;
@@ -73,13 +99,20 @@ export function Modal({ title, onClose, children, side = false }: {
       ref={ref}
       className={side ? 'dialog dialog--side' : 'dialog'}
       aria-label={title}
-      onCancel={(event) => { event.preventDefault(); onClose(); }}
-      onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
       <div className="dialog__inner">
         <div className="dialog__top">
           <h2>{title}</h2>
-          <button className="icon-button" type="button" aria-label="Закрыть" onClick={onClose}><Icon name="close" /></button>
+          <button className="icon-button" type="button" aria-label="Закрыть" onClick={onClose}>
+            <Icon name="close" />
+          </button>
         </div>
         {children}
       </div>
@@ -88,5 +121,11 @@ export function Modal({ title, onClose, children, side = false }: {
 }
 
 export function EmptyState({ title, text }: { title: string; text: string }) {
-  return <div className="empty-state"><Buddy mood="supportive" compact /><h3>{title}</h3><p>{text}</p></div>;
+  return (
+    <div className="empty-state">
+      <Buddy mood="supportive" compact />
+      <h3>{title}</h3>
+      <p>{text}</p>
+    </div>
+  );
 }
