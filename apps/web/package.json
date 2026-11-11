@@ -8,5 +8,11 @@
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.0.0",
     "zod": "^4.4.3"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "typecheck": "tsc",
+    "test": "vitest run"
   }
 }

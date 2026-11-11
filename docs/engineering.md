@@ -41,3 +41,5 @@
 
 - Используй TypeScript в строгом режиме и проверяй внешние данные на границе API. Для серверного состояния веба используй TanStack Query, для проверки формы ответа и входных данных — Zod.
 - Добавляй тесты на Vitest для логики, обработки ответов и состояний интерфейса. Настрой `tsc --noEmit` и `vitest run` при появлении конфигурации и исходников. [Vitest](https://vitest.dev/guide/)
+- Текущая фронтенд-версия работает с локальным demo-adapter. Не подменяй его фиктивным HTTP-сервисом внутри `apps/web` и не переноси сюда Go или Python логику. API-клиент подключится отдельной задачей по [OpenAPI-контракту](../contracts/openapi.yaml).
+- Проверяй веб и расширение командами `npm run typecheck --workspaces`, `npm test --workspaces`, `npm run build --workspace=@ai-buddy/web` и `npm run build --workspace=@ai-buddy/extension`.
