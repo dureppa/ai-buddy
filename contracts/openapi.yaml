@@ -1,0 +1,344 @@
+openapi: 3.1.1
+info:
+  title: AI Buddy API
+  version: 0.1.0-draft
+  description: Черновой контракт Go API для веба и браузерного расширения.
+servers:
+  - url: /api/v1
+security:
+  - sessionToken: []
+paths:
+  /demo/sessions:
+    post:
+      operationId: createDemoSession
+      summary: Войти под тестовым профилем
+      description: Доступно только в режиме демонстрации с синтетическими профилями.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [profile_id]
+              additionalProperties: false
+              properties:
+                profile_id:
+                  type: string
+                  minLength: 1
+      responses:
+        '201':
+          description: Сессия тестового профиля создана.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemoSession'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /onboarding:
+    get:
+      operationId: getOnboarding
+      summary: Получить чек-лист и ближайший шаг
+      responses:
+        '200':
+          description: Прогресс текущего стажёра.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Onboarding'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /onboarding/tasks/{task_id}/completion:
+    put:
+      operationId: completeOnboardingTask
+      summary: Отметить шаг выполненным
+      description: Повторная отметка возвращает текущий статус того же шага.
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Обновлённый чек-лист и ближайший шаг.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Onboarding'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /chat/messages:
+    post:
+      operationId: askBuddy
+      summary: Задать вопрос или подготовить заявку
+      description: >
+        Веб и расширение используют один API. Личность и права определяются
+        по сессии. При подготовке заявки ответ может содержать черновик для подтверждения.
+        Первый запрос открывает диалог, а последующие передают его идентификатор.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessage'
+      responses:
+        '200':
+          description: Ответ, уточнение, отказ по правам или черновик для подтверждения.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatReply'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /access-requests:
+    get:
+      operationId: listAccessRequests
+      summary: Получить сохранённые заявки текущего стажёра
+      responses:
+        '200':
+          description: Список заявок.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccessRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /access-requests/drafts/{draft_id}/confirm:
+    post:
+      operationId: confirmAccessRequest
+      summary: Подтвердить подготовленную заявку
+      description: >
+        Вызывается после явного действия пользователя. Go проверяет владельца,
+        права и срок черновика. Повтор подтверждения возвращает ранее сохранённую
+        заявку этого пользователя.
+      parameters:
+        - name: draft_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Заявка принята и сохранена.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ExpiredDraft'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /notifications:
+    get:
+      operationId: listNotifications
+      summary: Получить системные карточки для веб-чата
+      responses:
+        '200':
+          description: Уведомления текущего стажёра.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+components:
+  securitySchemes:
+    sessionToken:
+      type: http
+      scheme: bearer
+  responses:
+    InvalidInput:
+      description: Запрос не соответствует схеме.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthenticated:
+      description: Требуется действующая сессия.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: У текущего стажёра нет прав на действие.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Ресурс отсутствует или недоступен текущему пользователю.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ExpiredDraft:
+      description: Срок подтверждения истёк. Можно подготовить новый черновик.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unavailable:
+      description: Зависимый сервис временно недоступен.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    DemoSession:
+      type: object
+      required: [access_token, profile_id]
+      properties:
+        access_token:
+          type: string
+        profile_id:
+          type: string
+    Onboarding:
+      type: object
+      required: [tasks, next_task_id]
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/OnboardingTask'
+        next_task_id:
+          type: [string, 'null']
+          description: ID ближайшего незавершённого шага или null.
+    OnboardingTask:
+      type: object
+      required: [id, title, guidance, status]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        guidance:
+          type: string
+        status:
+          type: string
+          enum: [pending, completed]
+        action_url:
+          type: string
+          format: uri-reference
+    ChatMessage:
+      type: object
+      required: [text]
+      additionalProperties: false
+      properties:
+        text:
+          type: string
+          minLength: 1
+        conversation_id:
+          type: string
+          minLength: 1
+          description: Идентификатор диалога текущего пользователя для уточнений.
+        page_context:
+          type: object
+          required: [url]
+          additionalProperties: false
+          properties:
+            url:
+              type: string
+              format: uri
+              description: >
+                Адрес страницы без query-параметров и фрагмента. Сервер
+                сопоставляет его с разрешённым справочником страниц.
+    ChatReply:
+      type: object
+      required: [kind, text, conversation_id]
+      properties:
+        conversation_id:
+          type: string
+        kind:
+          type: string
+          enum: [answer, clarification, access_confirmation_required, access_denied]
+        text:
+          type: string
+        references:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reference'
+        draft:
+          $ref: '#/components/schemas/AccessRequestDraft'
+      if:
+        properties:
+          kind:
+            const: access_confirmation_required
+      then:
+        required: [draft]
+      else:
+        properties:
+          draft: false
+    Reference:
+      type: object
+      required: [title, url]
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+          format: uri-reference
+    AccessRequestDraft:
+      type: object
+      required: [id, service_name, expires_at]
+      properties:
+        id:
+          type: string
+        service_name:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+    AccessRequest:
+      type: object
+      required: [id, number, service_name, status]
+      properties:
+        id:
+          type: string
+        number:
+          type: string
+        service_name:
+          type: string
+        status:
+          type: string
+          const: submitted
+    Notification:
+      type: object
+      required: [id, title, text, action]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        text:
+          type: string
+        action:
+          $ref: '#/components/schemas/Reference'
