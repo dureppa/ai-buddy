@@ -1,0 +1,34 @@
+@font-face {
+  font-family: Inter;
+  src: url('../../web/src/assets/inter.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root { font-family: Inter, system-ui, sans-serif; background: #f7f8fa; color: #171717; -webkit-font-smoothing: antialiased; }
+* { box-sizing: border-box; }
+body { width: 345px; margin: 0; }
+main { padding: 14px; }
+header { height: 84px; padding: 13px; display: flex; align-items: center; justify-content: space-between; background: #c9ffbf; border-radius: 17px; overflow: hidden; }
+header span { font-size: 21px; font-weight: 800; letter-spacing: -.055em; }
+header img { height: 80px; object-fit: contain; animation: float 4s ease-in-out infinite; }
+@keyframes float { 50% { transform: translateY(-4px) rotate(2deg); } }
+h1 { font-size: 23px; letter-spacing: -.055em; margin: 13px 0 4px; }
+p { font-size: 13px; color: #55565b; line-height: 1.45; margin: 0 0 11px; }
+form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+label { grid-column: 1 / -1; font-size: 11px; font-weight: 700; }
+input, button { min-width: 0; font: inherit; font-size: 12px; border: 1px solid #e1e6e1; border-radius: 9px; padding: 8px; }
+input { background: #fff; }
+button { cursor: pointer; background: #24392a; color: #fff; font-weight: 650; transition: transform 160ms ease, background-color 160ms ease; }
+button:hover:not(:disabled) { transform: translateY(-1px); }
+button:active:not(:disabled) { transform: scale(.97); }
+button:disabled { opacity: .55; cursor: default; }
+:focus-visible { outline: 2px solid #187b41; outline-offset: 2px; }
+.suggestion, .open-web { color: #284c31; background: #e8f6e5; }
+.suggestion { margin: 7px 0; padding: 6px; font-size: 11px; }
+.open-web { display: flex; width: 100%; justify-content: space-between; text-align: left; margin-top: 3px; }
+.answer { margin: 4px 0 10px; padding: 9px; background: #dfcdf3; border-radius: 9px; color: #403150; animation: appear 220ms both; }
+@keyframes appear { from { opacity: 0; transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

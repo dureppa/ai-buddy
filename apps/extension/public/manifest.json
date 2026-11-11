@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "AI-buddy",
+  "version": "0.1.0",
+  "description": "Быстрая помощь с адаптацией и инструментами.",
+  "action": {
+    "default_title": "Открыть AI-buddy",
+    "default_popup": "index.html"
+  },
+  "permissions": ["activeTab"]
+}
