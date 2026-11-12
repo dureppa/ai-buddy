@@ -51,7 +51,9 @@ func accessAPI(store *fakeAccessStore, corp *fakeCorpGateway) (*API, string) {
 	sessions := buddy.NewSessions(okStore(), tokens, true)
 	onb := buddy.NewOnboarding(&fakeOnbStore{})
 	access := buddy.NewAccess(store, corp)
-	api := NewAPI(sessions, onb, access)
+	notifications := buddy.NewNotifications(&fakeNotifStore{})
+	chat := buddy.NewChat(buddy.UnavailableAssistant{})
+	api := NewAPI(sessions, onb, access, notifications, chat)
 	token, _, _ := tokens.Issue("olga", time.Now())
 	return api, token
 }

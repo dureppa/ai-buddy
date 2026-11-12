@@ -50,7 +50,9 @@ func run() error {
 	sessions := buddy.NewSessions(st, tokens, cfg.DemoMode)
 	corp := store.NewCorporate(pool, cfg.CorporateFail)
 	access := buddy.NewAccess(st, corp)
-	api := httpapi.NewAPI(sessions, onboarding, access)
+	notifications := buddy.NewNotifications(st)
+	chat := buddy.NewChat(buddy.UnavailableAssistant{})
+	api := httpapi.NewAPI(sessions, onboarding, access, notifications, chat)
 
 	srv := &http.Server{
 		Addr:              cfg.Addr,

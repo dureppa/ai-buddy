@@ -44,9 +44,10 @@ func newTestAPI(demo bool, store fakeStore) (*API, *buddy.Tokens) {
 	sessions := buddy.NewSessions(store, tokens, demo)
 	onboarding := buddy.NewOnboarding(&fakeOnbStore{})
 	access := buddy.NewAccess(&fakeAccessStore{}, &fakeCorpGateway{})
-	return NewAPI(sessions, onboarding, access), tokens
+	notifications := buddy.NewNotifications(&fakeNotifStore{})
+	chat := buddy.NewChat(buddy.UnavailableAssistant{})
+	return NewAPI(sessions, onboarding, access, notifications, chat), tokens
 }
-
 func TestDemoSession(t *testing.T) {
 	unknown := okStore()
 	unknown.profileByID = func(context.Context, string) (buddy.Profile, error) { return buddy.Profile{}, buddy.ErrNotFound }
@@ -136,4 +137,10 @@ func TestRequireAuth(t *testing.T) {
 			}
 		})
 	}
+}
+
+type fakeNotifStore struct{}
+
+func (fakeNotifStore) ListNotificationsByProfile(context.Context, string) ([]buddy.Notification, error) {
+	return nil, nil
 }

@@ -46,7 +46,9 @@ func onboardAPI(store *fakeOnbStore) (*API, string) {
 	sessions := buddy.NewSessions(okStore(), tokens, true)
 	onb := buddy.NewOnboarding(store)
 	access := buddy.NewAccess(&fakeAccessStore{}, &fakeCorpGateway{})
-	api := NewAPI(sessions, onb, access)
+	notifications := buddy.NewNotifications(&fakeNotifStore{})
+	chat := buddy.NewChat(buddy.UnavailableAssistant{})
+	api := NewAPI(sessions, onb, access, notifications, chat)
 	token, _, _ := tokens.Issue("olga", time.Now())
 	return api, token
 }

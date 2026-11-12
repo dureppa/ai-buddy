@@ -2,13 +2,17 @@
 
 ## Статус
 
-В компоненте есть **схема PostgreSQL и демонстрационные данные**. Go-код ещё не написан:
-HTTP API, MCP-инструменты и интеграция с AI-сервисом не реализованы. Веб-приложение и
-расширение пока работают на локальном demo-adapter.
+В компоненте реализованы **схема PostgreSQL, демонстрационные данные и HTTP API**.
+Веб-приложение и расширение могут переключиться с локального demo-adapter на реальный бэкенд.
 
-Схема подготовлена под [черновик OpenAPI](../../contracts/openapi.yaml) и сценарии
-[заявки на доступ](specs/001-access-request.md) и
-[онбординга](specs/002-onboarding-and-context.md). Контракт не менялся.
+Реализованные срезы:
+- Демонстрационные сессии с JWT и хэшированием токенов в БД.
+- Чек-лист адаптации с идемпотентной отметкой шагов.
+- Заявки на доступ с полной таблицей приёмки SDD 001 и моком корпоративного сервиса.
+- Системные уведомления.
+- Граница чата с Buddy (валидация и возврат `503` до подключения Python).
+
+MCP-инструменты и полная интеграция с AI-сервисом не реализованы. Схема и API подготовлены под [черновик OpenAPI](../../contracts/openapi.yaml) и сценарии [заявки на доступ](specs/001-access-request.md) и [онбординга](specs/002-onboarding-and-context.md). Контракт не менялся.
 
 ## Назначение
 
@@ -19,12 +23,21 @@ Go-бэкенд предоставит API веб-приложению и рас
 ## Стек и требования
 
 - PostgreSQL **13+** — используется встроенный `gen_random_uuid()`.
-- Файлы миграций и сидов в **UTF-8** (в номере заявки кириллическая `Д`).
+- Файлы миграций, сидов и кода в **UTF-8** (в номере заявки кириллическая `Д`).
 - Версии Go и библиотек зафиксированы в [go.mod](../../services/backend-go/go.mod),
   [go.sum](../../services/backend-go/go.sum) и [стеке проекта](../stack.md):
-  `pgx/v5 v5.12.0`, `modelcontextprotocol/go-sdk v1.8.0`, `golang-jwt/jwt/v5 v5.3.1`,
-  `testify v1.11.1`. Пока ни одна из них не импортируется — кода нет.
+  `pgx/v5 v5.12.0` (драйвер БД), `golang-jwt/jwt/v5 v5.3.1` (аутентификация),
+  `testify v1.11.1` (тесты). `modelcontextprotocol/go-sdk v1.8.0` зарезервирован.
 - Отдельный CLI для миграций не используется: файлы применяются через `psql` или GUI-клиент.
+
+## Архитектура
+
+Код разделён на три пакета с чёткой ответственностью:
+- **`buddy`** — доменная логика: типы, ошибки, use cases. Объявляет интерфейсы хранилищ.
+- **`store`** — доступ к данным: SQL-запросы, транзакции, мок корпоративного сервиса. Реализует интерфейсы из `buddy`.
+- **`httpapi`** — HTTP-транспорт: роутинг, DTO, middleware аутентификации, маппинг ошибок.
+
+Правило зависимостей: `httpapi` → `buddy` ← `store`.
 
 ## Карта файлов
 
@@ -177,38 +190,49 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f services/backend-go/seeds/demo.sql
 
 ## Проверка
 
+### Автоматические тесты
+```bash
+cd services/backend-go
+go test -race ./...
+```
+Три уровня тестов: Unit (buddy) с fake-хранилищами, HTTP (httpapi) через httptest, Интеграционные (store) против реальной БД aibuddy_test.
+
+### Ручная проверка API
+```bash
+cd services/backend-go
+go run ./cmd/server
+```
+В другом терминале:
+```bash
+# Получить токен
+TOKEN=$(curl -s localhost:8080/api/v1/demo/sessions \
+  -H 'Content-Type: application/json' -d '{"profile_id":"sasha"}' | jq -r .access_token)
+
+# Получить уведомления (у sasha есть карточка экватора)
+curl -s localhost:8080/api/v1/notifications -H "Authorization: Bearer $TOKEN" | jq
+
+# Чат (вернёт 503, так как AI ещё не подключен, но валидация работает)
+curl -s -X POST localhost:8080/api/v1/chat/messages \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"text":"Как оформить отгул?"}' | jq
+```
+### Проверка схемы в БД
 ```bash
 psql "$DATABASE_URL" -c "SELECT p.id, coalesce(bool_or(perm.service_id='grafana'), false) AS grafana FROM profiles p LEFT JOIN service_request_permissions perm ON perm.profile_id=p.id GROUP BY p.id ORDER BY p.id;"
 
 psql "$DATABASE_URL" -c "SELECT profile_id, count(*) FROM onboarding_progress GROUP BY profile_id ORDER BY profile_id;"
 
 psql "$DATABASE_URL" -c "SELECT id, number, status FROM access_requests;"
-
-psql "$DATABASE_URL" -c "SELECT last_value, is_called FROM access_request_number_seq;"
 ```
-
-Ожидаемо: `grafana` — `maria t`, `olga t`, `sasha f`; прогресс — `maria 12`, `olga 3`,
-`sasha 10`; одна заявка `Д-001` со статусом `submitted`; последовательность `1`, `t`.
-
-Схема и сиды проверены применением в DBeaver. Автоматических тестов пока нет — они
-появятся вместе с первым Go-кодом (интеграционные тесты репозитория против `aibuddy_test`).
+*Ожидаемо:*
+grafana — maria t, olga t, sasha f; прогресс — maria 12, olga 3, sasha 10; одна заявка Д-001 со статусом submitted.
 
 ## Ограничения и открытые вопросы
 
-- **Go-кода нет.** Точка входа, пакеты, HTTP-обработчики и MCP-инструмент
-  `prepare_access_request` будут описаны здесь отдельной задачей.
-- **Нет версионирования миграций.** Порядок применения соблюдается вручную. Инструмент
-  миграций выбирается отдельно, новой зависимости пока не добавляли.
-- **Каталог сервисов минимален** (`id`, `name`, `description`). Атрибуты `state`,
-  `aliases`, `owner`, `instruction` остаются в `data.ts` веба и переедут в бэкенд или
-  AI-сервис вместе с чат-сценарием.
-- **Презентация шагов остаётся на фронте.** API отдаёт `id`, `title`, `guidance`,
-  `status`, `action_url`; поля `summary`, `due`, `owner`, `stage`, `icon`, `tone` —
-  оформление из `data.ts`.
-- **Снятие отметки не предусмотрено.** Контракт содержит только `PUT .../completion`
-  (идемпотентная отметка). Фронтовый `toggleTask` умеет снимать отметку — расхождение
-  решается отдельной задачей по контракту.
-- **Дедуп по сервису** выполняется на этапе подготовки черновика в чате, а не при
-  подтверждении; на подтверждении достаточно `UNIQUE (draft_id)`.
-- **Нумерация за 999.** `lpad(..., 3, '0')` обрежет номер до трёх цифр, в отличие от
-  фронтового `padStart`. Для демонстрации недостижимо.
+- **MCP и AI не реализованы.** Инструмент `prepare_access_request` и полная генерация ответов в `POST /chat/messages` будут добавлены отдельными задачами. Пока чат возвращает `503`.
+- **Нет версионирования миграций.** Порядок применения соблюдается вручную через скрипт `scripts/db-setup.sh`.
+- **Каталог сервисов минимален** (`id`, `name`, `description`). Атрибуты `state`, `aliases`, `owner`, `instruction` остаются в `data.ts` веба и переедут в бэкенд или AI-сервис вместе с чат-сценарием.
+- **Презентация шагов остаётся на фронте.** API отдаёт `id`, `title`, `guidance`, `status`, `action_url`; поля `summary`, `due`, `owner`, `stage`, `icon`, `tone` — оформление из `data.ts`.
+- **Снятие отметки не предусмотрено.** Контракт содержит только `PUT .../completion` (идемпотентная отметка). Фронтовый `toggleTask` умеет снимать отметку — расхождение решается отдельной задачей по контракту.
+- **Дедуп по сервису** выполняется на этапе подготовки черновика в чате, а не при подтверждении; на подтверждении достаточно `UNIQUE (draft_id)`.
+- **Нумерация за 999.** `lpad(..., 3, '0')` обрежет номер до трёх цифр, в отличие от фронтового `padStart`. Для демонстрации недостижимо.
