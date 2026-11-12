@@ -1,7 +1,7 @@
 export type Tone = 'mint' | 'blue' | 'lilac' | 'pink' | 'paper';
 
 export const navigation = [
-  { path: '/', label: 'Главная', icon: 'home' },
+  { path: '/home', label: 'Главная', icon: 'home' },
   { path: '/onboarding', label: 'Моя адаптация', icon: 'map' },
   { path: '/team', label: 'Моя команда', icon: 'users' },
   { path: '/tools', label: 'Инструменты и доступы', icon: 'grid' },
@@ -15,7 +15,7 @@ export const profiles = {
     name: 'Оля',
     fullName: 'Ольга Соколова',
     initials: 'ОС',
-    avatar: 'lilac',
+    avatar: 'olga',
     role: 'Стажёр · продуктовый дизайнер',
     team: 'Дизайн продукта',
     day: 1,
@@ -27,7 +27,7 @@ export const profiles = {
     name: 'Саша',
     fullName: 'Александр Ким',
     initials: 'АК',
-    avatar: 'blue',
+    avatar: 'alexander',
     role: 'Стажёр · продуктовый дизайнер',
     team: 'Дизайн продукта',
     day: 90,
@@ -39,7 +39,7 @@ export const profiles = {
     name: 'Маша',
     fullName: 'Мария Лебедева',
     initials: 'МЛ',
-    avatar: 'coral',
+    avatar: 'maria',
     role: 'Стажёр · продуктовый дизайнер',
     team: 'Дизайн продукта',
     day: 180,
@@ -219,32 +219,63 @@ export const tasks: Task[] = [
   },
 ];
 
-export const events = [
-  {
-    day: '16',
-    month: 'НОЯ',
-    title: 'Встреча с лидом',
-    detail: 'Сегодня · 14:00–14:30',
-    tone: 'lilac',
-    description: 'Алексей расскажет о задачах команды и обсудит твои цели на первые недели.',
-  },
-  {
-    day: '17',
-    month: 'НОЯ',
-    title: 'Кофе с наставником',
-    detail: 'Завтра · 11:00–11:30',
-    tone: 'pink',
-    description: 'Неформальное знакомство с Анной. Можно задать вопросы о команде и повседневной работе.',
-  },
-  {
-    day: '19',
-    month: 'НОЯ',
-    title: 'Знакомство с продуктом',
-    detail: 'Четверг · 15:00–16:00',
-    tone: 'blue',
-    description: 'Команда покажет пользовательские сценарии и расскажет, над чем работает сейчас.',
-  },
-] as const;
+export type Event = {
+  day: string;
+  month: string;
+  title: string;
+  detail: string;
+  tone: Tone;
+  description: string;
+};
+
+export const eventsByProfile: Record<ProfileId, Event[]> = {
+  olga: [
+    {
+      day: '16',
+      month: 'НОЯ',
+      title: 'Встреча с лидом',
+      detail: 'Сегодня · 14:00–14:30',
+      tone: 'lilac',
+      description: 'Алексей расскажет о задачах команды и обсудит твои цели на первые недели.',
+    },
+    {
+      day: '17',
+      month: 'НОЯ',
+      title: 'Кофе с наставником',
+      detail: 'Завтра · 11:00–11:30',
+      tone: 'pink',
+      description: 'Неформальное знакомство с Анной. Можно задать вопросы о команде и повседневной работе.',
+    },
+    {
+      day: '19',
+      month: 'НОЯ',
+      title: 'Знакомство с продуктом',
+      detail: 'Четверг · 15:00–16:00',
+      tone: 'blue',
+      description: 'Команда покажет пользовательские сценарии и расскажет, над чем работает сейчас.',
+    },
+  ],
+  sasha: [
+    {
+      day: '13',
+      month: 'ФЕВ',
+      title: 'Встреча на экваторе',
+      detail: 'Сегодня · 12:00–12:30',
+      tone: 'lilac',
+      description: 'Обсуди с наставником результаты первых месяцев и цели на вторую половину стажировки.',
+    },
+  ],
+  maria: [
+    {
+      day: '14',
+      month: 'МАЙ',
+      title: 'Итоговая встреча с лидом',
+      detail: 'Сегодня · 15:00–15:30',
+      tone: 'mint',
+      description: 'Подведи итоги стажировки, обсуди обратную связь и договорись о следующих шагах.',
+    },
+  ],
+};
 
 export const people = [
   {
@@ -451,4 +482,3 @@ export const suggestions = [
 export type Person = (typeof people)[number];
 export type Service = (typeof services)[number];
 export type Resource = (typeof resources)[number];
-export type Event = (typeof events)[number];

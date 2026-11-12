@@ -1,6 +1,15 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import buddy from './assets/buddy.webp';
-import type { Tone } from './data';
+import alexanderAvatar from './assets/avatars/profile-alexander.webp';
+import mariaAvatar from './assets/avatars/profile-maria.webp';
+import olgaAvatar from './assets/avatars/profile-olga.webp';
+import type { AvatarVariant, Tone } from './data';
+
+const avatarSources: Record<AvatarVariant, string> = {
+  olga: olgaAvatar,
+  alexander: alexanderAvatar,
+  maria: mariaAvatar,
+};
 
 const iconPaths = {
   home: 'm3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z',
@@ -55,10 +64,18 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   );
 }
 
-export function Avatar({ initials, tone = 'lilac' }: { initials: string; tone?: Tone }) {
+export function Avatar({
+  initials,
+  tone = 'lilac',
+  avatar,
+}: {
+  initials: string;
+  tone?: Tone;
+  avatar?: AvatarVariant;
+}) {
   return (
-    <span className={'avatar tone-' + tone} aria-hidden="true">
-      {initials}
+    <span className={'avatar tone-' + tone + (avatar ? ' avatar--image' : '')} aria-hidden="true">
+      {avatar ? <img src={avatarSources[avatar]} alt="" draggable="false" /> : initials}
     </span>
   );
 }
