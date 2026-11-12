@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  events,
+  eventsByProfile,
   people,
   resources,
   services,
@@ -146,14 +146,14 @@ const quickActions = [
 ] as const;
 
 export function Dashboard({ profile, workspace, onOpen, onToggle, savingTask }: ChecklistProps & { profile: Profile }) {
-  const todaysTasks = tasks.filter((task) => task.today);
+  const dashboardTasks = tasks.filter((task) => (profile.id === 'olga' ? task.today : task.stage === 'finish'));
   const allDone = progressFor(workspace).remaining === 0;
   return (
     <>
       <div className="page-title">
         <h1>Главная</h1>
         <span className="date-label">
-          <Icon name="calendar" size={17} /> Понедельник, 16 ноября
+          <Icon name="calendar" size={17} /> {profile.stage}
         </span>
       </div>
       <div className="dashboard-grid">
@@ -163,11 +163,7 @@ export function Dashboard({ profile, workspace, onOpen, onToggle, savingTask }: 
               <span /> День {profile.day} · {profile.team}
             </span>
             <h2>Привет, {profile.name}!</h2>
-            <p>
-              {allDone
-                ? 'Ты прошёл все шаги адаптации. Поздравляю!'
-                : 'Добро пожаловать в команду. Давай разберёмся, с чего начать сегодня.'}
-            </p>
+            <p>{allDone ? 'Все шаги адаптации пройдены. Поздравляю!' : profile.stageDescription + '.'}</p>
             <Link className="button button--dark hero__button" to="/onboarding">
               Мой план адаптации <Icon name="diagonal" size={18} />
             </Link>
@@ -183,13 +179,13 @@ export function Dashboard({ profile, workspace, onOpen, onToggle, savingTask }: 
         </section>
         <Progress workspace={workspace} />
         <section className="panel tasks-panel">
-          <SectionTitle title="Задачи на сегодня">
+          <SectionTitle title={profile.id === 'olga' ? 'Задачи на сегодня' : 'Итоги адаптации'}>
             <Link className="text-link" to="/onboarding">
               Весь план <Icon name="arrow" size={17} />
             </Link>
           </SectionTitle>
           <ul className="task-list">
-            {todaysTasks.map((task) => (
+            {dashboardTasks.map((task) => (
               <TaskRow
                 key={task.id}
                 task={task}
@@ -206,7 +202,7 @@ export function Dashboard({ profile, workspace, onOpen, onToggle, savingTask }: 
             <Icon name="calendar" size={19} />
           </SectionTitle>
           <ul className="event-list">
-            {events.map((event) => (
+            {eventsByProfile[profile.id].map((event) => (
               <li key={event.title}>
                 <button type="button" className="event-row" onClick={() => onOpen({ kind: 'event', item: event })}>
                   <span className={'event-date tone-' + event.tone}>

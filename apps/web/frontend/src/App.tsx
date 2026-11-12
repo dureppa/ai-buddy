@@ -34,8 +34,54 @@ const searchItems = [
 type Toast = { message: string; tone: 'success' | 'error' };
 const delay = (milliseconds: number) => new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
 
-function loadProfile(): ProfileId {
-  return localStorage.getItem('ai-buddy.profile') === 'sasha' ? 'sasha' : 'olga';
+function loadProfile(): ProfileId | null {
+  const saved = localStorage.getItem('ai-buddy.profile');
+  return saved && Object.keys(profiles).includes(saved) ? (saved as ProfileId) : null;
+}
+
+function StartScreen({ onSelect }: { onSelect: (id: ProfileId) => void }) {
+  return (
+    <main className="start-screen">
+      <section className="start-card" aria-labelledby="start-title">
+        <div className="start-card__intro">
+          <div className="start-brand">
+            <span className="brand-mark">
+              <i />
+              <i />
+            </span>
+            <span>AI-buddy</span>
+          </div>
+          <span className="start-eyebrow">Hack&amp;Change 2026</span>
+          <h1 id="start-title">Решение хакатона от команды «Без негатива»</h1>
+          <p className="start-card__lead">
+            AI-buddy помогает стажёру освоиться в новой команде, пройти этапы адаптации и найти следующий шаг.
+          </p>
+          <div className="start-card__buddy">
+            <Buddy mood="happy" />
+          </div>
+        </div>
+        <div className="start-card__profiles">
+          <div className="start-card__heading">
+            <h2>Выберите тестового пользователя</h2>
+          </div>
+          <div className="start-profiles">
+            {Object.values(profiles).map((profile) => (
+              <button type="button" className="start-profile" key={profile.id} onClick={() => onSelect(profile.id)}>
+                <Avatar initials={profile.initials} tone="lilac" avatar={profile.avatar} />
+                <span className="start-profile__copy">
+                  <strong>{profile.fullName}</strong>
+                  <span>{profile.stage}</span>
+                  <small>{profile.stageDescription}</small>
+                </span>
+                <Icon name="arrow" size={19} />
+              </button>
+            ))}
+          </div>
+          <p className="start-card__note">Все данные синтетические и предназначены для демонстрации сценариев.</p>
+        </div>
+      </section>
+    </main>
+  );
 }
 
 function SearchDialog({ onClose }: { onClose: () => void }) {
@@ -103,7 +149,15 @@ function Survey({ onSubmit }: { onSubmit: () => void }) {
   );
 }
 
-function WorkspaceShell({ profileId, onProfile }: { profileId: ProfileId; onProfile: (id: ProfileId) => void }) {
+function WorkspaceShell({
+  profileId,
+  onProfile,
+  onExit,
+}: {
+  profileId: ProfileId;
+  onProfile: (id: ProfileId) => void;
+  onExit: () => void;
+}) {
   const profile = profiles[profileId];
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -261,7 +315,8 @@ function WorkspaceShell({ profileId, onProfile }: { profileId: ProfileId; onProf
     savingTask: taskMutation.isPending ? taskMutation.variables : undefined,
   };
 
-  const hasUnread = !readAlerts && (profileId === 'olga' || !surveyDone);
+  const hasUnread =
+    !readAlerts && (profileId === 'olga' || profileId === 'maria' || (profileId === 'sasha' && !surveyDone));
 
   return (
     <div className="shell">
@@ -277,7 +332,7 @@ function WorkspaceShell({ profileId, onProfile }: { profileId: ProfileId; onProf
         />
       )}
       <aside id="workspace-navigation" className={'sidebar' + (navOpen ? ' sidebar--open' : '')}>
-        <Link className="brand" to="/" onClick={() => setNavOpen(false)}>
+        <Link className="brand" to="/home" onClick={() => setNavOpen(false)}>
           <span className="brand-mark">
             <i />
             <i />
@@ -285,7 +340,7 @@ function WorkspaceShell({ profileId, onProfile }: { profileId: ProfileId; onProf
           <span>AI-buddy</span>
         </Link>
         <div className="sidebar__profile">
-          <Avatar initials={profile.initials} tone="lilac" />
+          <Avatar initials={profile.initials} tone="lilac" avatar={profile.avatar} />
           <div>
             <strong>{profile.fullName}</strong>
             <small>{profile.role}</small>
@@ -293,7 +348,7 @@ function WorkspaceShell({ profileId, onProfile }: { profileId: ProfileId; onProf
         </div>
         <nav aria-label="Разделы AI-buddy">
           {navigation.map((item) => (
-            <NavLink end={item.path === '/'} key={item.path} to={item.path} onClick={() => setNavOpen(false)}>
+            <NavLink end key={item.path} to={item.path} onClick={() => setNavOpen(false)}>
               <Icon name={item.icon} size={20} />
               <span>{item.label}</span>
             </NavLink>
@@ -368,7 +423,7 @@ function WorkspaceShell({ profileId, onProfile }: { profileId: ProfileId; onProf
               aria-label="Профиль"
               onClick={() => setDetail({ kind: 'settings' })}
             >
-              <Avatar initials={profile.initials} tone="lilac" />
+              <Avatar initials={profile.initials} tone="lilac" avatar={profile.avatar} />
               <Icon name="down" size={14} />
             </button>
           </div>
@@ -384,13 +439,13 @@ function WorkspaceShell({ profileId, onProfile }: { profileId: ProfileId; onProf
           ) : (
             <div className="page-content" key={location.pathname}>
               <Routes>
-                <Route path="/" element={<Dashboard profile={profile} {...checklist} />} />
+                <Route path="/home" element={<Dashboard profile={profile} {...checklist} />} />
                 <Route path="/onboarding" element={<Adaptation {...checklist} />} />
                 <Route path="/team" element={<Team onOpen={setDetail} />} />
                 <Route path="/tools" element={<Tools workspace={workspace} onOpen={setDetail} />} />
                 <Route path="/resources" element={<Resources onOpen={setDetail} />} />
                 <Route path="/chat" element={<ChatPage {...chatProps} />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="/home" replace />} />
               </Routes>
             </div>
           )}
@@ -431,6 +486,17 @@ function WorkspaceShell({ profileId, onProfile }: { profileId: ProfileId; onProf
                 <p>Сегодня в 14:00 — знакомство с лидом.</p>
                 <Link to="/onboarding" className="text-link" onClick={() => setAlertsOpen(false)}>
                   Посмотреть план <Icon name="arrow" size={16} />
+                </Link>
+              </div>
+            </div>
+          ) : profileId === 'maria' ? (
+            <div className="alert-card tone-blue">
+              <Icon name="flag" />
+              <div>
+                <h3>Финал стажировки</h3>
+                <p>Проверь итоги адаптации и подготовься к переходу в команду.</p>
+                <Link to="/onboarding" className="text-link" onClick={() => setAlertsOpen(false)}>
+                  Открыть итоги <Icon name="arrow" size={16} />
                 </Link>
               </div>
             </div>
@@ -587,16 +653,19 @@ function WorkspaceShell({ profileId, onProfile }: { profileId: ProfileId; onProf
                   }}
                   aria-pressed={profileId === option.id}
                 >
-                  <Avatar initials={option.initials} tone="lilac" />
+                  <Avatar initials={option.initials} tone="lilac" avatar={option.avatar} />
                   <span>
                     <strong>{option.fullName}</strong>
                     <small>
-                      День {option.day} · {option.team}
+                      {option.stage} · {option.team}
                     </small>
                   </span>
                   {profileId === option.id && <Icon name="check" size={20} />}
                 </button>
               ))}
+              <button type="button" className="text-link start-change-profile" onClick={onExit}>
+                Вернуться к выбору профиля <Icon name="arrow" size={16} />
+              </button>
             </div>
           )}
           {shownDetail.kind === 'survey' &&
@@ -627,14 +696,24 @@ function WorkspaceShell({ profileId, onProfile }: { profileId: ProfileId; onProf
 
 export default function App() {
   const [profile, setProfile] = useState(loadProfile);
-  return (
-    <WorkspaceShell
-      key={profile}
-      profileId={profile}
-      onProfile={(id) => {
-        localStorage.setItem('ai-buddy.profile', id);
-        setProfile(id);
-      }}
-    />
-  );
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  function selectProfile(id: ProfileId) {
+    localStorage.setItem('ai-buddy.profile', id);
+    setProfile(id);
+  }
+
+  if (pathname === '/') {
+    return (
+      <StartScreen
+        onSelect={(id) => {
+          selectProfile(id);
+          navigate('/home');
+        }}
+      />
+    );
+  }
+  if (!profile) return <Navigate to="/" replace />;
+
+  return <WorkspaceShell key={profile} profileId={profile} onProfile={selectProfile} onExit={() => navigate('/')} />;
 }
