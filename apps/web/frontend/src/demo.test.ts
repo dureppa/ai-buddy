@@ -18,6 +18,14 @@ function memory(): Memory {
 }
 
 describe('AI-buddy demo workspace', () => {
+  it('opens the final profile with a finished checklist and a saved request', () => {
+    const storage = memory();
+    const workspace = readWorkspace(storage, 'maria');
+    expect(progressFor(workspace).percent).toBe(100);
+    expect(workspace.requests).toMatchObject([{ serviceId: 'grafana', status: 'submitted' }]);
+    expect(readWorkspace(storage, 'olga').requests).toEqual([]);
+  });
+
   it('persists a completed onboarding task and recalculates progress', () => {
     const storage = memory();
     const initial = readWorkspace(storage, 'olga');
