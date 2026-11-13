@@ -79,9 +79,12 @@
 
 - [x] Реализовать отдельный локальный MCP с двумя read-tools и явным demo backend, без Go/UI.
 - [x] Проверить SDK-протокол, auth/Host/Origin, схемы, ошибки/таймауты/лимиты и изоляцию субъектов.
-- [ ] Подключить будущий Go HTTP backend/resolve вместо demo после согласования HTTP-контракта.
+- [x] Реализовать Go HTTP backend/resolve на Python и проверить на HTTP-моках, включая Flask/SDK, безопасные ошибки/таймауты и изоляцию.
+- [ ] Подключить настоящий Go API с ACL/делегацией и проверить живой маршрут с сохранением результатов.
 
 [Границы](mcp-demo-scope.md), [запуск](../../../docs/components/python-mcp.md).
+
+HTTP-режим: [границы адаптера](go-http-adapter-scope.md). Проверка моками не завершает Go/UI e2e, выдачу токенов и mentor review.
 
 ## Development harness
 

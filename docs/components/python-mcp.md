@@ -1,6 +1,6 @@
-# Python MCP: локальный demo
+# Python MCP: demo и Go HTTP
 
-Реализован отдельный сервер с двумя инструментами search_knowledge/get_team_context. SDK 1.30.0 (минимальная версия в манифесте поднята до проверенной 1.30 из-за используемого server API), stateless Streamable HTTP, JSON-ответы; Flask остаётся отдельным HTTP-входом агента. Go HTTP-адаптер, resolve-контекст и шесть бизнес-интеграций пока не реализованы. [Инструкция для Go](../integrations/go-python-mcp.md) описывает их будущий HTTP-контракт.
+Реализован отдельный сервер с двумя инструментами search_knowledge/get_team_context. SDK 1.30.0, stateless Streamable HTTP, JSON-ответы; Flask остаётся отдельным HTTP-входом агента. Доступны явные backend-режимы demo и go_http. Python HTTP-адаптер проверен на моках; настоящие Go endpoints и сквозной Go/UI-маршрут здесь не проверены. Шесть бизнес-интеграций не добавлены этими двумя чтениями. [Инструкция для Go](../integrations/go-python-mcp.md).
 
 ## Запуск
 
@@ -26,6 +26,26 @@ Ollama и установленная модель нужны отдельно. �
 
 `mcp_server.py` — фабрика приложения, точные схемы из CONTRACTS, backend-интерфейс, demo backend, авторизация и CLI. `mcp_client.py` сохраняет безопасные MCP_TIMEOUT/RESULT_TOO_LARGE/INVALID_RESULT из сервера. Backend может быть явно заменён тестовой dependency; runtime не импортирует evals/experiments.
 
+## Режим Go HTTP
+
+После реализации Go API по инструкции запусти MCP из services/ai-python:
+
+```bash
+MCP_BACKEND=go_http GO_API_URL=http://127.0.0.1:8080 MCP_ADAPTER_SERVICE_TOKEN=replace-with-shared-adapter-secret uv run --locked python -m ai_buddy.mcp_server
+```
+
+GO_API_URL — только фиксированный origin. HTTP допускается для localhost/127.0.0.1/::1, для других адресов нужен HTTPS; запрещены userinfo, пути, query и fragment. Новых библиотек нет. Настройки считываются из окружения; .env.example — образец, файл .env автоматически не загружается. MCP слушает только 127.0.0.1:8002; контейнерное/удалённое развёртывание и полноценный OAuth остаются отдельной задачей.
+
+Flask запускается прежней командой с MCP_URL=http://127.0.0.1:8002/mcp. В delegation_token передаётся выпущенная Go короткоживущая делегация, а не MCP_DEMO_TOKEN. AI_SERVICE_TOKEN (Go → Flask) и MCP_ADAPTER_SERVICE_TOKEN (MCP → Go resolve) — разные секреты.
+
+Каждый MCP HTTP-запрос проверяет делегацию через POST /internal/v1/ai/context/resolve. Активный контекст содержит subject, UUID запроса/диалога, allowed_tools, UTC-срок и отдельный api_token; исходный bearer не пересылается в ресурсные API. Discovery учитывает разрешения, tools/call дополнительно проверяет request-id из _meta, TTL и аргументы. ContextVar изолирует параллельных пользователей и сбрасывается при завершении/отмене. Кеширования делегаций нет; Go отвечает за привязки и актуальные ACL на каждом чтении.
+
+Поиск вызывает POST /internal/v1/ai/knowledge/search, команда — GET /internal/v1/ai/team-context без тела/query. Каждый исходящий HTTP-запрос имеет отдельный ограниченный client/stream, без cookie persistence, retries, redirects и env proxies. Resolve ограничен 1 с/16 KiB, чтение — 2,5 с/32 KiB и остатком TTL; deadline включает всё чтение тела. Сжатие не принимается. Итоговый MCP-result по-прежнему ≤32 KiB, неверный JSON/схема/дубли ключей/сочетание status-code не становятся пустыми данными.
+
+HTTP timeout/сеть дают TEMPORARILY_UNAVAILABLE, истечение TTL — CONTEXT_EXPIRED, формат — INVALID_RESULT, размер — RESULT_TOO_LARGE. Redirect/неожиданный статус/500 — TOOL_ERROR. Согласованные доменные ошибки сохраняются, исходные тексты Go не передаются. Resolve inactive/expired даёт HTTP 401 MCP, неисправный resolve — 503; клиентский boundary классифицирует их как MCP_UNAVAILABLE.
+
+GET /health/live в go_http отвечает mode=go_http, go_connected=null: проверяется жизнь процесса, доступность Go не опрашивается и не обещается. Недоступность Go не включает demo.
+
 Bearer проверяется до handshake/discovery/данных; Host/Origin ограничены loopback, access log выключен. Тело ≤64 KiB, полный tool result ≤32 KiB, backend timeout ≤4 с при клиентском budget ≤5 с. Ошибки не раскрывают exception/body/token. Подключение к Go не подменяется demo автоматически.
 
 Прямые зависимости Starlette 1.10.0 и Uvicorn 0.54.0 объявлены явно, поскольку этот код импортирует ASGI routing/server; эти версии уже были в lock как зависимости MCP SDK. Flask не заменён.
@@ -35,3 +55,5 @@ Bearer проверяется до handshake/discovery/данных; Host/Origin
 `uv run --locked pytest tests/test_mcp_server.py`: настоящий SDK handshake/list/call через ASGITransport, обе функции/пустой поиск, auth/Host/Origin, неверные args, ошибки/таймаут/размер и параллельная изоляция профилей. Это не Go integration и не оценка правильности LLM. Общие проверки: Ruff, mypy, pytest-cov. Живой запуск по TCP и LLM-eval фиксируются отдельно.
 
 [Границы OpenSpec](../../openspec/changes/implement-python-agent/mcp-demo-scope.md).
+
+HTTP-адаптер: `uv run --locked pytest tests/test_go_http.py` проверяет оба HTTP-read, реальные SDK initialize/list/call, Flask → SDK → Go HTTP mock, изоляцию/отзыв/TTL/метаданные, раздельные credentials, формат/размер/status/таймауты/chunks/cancellation. Внешний Go, БД, LLM и holdout этим набором не запускаются. [Границы HTTP-адаптера](../../openspec/changes/implement-python-agent/go-http-adapter-scope.md).

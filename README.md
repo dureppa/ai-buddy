@@ -28,4 +28,4 @@ Python-сервис: Flask → прямой агент → локальная Ol
 
 [Golden dataset агента — 20 development / 10 candidate holdout](services/ai-python/evals/agent-v1/README.md): разметка и fixtures подготовлены, development выполнен на 18 доступных кейсах с отдельным assisted-review. Holdout и человеческая приёмка не выполнены. [План контроля качества](docs/ai/quality-control.md).
 
-Для локальной разработки без Go доступен [Python demo MCP-сервер](docs/components/python-mcp.md) с двумя инструментами и учебными данными.
+Доступен [Python MCP-сервер](docs/components/python-mcp.md) с двумя инструментами: demo с учебными данными либо Go HTTP-адаптер. Адаптер реализован и проверен на моках; живая интеграция с Go ещё не подтверждена.

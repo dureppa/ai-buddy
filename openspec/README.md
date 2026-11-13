@@ -34,4 +34,6 @@ openspec status --change implement-python-agent --json
 
 [Локальный Python MCP](changes/implement-python-agent/mcp-demo-scope.md) реализует два read-tools на синтетических данных; Go HTTP backend ещё не подключён.
 
+[Go HTTP-адаптер](changes/implement-python-agent/go-http-adapter-scope.md) реализован на Python и проверен на моках: resolve, изоляция пользователей, два чтения, безопасные ошибки и таймауты. Живая Go-интеграция и сохранение результатов остаются отдельной приёмкой.
+
 [Development harness](changes/implement-python-agent/eval-harness-scope.md) реализован с фактическими MCP-вызовами и отдельным assisted-review; [результаты](../services/ai-python/evals/reports/README.md). Holdout не запускался.
