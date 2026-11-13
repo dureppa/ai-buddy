@@ -1,5 +1,7 @@
 # Прямой цикл и LangChain create_agent
 
+Ниже сохранён исходный прогон. Актуальный результат исправления ссылок, недоверенных документов и оценщика — в [повторном сравнении](safety-fix.md).
+
 Дата: 13.11.2026. Локальный development smoke, шесть случаев × два подхода, один парный прогон с чередованием порядка. Это не production-агент и не статистическое исследование.
 
 ## Одинаковые условия
@@ -48,6 +50,6 @@ uv run --locked python -m experiments.compare
 uv run --locked pytest tests/test_agent_loops.py
 ```
 
-Команда сравнения перезаписывает comparison-results.json, сохраняет прогресс после каждого случая; веса не скачивает, LangSmith tracing выключает. При ошибке старта MCP/прогрева CLI завершится ошибкой, уже записанные строки сохранятся. Для CI live-run не требуется: scripted-тесты проверяют оба цикла, лимиты модели/инструментов, неизвестный tool, неверные аргументы, FORBIDDEN, MCP timeout, общий deadline, пустой ответ и настоящий MCP-fixture. Покрытие с `--cov=.` включает экспериментальный Python-код, тесты и зависимости исключены. Итоговые проверки: 85 тестов прошли при остановленном Ollama, покрытие 93,54% (588 строк); Ruff format/check, строгий mypy и OpenSpec validate прошли. Отдельно проверен лимит шести одновременных попыток инструментов. Полный just check локально не запускался; Go/UI проверяет CI.
+Теперь команда сравнения сохраняет comparison-guarded.json и переоценивает неизменённый comparison-results.json; прогресс сохраняется после каждого случая; веса не скачивает, LangSmith tracing выключает. При ошибке старта MCP/прогрева CLI завершится ошибкой, уже записанные строки сохранятся. Для CI live-run не требуется: scripted-тесты проверяют оба цикла, лимиты модели/инструментов, неизвестный tool, неверные аргументы, FORBIDDEN, MCP timeout, общий deadline, пустой ответ и настоящий MCP-fixture. Покрытие с `--cov=.` включает экспериментальный Python-код, тесты и зависимости исключены. Итоговые проверки: 85 тестов прошли при остановленном Ollama, покрытие 93,54% (588 строк); Ruff format/check, строгий mypy и OpenSpec validate прошли. Отдельно проверен лимит шести одновременных попыток инструментов. Полный just check локально не запускался; Go/UI проверяет CI.
 
 [create_agent](https://docs.langchain.com/oss/python/langchain/agents), [ChatOllama](https://docs.langchain.com/oss/python/integrations/chat/ollama), [нативный tool calling](https://docs.ollama.com/capabilities/tool-calling).
