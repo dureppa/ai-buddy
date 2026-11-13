@@ -1,6 +1,6 @@
 # Python MCP: локальный demo
 
-Реализован отдельный сервер с двумя инструментами search_knowledge/get_team_context. SDK 1.30.0, stateless Streamable HTTP, JSON-ответы; Flask остаётся отдельным HTTP-входом агента. Go HTTP-адаптер, resolve-контекст и шесть бизнес-интеграций пока не реализованы. [Инструкция для Go](../integrations/go-python-mcp.md) описывает их будущий HTTP-контракт.
+Реализован отдельный сервер с двумя инструментами search_knowledge/get_team_context. SDK 1.30.0 (минимальная версия в манифесте поднята до проверенной 1.30 из-за используемого server API), stateless Streamable HTTP, JSON-ответы; Flask остаётся отдельным HTTP-входом агента. Go HTTP-адаптер, resolve-контекст и шесть бизнес-интеграций пока не реализованы. [Инструкция для Go](../integrations/go-python-mcp.md) описывает их будущий HTTP-контракт.
 
 ## Запуск
 

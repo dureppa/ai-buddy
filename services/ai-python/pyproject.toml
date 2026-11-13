@@ -5,7 +5,7 @@ requires-python = ">=3.13,<3.14"
 dependencies = [
     "flask>=3.1,<4",
     "httpx>=0.28,<1",
-    "mcp>=1.12,<2",
+    "mcp>=1.30,<2",
     "pydantic>=2.14,<3",
     "starlette==1.10.0",
     "uvicorn==0.54.0",
