@@ -12,10 +12,11 @@ import {
   toggleTask,
   type AccessDraft,
 } from './demo';
-import { corporateLinks } from './corporate-links';
-import { CorporateDirectory } from './CorporateDirectory';
 import { AccessBadge, Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
 import { Avatar, Buddy, EmptyState, Icon, Modal, type Mood } from './ui';
+
+import { corporateLinks } from './corporate-links';
+import { CorporateDirectory } from './CorporateDirectory';
 
 const searchItems = [
   ...navigation.map((item) => ({ label: item.label, detail: 'Раздел', to: item.path })),
