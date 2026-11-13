@@ -50,7 +50,7 @@
       "rubric_version": "1",
       "context_version": "1",
       "answer_sha256": "beac60a7b1f48da6d4214aaacfd8375b42589fd64454b3d6086c99ca6f18ed2a",
-      "prompt_version": "knowledge-assessment-v3",
+      "prompt_version": "knowledge-assessment-v4",
       "model": "qwen3:4b-q4_K_M",
       "method": "llm",
       "guard_reason": null,
@@ -62,9 +62,9 @@
           "reason_code": "matched",
           "reason": "Ответ подтверждает критерий: Объясняет начало оформления.",
           "evidence": {
-            "quote": "раздел «Отсутствия» и нажать «Новая заявка»",
-            "start": 8,
-            "end": 51
+            "quote": "Открыть раздел «Отсутствия» и нажать «Новая заявка».",
+            "start": 0,
+            "end": 52
           }
         },
         {
@@ -74,9 +74,9 @@
           "reason_code": "matched",
           "reason": "Ответ подтверждает критерий: Отличает отправку от одобрения.",
           "evidence": {
-            "quote": "на согласовании, ещё не одобрена",
-            "start": 75,
-            "end": 107
+            "quote": "После отправки заявка на согласовании, ещё не одобрена.",
+            "start": 53,
+            "end": 108
           }
         },
         {
@@ -86,9 +86,9 @@
           "reason_code": "matched",
           "reason": "Ответ подтверждает критерий: Знает владельца решения о переходе.",
           "evidence": {
-            "quote": "Переход одобряет наставник, агент только оценивает знания",
+            "quote": "Переход одобряет наставник, агент только оценивает знания.",
             "start": 109,
-            "end": 166
+            "end": 167
           }
         }
       ],
@@ -495,10 +495,10 @@
               "title": "Reason Code",
               "type": "string"
             },
-            "quote": {
+            "evidence_id": {
               "anyOf": [
                 {
-                  "maxLength": 80,
+                  "maxLength": 32,
                   "minLength": 1,
                   "type": "string"
                 },
@@ -506,13 +506,13 @@
                   "type": "null"
                 }
               ],
-              "title": "Quote"
+              "title": "Evidence Id"
             }
           },
           "required": [
             "criterion_id",
             "reason_code",
-            "quote"
+            "evidence_id"
           ],
           "title": "Judgment",
           "type": "object"

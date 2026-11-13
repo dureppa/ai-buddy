@@ -1,6 +1,6 @@
 # Go → Python: оценка знаний стажёра
 
-Статус: реализован Python-контракт и защитные проверки; локальная Qwen3 4B **не прошла** development-приёмку оценивания. Подключение Go, сохранение оценок и админка наставника остаются отдельной работой. Этот endpoint не завершает онбординг. Форматы — решения команды, не поля из ТЗ.
+Статус: реализован Python-контракт и защитные проверки; полная модельная приёмка ещё не выполнена; два новых development-примера на evidence-ID протоколе прошли отдельно. Подключение Go, сохранение оценок и админка наставника остаются отдельной работой. Этот endpoint не завершает онбординг. Форматы — решения команды, не поля из ТЗ.
 
 ## Запуск и авторизация
 
@@ -81,7 +81,7 @@ AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-servic
     "rubric_version": "1",
     "context_version": "1",
     "answer_sha256": "beac60a7b1f48da6d4214aaacfd8375b42589fd64454b3d6086c99ca6f18ed2a",
-    "prompt_version": "knowledge-assessment-v3",
+    "prompt_version": "knowledge-assessment-v4",
     "model": "qwen3:4b-q4_K_M",
     "method": "llm",
     "guard_reason": null,
@@ -93,9 +93,9 @@ AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-servic
         "reason_code": "matched",
         "reason": "Ответ подтверждает критерий: Объясняет начало оформления.",
         "evidence": {
-          "quote": "раздел «Отсутствия» и нажать «Новая заявка»",
-          "start": 8,
-          "end": 51
+          "quote": "Открыть раздел «Отсутствия» и нажать «Новая заявка».",
+          "start": 0,
+          "end": 52
         }
       },
       {
@@ -105,9 +105,9 @@ AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-servic
         "reason_code": "matched",
         "reason": "Ответ подтверждает критерий: Отличает отправку от одобрения.",
         "evidence": {
-          "quote": "на согласовании, ещё не одобрена",
-          "start": 75,
-          "end": 107
+          "quote": "После отправки заявка на согласовании, ещё не одобрена.",
+          "start": 53,
+          "end": 108
         }
       },
       {
@@ -117,9 +117,9 @@ AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-servic
         "reason_code": "matched",
         "reason": "Ответ подтверждает критерий: Знает владельца решения о переходе.",
         "evidence": {
-          "quote": "Переход одобряет наставник, агент только оценивает знания",
+          "quote": "Переход одобряет наставник, агент только оценивает знания.",
           "start": 109,
-          "end": 166
+          "end": 167
         }
       }
     ],
@@ -129,7 +129,7 @@ AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-servic
 }
 ```
 
-Модель классифицирует каждый критерий по отношению к expected; Python отображает reason_code в verdict и строит краткую reason из типа причины и description. Развёрнутого объяснения LLM этот срез не генерирует.
+В knowledge-assessment-v4 Python сначала выделяет дословные фрагменты answer_evidence с ID. Модель классифицирует критерий и выбирает evidence_id; Python подставляет исходную цитату/позиции, отображает reason_code в verdict и строит краткую reason из типа причины и description. Развёрнутого объяснения LLM этот срез не генерирует.
 
 | reason_code | verdict | Значение |
 | --- | --- | --- |
@@ -139,7 +139,7 @@ AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-servic
 | ambiguous | unclear | Нужен уточняющий ответ |
 | not_assessed | unclear | Правило остановило автоматическую оценку |
 
-Любая цитата проверяется как точный substring исходного answer, до 80 символов. evidence.start/end — Unicode code points Python, начало с 0, конец не включён; это **не Go byte offsets и не JavaScript UTF-16 offsets**. При повторе цитаты берётся первое вхождение. Дословность не доказывает смысловую правильность классификации — её проверяет live-eval и наставник.
+Цитата берётся из выбранного Python-фрагмента исходного answer, до 80 символов. Неизвестный evidence_id отклоняется; модель не переписывает цитату. evidence.start/end — Unicode code points Python, начало с 0, конец не включён; это **не Go byte offsets и не JavaScript UTF-16 offsets**. ID фрагмента однозначно задаёт исходные позиции, в том числе при повторении одинакового текста. Дословность не доказывает смысловую правильность классификации — её проверяет live-eval и наставник.
 
 Python требует ровно все criterion_id без дубликатов. required, IDs, версии, SHA-256 UTF-8 ответа, prompt_version и configured model задаёт код. Полей approved/completed/advance_stage/score нет. Рекомендация вычисляется по обязательным критериям:
 
@@ -181,4 +181,4 @@ Python не хранит БД, не обеспечивает идемпотен�
 
 ## Проверка качества
 
-[Dataset и правила оценки](../../services/ai-python/evals/README.md), [результаты development](../../services/ai-python/experiments/assessment-quality.md), [границы OpenSpec](../../openspec/changes/implement-python-agent/assessment-scope.md). Структурная корректность, покрытие тестами и смысловая точность — разные показатели. Для включения автоматического оценивания нужно выбрать модель, пройти размеченные примеры и ручную приёмку; текущий Qwen-прогон этого не позволяет.
+[Dataset и правила оценки](../../services/ai-python/evals/README.md), [результаты development](../../services/ai-python/experiments/assessment-quality.md), [границы OpenSpec](../../openspec/changes/implement-python-agent/assessment-scope.md). Структурная корректность, покрытие тестами и смысловая точность — разные показатели. Для включения автоматического оценивания нужно выбрать модель, пройти размеченные примеры и ручную приёмку. [Общий development](../../services/ai-python/evals/reports/README.md) не заменяет такую приёмку.

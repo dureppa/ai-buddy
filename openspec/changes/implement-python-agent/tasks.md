@@ -82,3 +82,12 @@
 - [ ] Подключить будущий Go HTTP backend/resolve вместо demo после согласования HTTP-контракта.
 
 [Границы](mcp-demo-scope.md), [запуск](../../../docs/components/python-mcp.md).
+
+## Development harness
+
+- [x] Реализовать общий Flask/LLM/MCP harness только для development, с actual calls, уникальными отчётами, blocked и безопасными инъекциями отказов.
+- [x] Добавить раздельный structural scorer и привязанный к SHA assisted/human review фактов/ограничений/query intent.
+- [x] Выполнить исходный и повторные development-прогоны; сохранить неудачные варианты prompt, откатить их и оставить прежний chat prompt. Исправить SDK error boundary и перейти на assessment evidence IDs.
+- [ ] Провести человеческую приёмку набора/ответов и выбрать достаточно качественную LLM. Holdout не запускать до заморозки/отдельного разрешения.
+
+[Harness](../../../services/ai-python/evals/HARNESS.md), [отчёты](../../../services/ai-python/evals/reports/README.md), [исправления](development-fixes.md). Наличие eval не закрывает качество модели и Go/UI e2e.

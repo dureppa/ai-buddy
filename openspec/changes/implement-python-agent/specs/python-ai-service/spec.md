@@ -172,7 +172,7 @@ Python и Go MUST различать текущий публичный OpenAPI �
 Assessment MUST получать закрытый snapshot с версионированной рубрикой и возвращать только предложение наставнику. Python MUST проверять все criterion_id и дословность цитат, сам вычислять recommendation и привязывать доверенные версии. Он MUST NOT вызывать MCP или менять этап. Ошибки/таймауты MUST NOT превращаться в оценку. Точный контракт и лимиты задаёт assessment-scope.
 
 #### Scenario: SVC-14-S1 Неподтверждённая цитата
-- **WHEN** модель дала отсутствующую цитату или чужой criterion_id
+- **WHEN** модель выбрала неизвестный evidence_id или чужой criterion_id
 - **THEN** допускается одна коррекция в общем deadline, затем AI_INVALID_RESPONSE без assessment; истечение deadline даёт AI_TIMEOUT
 
 #### Scenario: SVC-14-S2 Обязательный критерий не выполнен

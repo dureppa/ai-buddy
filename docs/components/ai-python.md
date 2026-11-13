@@ -4,7 +4,7 @@
 
 Flask умеет выполнять реальный прямой цикл через локальную Ollama и SDK MCP: получить контекст команды/инструкции, сформировать ответ и проверить ссылки. Включается явно, фиктивный runner не активируется. Код сервиса не импортирует LangChain/LangGraph/experiments; эти зависимости остались только для сравнения двух подходов.
 
-Поддержаны MCP search_knowledge и get_team_context, а также отдельный POST /internal/v1/assessments для оценки знаний с версиями, критериями и обязательным review наставника. Контракт и отказы assessment проверены; локальная Qwen3 4B не прошла смысловую development-приёмку. Go → Python, Go MCP, сохранение assessment/progress/evidence, шесть корпоративных tools и переходы этапов пока не реализованы. [Готовность пользовательского сценария](../../openspec/changes/implement-python-agent/scenario-status.md).
+Поддержаны MCP search_knowledge и get_team_context, а также отдельный POST /internal/v1/assessments для оценки знаний с версиями, критериями и обязательным review наставника. Контракт и отказы assessment проверены; два новых development-примера v4 прошли, но полная человеческая/модельная приёмка не выполнена. Go → Python, Go HTTP backend, сохранение assessment/progress/evidence, шесть корпоративных tools и переходы этапов пока не реализованы. [Готовность пользовательского сценария](../../openspec/changes/implement-python-agent/scenario-status.md).
 
 ## Локальный запуск
 
@@ -18,10 +18,10 @@ OLLAMA_NO_CLOUD=1 ollama serve
 
 Проверь `ollama list`: модель qwen3:4b-q4_K_M должна быть уже установлена. Сервис не скачивает веса. Ollama требуется запускать с отключённым облаком; Python обращается только к настроенному loopback origin. Контекст 4096, thinking=false, температура 0, seed 42, максимум ответа 384 токена для чата и 768 для assessment. Холодная загрузка может занять существенную часть бюджета: readiness её не запускает.
 
-Нужен отдельный совместимый MCP-сервер с закрытыми схемами [первого среза](../../openspec/changes/implement-python-agent/foundation-scope.md). Адрес ниже — пример будущего Go MCP; наличие Go HTTP API само по себе не означает наличие MCP.
+Для работы без Go запусти отдельный [локальный Python MCP](python-mcp.md) с явным demo-токеном. Для настоящих данных позднее нужен Go HTTP backend; наличие обычного Go HTTP API само по себе не подключает его к Python MCP.
 
 ```bash
-AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-service-token MCP_URL=http://127.0.0.1:8080/mcp uv run --locked flask --app ai_buddy:create_app run --host 127.0.0.1 --port 8001
+AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-service-token MCP_URL=http://127.0.0.1:8002/mcp uv run --locked flask --app ai_buddy:create_app run --host 127.0.0.1 --port 8001
 ```
 
 Это development server. Production WSGI-развёртывание ещё не настроено. Настройки перечислены в [.env.example](../../services/ai-python/.env.example); значения токенов там примерные. uv создаёт .venv; команда `uv sync --locked --no-dev` достаточна для runtime без LangChain.
@@ -78,7 +78,7 @@ uv run --locked mypy .
 uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=85
 ```
 
-Существующая Python job CI подхватывает тесты. Coverage считается по Python-коду, включая experiments и ручной smoke CLI; тесты/зависимости исключены. Локальный gate 85% сохраняет запас к требованию >80%. Пустые функции и косметические проверки ради процента не добавлялись. Отчёт coverage.xml игнорируется Git. Полный just check локально не запускался, Go/UI проверит CI.
+Существующая Python job CI подхватывает тесты. Coverage считается по Python-коду, включая experiments и ручной smoke CLI; тесты/зависимости исключены. Локальный gate 85% сохраняет запас к требованию >80%. Пустые функции и косметические проверки ради процента не добавлялись. Отчёт coverage.xml игнорируется Git. Результаты полного набора и CI фиксируются в текущем PR; исходники Go/UI этим Python-срезом не меняются.
 
 ## Живая проверка
 
@@ -99,3 +99,7 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 ## Локальный MCP без Go
 
 Доступен отдельный [Python demo MCP-сервер](python-mcp.md): два read-tools с учебным корпусом и профилями. Он запускается явно, MCP_URL=http://127.0.0.1:8002/mcp. Контекст/правила Go не подменяются реальными данными; production HTTP-адаптер ещё не реализован. В новых инструкциях MCP принадлежит Python, Go предоставляет обычный HTTP API.
+
+## Общий development eval
+
+[Harness](../../services/ai-python/evals/HARNESS.md) выполняет реальные Flask/Ollama/SDK MCP пути на сценарных fixtures, без Go и без holdout. [Отчёты](../../services/ai-python/evals/reports/README.md) разделяют структурные проверки, Codex-assisted review и человеческую приёмку. Assessment-v4 выбирает готовые ID фрагментов ответа; public HTTP-результат и правило наставника сохраняются.

@@ -33,3 +33,5 @@ openspec status --change implement-python-agent --json
 Общий golden dataset: [20 development / 10 candidate holdout](../services/ai-python/evals/agent-v1/README.md), [границы](changes/implement-python-agent/golden-dataset-scope.md). Набор подготовлен, метки требуют review, live/holdout не выполнены; 4 кейса заблокированы будущей интеграцией. [Дополнительный контроль качества](../docs/ai/quality-control.md).
 
 [Локальный Python MCP](changes/implement-python-agent/mcp-demo-scope.md) реализует два read-tools на синтетических данных; Go HTTP backend ещё не подключён.
+
+[Development harness](changes/implement-python-agent/eval-harness-scope.md) реализован с фактическими MCP-вызовами и отдельным assisted-review; [результаты](../services/ai-python/evals/reports/README.md). Holdout не запускался.

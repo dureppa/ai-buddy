@@ -1,4 +1,8 @@
-# Эталонные примеры knowledge-v1
+# Evaluation AI Buddy
+
+Общий [agent-v1 20/10](agent-v1/README.md), [development harness и разбор фактов](HARNESS.md), [результаты](reports/README.md). Holdout не запускался; метки требуют human review. Ниже сохранено описание отдельного knowledge-v1.
+
+## Эталонные примеры knowledge-v1
 
 [knowledge-v1.json](knowledge-v1.json) — начальная **черновая**, а не утверждённая человеком gold-разметка компонента проверки знаний. 6 development-кейсов и 2 кандидата в holdout по отдельным семействам. Версии, ответы, рубрики и ожидаемые оценки хранятся раздельно. Ожидаемые verdicts/recommendation никогда не передаются оценщику; поле criteria.expected в запросе — сама рубрика знаний, необходимая для проверки ответа, а не эталонная оценка конкретного примера.
 

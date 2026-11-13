@@ -82,3 +82,19 @@
 #### Scenario: QA-06-S3 Альтернативный поисковый запрос
 - **WHEN** query корректен по схеме и соответствует эталонному намерению и правам
 - **THEN** он допустим без буквального совпадения с query из примера
+
+### Requirement: QA-07 Реальный development harness и отдельный review
+
+Harness MUST выполнять Flask/локальную LLM/SDK MCP на доступных development fixtures и фиксировать реальные вызовы. Gold и holdout MUST NOT передаваться модели. Structural checks MUST отличаться от review фактов/ограничений/query intent; без review общий pass не объявляется. Assisted review MUST быть связан с SHA ответа и не считаться человеческой приёмкой.
+
+#### Scenario: QA-07-S1 Нет фактического источника
+- **WHEN** модель цитирует id из fixture, который не был реально возвращён вызовом
+- **THEN** проверка источников не проходит даже при совпадении id с эталонным файлом
+
+#### Scenario: QA-07-S2 Перезапуск после исправления
+- **WHEN** исправлены ошибки runtime или harness
+- **THEN** прежние результаты сохраняются, повтор использует те же development inputs/labels; причины изменения метрик разделяются
+
+#### Scenario: QA-07-S3 Assisted review
+- **WHEN** факты проверены Codex-assisted разбором
+- **THEN** human_reviewed остаётся нулём и release_accepted=false до настоящей приёмки

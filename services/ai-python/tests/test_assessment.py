@@ -12,7 +12,12 @@ import pytest
 from pydantic import SecretStr
 
 from ai_buddy import create_app
-from ai_buddy.assessment import AssessmentRequest, build_result, checked_judgments
+from ai_buddy.assessment import (
+    AssessmentRequest,
+    answer_evidence,
+    build_result,
+    checked_judgments,
+)
 from ai_buddy.config import Settings
 from tests.test_app import HEADERS
 from tests.test_runtime import model_response
@@ -36,7 +41,18 @@ def judgments(example: dict[str, Any]) -> dict[str, Any]:
                     "fail": "contradiction",
                     "unclear": "ambiguous",
                 }[value],
-                "quote": example["expected"]["quotes"].get(key),
+                "evidence_id": next(
+                    (
+                        c["id"]
+                        for c in answer_evidence(example["request"]["answer"])
+                        if c["start"]
+                        <= example["request"]["answer"].find(
+                            example["expected"]["quotes"].get(key, "~no quote~")
+                        )
+                        < c["end"]
+                    ),
+                    None,
+                ),
             }
             for key, value in example["expected"]["criteria"].items()
         ]
@@ -189,9 +205,9 @@ def test_invalid_model_output_is_corrected_once_or_rejected(
     elif mutation == "missing":
         bad["judgments"].pop()
     elif mutation == "fake_quote":
-        bad["judgments"][0]["quote"] = "Фразы не было в ответе"
+        bad["judgments"][0]["evidence_id"] = "unknown-evidence"
     elif mutation == "no_evidence":
-        bad["judgments"][0]["quote"] = None
+        bad["judgments"][0]["evidence_id"] = None
     elif mutation == "unsafe_reason":
         bad["judgments"][0]["reason_code"] = "approved"
     else:
@@ -398,3 +414,29 @@ def test_evaluator_counts_false_pass_and_keeps_gold_outside_request() -> None:
     assert scores["criterion_matches"] == 1
     assert not scores["passed"]
     assert not score_case(example, 503, {"error": {"code": "AI_TIMEOUT"}})["passed"]
+
+
+def test_selected_evidence_keeps_exact_unicode_offsets_across_chunks() -> None:
+    raw = case()["request"]
+    raw["answer"] = "🙂" * 83 + "\nНаставник одобряет."
+    raw["criteria"] = [raw["criteria"][-1]]
+    request = AssessmentRequest.model_validate_json(json.dumps(raw))
+    chunks = answer_evidence(request.answer)
+    assert len(chunks[0]["quote"]) == 80 and chunks[1]["quote"] == "🙂" * 3
+    result = checked_judgments(
+        request,
+        json.dumps(
+            {
+                "judgments": [
+                    {
+                        "criterion_id": "reviewer",
+                        "reason_code": "matched",
+                        "evidence_id": chunks[-1]["id"],
+                    }
+                ]
+            }
+        ),
+    )
+    evidence = result[0].evidence
+    assert evidence is not None and evidence.start == 84
+    assert request.answer[evidence.start : evidence.end] == "Наставник одобряет."

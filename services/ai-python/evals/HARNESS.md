@@ -1,0 +1,37 @@
+# Общий development eval-harness
+
+Реализованы `evals.harness` и `evals.review`. Только agent-v1 development: 20 кейсов, из них 18 исполнимы и 2 явно blocked. CLI не имеет параметра holdout и не загружает его. Исходные gold-файлы и разметка не менялись. Human approval набора по-прежнему не выполнен.
+
+## Запуск
+
+Из `services/ai-python`, с установленной локальной моделью и работающей Ollama (`OLLAMA_NO_CLOUD=1`):
+
+```bash
+uv run --locked python -m evals.harness --model qwen3:4b-q4_K_M
+```
+
+Используются настоящий Flask test client, runtime native Ollama и **та же фабрика Python MCP-сервера**, что в локальном demo. MCP SDK работает через ASGITransport внутри процесса; отдельный MCP/Go сервер для команды не нужен. TCP-процесс MCP проверен отдельно в [mcp-tcp-smoke.json](../experiments/mcp-tcp-smoke.json).
+
+Backend harness выдаёт синтетические fixtures соответствующего кейса, сохраняет реально вызванные tools/args/results и явно инъецирует предусмотренные отказы. Он **не измеряет качество реального поиска Go или demo-поиска**: документы сценария заданы заранее. Он не вызывает инструменты по эталонному плану вместо модели. Смысл запроса query проверяется отдельно assisted/human review, совпадение имени tool само по себе не означает правильный выбор данных.
+
+Gold verdicts/ограничения не передаются агенту. Assessment получает свою рубрику знаний, но не ожидаемые pass/fail. Сервисные токены/делегация не сохраняются в model trace; данные в отчёте синтетические. Thinking/скрытые рассуждения исключаются. Полные model requests сохраняются только этим явным локальным экспериментом; production-логи не расширены.
+
+## Результат
+
+Каждый запуск пишет отдельный `reports/development-<UTC timestamp>.json`, complete=false до конца, прогресс — после каждого кейса. Ошибка в ходе прогона оставляет неполный файл; ошибка preflight/прогрева до начала не считается прогоном и может завершиться без отчёта. Прогрев выполняется вне 25-секундного turn budget. Метаданные: git commit, SHA исходников, dataset/prompt/tool-schema hashes, model tag/digest, limits. SHA исходников важны, если эксперимент выполнен до коммита этих файлов.
+
+Автоматически проверяются HTTP/code, реальные names/counts/args/order, фактически возвращённые источники и URL, ID/версии/хеш assessment и обязательность review. SDK context cleanup классифицирует вложенные ошибки так же, как production boundary, сохраняя FORBIDDEN/MCP_TIMEOUT. Перечисление источника в fixture без реального tool call не даёт права цитировать его.
+
+`structural_pass` — только структурная часть; `semantic=unassessed`, `passed=null` до предметной проверки. Обычный 503 не является правильным ответом. Dev-06/16 — ожидаемые инъецированные отказы, их нужно показывать отдельно. Blocked-кейсы не исполняются и остаются в полном знаменателе 20.
+
+## Проверка фактов и ограничений
+
+```bash
+uv run --locked python -m evals.review evals/reports/development-<timestamp>.json evals/reports/review-<name>.json
+```
+
+Review связан с SHA всего raw-отчёта и каждого ответа. Для каждого факта: supported/missing/contradicted/unclear, дословная quote и основание из реально наблюдённого tool result либо применимого project rule. Ответ не может служить доказательством собственного корпоративного утверждения. Для error/assessment отдельно разрешены наблюдённые структурные поля результата. Неверные цитаты/указатели/неполные списки критериев отвергаются.
+
+Все ограничения и каждый реальный search query получают отдельную оценку; дополнительные неподтверждённые утверждения фиксируются дословно. Отчёт не перезаписывается: создаётся reviewed-копия с hash review. Для `reviewer=codex_assisted` поле assisted_passed отделено от человеческого passed; human_reviewed=0, release_accepted=false. Это явный LLM-assisted разбор, **не независимый откалиброванный judge и не одобрение наставника**. Даже правильные цитаты и assisted-review не гарантируют отсутствие остальных ошибок.
+
+[Результаты и оставшиеся проблемы](reports/README.md). Полный Go/UI-путь, реальные бизнес-записи и прохождение этапов здесь не проверяются. [Границы OpenSpec](../../../openspec/changes/implement-python-agent/eval-harness-scope.md).
