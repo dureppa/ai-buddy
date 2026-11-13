@@ -95,3 +95,7 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 [Черновой эталонный набор](../../services/ai-python/evals/README.md): 6 development и 2 candidate holdout. Разметка требует проверки команды. [Live-прогон](../../services/ai-python/experiments/assessment-quality.md) v3: 0/4 модельных случаев прошли, два rule guards прошли отдельно. При ошибке нужен ручной review. Общий [agent-v1 — 20/10](../../services/ai-python/evals/agent-v1/README.md) подготовлен как кандидат с audit и явными blocked-кейсами. Его разметка и модельная приёмка ещё не завершены; coverage не доказывает смысловую точность.
 
 Проверка общего набора без LLM: `uv run --locked python -m evals.golden`; schema audit не является измерением качества. [Исследование дополнительного контроля](../ai/quality-control.md): поддержка утверждений evidence, калиброванный judge, release gate и последующий разбор traces. Runtime/новые внешние SDK этим блоком не меняются.
+
+## Локальный MCP без Go
+
+Доступен отдельный [Python demo MCP-сервер](python-mcp.md): два read-tools с учебным корпусом и профилями. Он запускается явно, MCP_URL=http://127.0.0.1:8002/mcp. Контекст/правила Go не подменяются реальными данными; production HTTP-адаптер ещё не реализован. В новых инструкциях MCP принадлежит Python, Go предоставляет обычный HTTP API.

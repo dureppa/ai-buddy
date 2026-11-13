@@ -139,6 +139,9 @@ class Gateway:
             if result.isError:
                 failure = FailureEnvelope.model_validate(data)
                 safe_codes = {
+                    "MCP_TIMEOUT": ErrorCode.MCP_TIMEOUT,
+                    "RESULT_TOO_LARGE": ErrorCode.RESULT_TOO_LARGE,
+                    "INVALID_RESULT": ErrorCode.INVALID_RESULT,
                     "FORBIDDEN": ErrorCode.FORBIDDEN,
                     "NOT_FOUND": ErrorCode.NOT_FOUND,
                     "CONTEXT_EXPIRED": ErrorCode.CONTEXT_EXPIRED,

@@ -31,3 +31,5 @@ openspec status --change implement-python-agent --json
 Оценка знаний: [Python-срез](changes/implement-python-agent/assessment-scope.md), [контракт Go](../docs/integrations/knowledge-assessment.md), [черновой gold dataset](../services/ai-python/evals/README.md). Контракт реализован, локальная LLM не прошла development-проверку; Go/admin integration и общий holdout остаются открыты.
 
 Общий golden dataset: [20 development / 10 candidate holdout](../services/ai-python/evals/agent-v1/README.md), [границы](changes/implement-python-agent/golden-dataset-scope.md). Набор подготовлен, метки требуют review, live/holdout не выполнены; 4 кейса заблокированы будущей интеграцией. [Дополнительный контроль качества](../docs/ai/quality-control.md).
+
+[Локальный Python MCP](changes/implement-python-agent/mcp-demo-scope.md) реализует два read-tools на синтетических данных; Go HTTP backend ещё не подключён.

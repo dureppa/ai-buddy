@@ -1,5 +1,5 @@
 {
-  "status": "docs_only_python_mcp_adapter_and_new_go_http_routes_not_implemented",
+  "status": "proposed_go_http_contract_local_python_demo_available_http_adapter_not_implemented",
   "schema_snapshot_commit": "a51531510fd73f7a170b59cc76dc12cd9ab262cf",
   "architecture": "Flask agent -> Python MCP adapter -> Go HTTP API; Go does not implement MCP.",
   "http": {
