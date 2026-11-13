@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { hrPath, hrServices } from './hr-catalog';
+import { hrServices } from './hr-catalog';
+import servicePorts from '../service-ports.json';
 import { addDays, calendarMonth, makeHrDemo, serviceHistory } from './hr-demo';
 
 const today = '2026-11-13';
@@ -14,7 +15,7 @@ function storage() {
 
 describe('HR demo', () => {
   it('exposes six distinct corporate-service links and a Monday-first calendar', () => {
-    expect(new Set(hrServices.map((service) => hrPath(service.id))).size).toBe(6);
+    expect(new Set(hrServices.map((service) => servicePorts[service.id])).size).toBe(6);
     expect(calendarMonth('2026-11').slice(0, 8)).toEqual([
       null,
       null,

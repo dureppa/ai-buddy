@@ -1,5 +1,5 @@
-import type { Tone } from './data';
-import type { IconName } from './ui';
+import type { Tone } from '../../../web/frontend/src/data';
+import type { IconName } from '../../../web/frontend/src/ui';
 
 export const hrServices = [
   {
@@ -47,8 +47,6 @@ export const hrServices = [
 ] as const satisfies readonly { id: string; title: string; description: string; icon: IconName; tone: Tone }[];
 
 export type HrService = (typeof hrServices)[number];
-export const hrPath = (id: HrService['id']) => '/resources/' + id;
-
 export const destinations = [
   { id: 'kazan', title: 'Казань', description: 'Встреча продуктовой команды', estimate: 18000 },
   { id: 'petersburg', title: 'Санкт-Петербург', description: 'Исследовательский выезд', estimate: 26000 },

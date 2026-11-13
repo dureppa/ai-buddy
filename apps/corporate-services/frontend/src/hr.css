@@ -1,5 +1,12 @@
-.hr-directory {
-  margin-bottom: 28px;
+.hr-page {
+  max-width: 1180px;
+  margin-inline: auto;
+  padding: clamp(16px, 4vw, 48px);
+}
+.hr-metric__account small {
+  display: block;
+  margin-top: 3px;
+  color: var(--tone-ink);
 }
 .hr-back {
   margin: 0 0 14px 2px;

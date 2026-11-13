@@ -1,49 +1,14 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { profiles, type ProfileId } from './data';
-import {
-  benefitOptions,
-  consentOptions,
-  destinations,
-  exitSteps,
-  hrPath,
-  hrServices,
-  vacancies,
-  type HrService,
-} from './hr-catalog';
+import { profiles, type ProfileId } from '../../../web/frontend/src/data';
+import { benefitOptions, consentOptions, destinations, exitSteps, vacancies, type HrService } from './hr-catalog';
 import { calendarMonth, makeHrDemo, serviceHistory, travelNoticeDays, type HrDemo, type HrView } from './hr-demo';
-import { PageIntro } from './screens';
-import { Avatar, Icon } from './ui';
+import { Avatar, Icon, PageIntro } from '../../../web/frontend/src/ui';
 import './hr.css';
 
 const dateFormat = new Intl.DateTimeFormat('ru', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 const monthFormat = new Intl.DateTimeFormat('ru', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const rubles = new Intl.NumberFormat('ru', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 });
 const dateLabel = (date: string) => dateFormat.format(new Date(date));
-
-export function HrDirectory() {
-  return (
-    <section className="hr-directory" aria-labelledby="hr-directory-title">
-      <div className="section-title">
-        <h2 id="hr-directory-title">HR-сервисы</h2>
-      </div>
-      <div className="tile-grid">
-        {hrServices.map((service) => (
-          <Link className={'resource-card tone-' + service.tone} key={service.id} to={hrPath(service.id)}>
-            <span className="tile-top">
-              <span className="icon-tile">
-                <Icon name={service.icon} size={23} />
-              </span>
-              <Icon name="arrow" size={19} />
-            </span>
-            <strong>{service.title}</strong>
-            <span className="tile-description">{service.description}</span>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
 
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -450,13 +415,13 @@ export function HrPage({ service, profileId }: { service: HrService; profileId: 
   }[service.id];
 
   return (
-    <div className="hr-page">
-      <Link className="text-link hr-back" to="/resources">
+    <main className="hr-page">
+      <a className="text-link hr-back" href={import.meta.env.VITE_AI_BUDDY_URL || 'http://localhost:5173/resources'}>
         <span className="hr-back-icon">
           <Icon name="arrow" size={16} />
         </span>
-        Корпоративные сервисы
-      </Link>
+        Вернуться в AI Buddy
+      </a>
       <PageIntro title={service.title} text={service.description} tone={service.tone} icon={service.icon} />
       <div className="hr-layout">
         <Panel title={title}>
@@ -475,7 +440,10 @@ export function HrPage({ service, profileId }: { service: HrService; profileId: 
           <section className={'hr-metric tone-' + service.tone}>
             <div className="hr-metric__account">
               <Avatar initials={profile.initials} avatar={profile.avatar} />
-              <strong>{profile.fullName}</strong>
+              <span>
+                <strong>{profile.fullName}</strong>
+                <small>Демопрофиль</small>
+              </span>
             </div>
             <span className="hr-metric__value">{metric}</span>
             <p>{note}</p>
@@ -502,6 +470,6 @@ export function HrPage({ service, profileId }: { service: HrService; profileId: 
           </Panel>
         </aside>
       </div>
-    </div>
+    </main>
   );
 }

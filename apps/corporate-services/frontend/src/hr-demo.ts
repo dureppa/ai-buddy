@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { ProfileId } from './data';
-import type { StoragePort } from './demo';
+import type { ProfileId } from '../../../web/frontend/src/data';
+import type { StoragePort } from '../../../web/frontend/src/demo';
 import { benefitOptions, consentOptions, destinations, exitSteps, vacancies, type HrService } from './hr-catalog';
 import fixtures from './hr-profiles.json';
 
