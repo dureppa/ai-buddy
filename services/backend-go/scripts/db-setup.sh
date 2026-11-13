@@ -38,13 +38,16 @@ apply_schema() {
   db=$1
   echo "==> $db"
   if [ "$(PGDATABASE="$db" psql -tAc "SELECT to_regclass('public.profiles') IS NOT NULL")" = "t" ]; then
-    echo "    схема уже применена, миграции пропускаются"
+    echo "    применяем идемпотентную миграцию настроек HR"
+    PGDATABASE="$db" psql -q -v ON_ERROR_STOP=1 -1 -f migrations/06_hr_profile_settings.up.sql
   else
     for f in migrations/*.up.sql; do
       PGDATABASE="$db" psql -q -v ON_ERROR_STOP=1 -1 -f "$f"
     done
   fi
   PGDATABASE="$db" psql -q -v ON_ERROR_STOP=1 -f seeds/demo.sql
+  PGDATABASE="$db" psql -q -v ON_ERROR_STOP=1 \
+    -v hr_profiles="$(cat ../../apps/web/frontend/src/hr-profiles.json)" -f seeds/hr-profiles.sql
 }
 
 apply_schema "$PGDATABASE"

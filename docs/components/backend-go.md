@@ -48,9 +48,11 @@ services/backend-go/
 │   ├── 02_onboarding.up.sql / .down.sql
 │   ├── 03_access_requests.up.sql / .down.sql
 │   ├── 04_chat.up.sql / .down.sql
-│   └── 05_notifications_and_guides.up.sql / .down.sql
+│   ├── 05_notifications_and_guides.up.sql / .down.sql
+│   └── 06_hr_profile_settings.up.sql / .down.sql
 └── seeds/
-    └── demo.sql
+    ├── demo.sql
+    └── hr-profiles.sql
 ```
 
 Создание схемы и наполнение разделены: `migrations/` — только DDL, `seeds/` — только данные.
@@ -64,6 +66,7 @@ services/backend-go/
 | `000003_access_requests` | `access_request_number_seq`, `next_access_request_number()`, `access_request_drafts`, `access_requests`, `mock_service_operations` | Черновики, сохранённые заявки, имитация корпоративного сервиса |
 | `000004_chat` | `conversations`, `messages` | Диалоги и сообщения Buddy |
 | `000005_notifications_and_guides` | `notifications`, `page_guides`, `knowledge_articles` | Системные карточки, справочник страниц, демонстрационные инструкции |
+| `06_hr_profile_settings` | `hr_profile_settings` | Личные лимиты и начальные настройки шести демонстрационных HR-сервисов |
 
 ### Ключевые решения
 
@@ -143,6 +146,8 @@ SELECT setval('access_request_number_seq',
 URL справочника страниц нужно синхронизировать с `VITE_WEB_URL` расширения: питомец
 сравнивает origin и путь `/tools`.
 
+`seeds/hr-profiles.sql` заполняет настройки трёх стажёров из общей [JSON-фикстуры](../../apps/web/frontend/src/hr-profiles.json). Таблица привязана к `profiles.id`. Действия на веб-страницах сохраняются в браузере. Go API пока не читает эту таблицу.
+
 ## Применение
 
 Роль и базы создаются один раз:
@@ -183,7 +188,12 @@ done
 
 ```bash
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f services/backend-go/seeds/demo.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -v hr_profiles="$(cat apps/web/frontend/src/hr-profiles.json)" \
+  -f services/backend-go/seeds/hr-profiles.sql
 ```
+
+Для существующей демобазы примени `06_hr_profile_settings.up.sql` и запусти HR-сид. `scripts/db-setup.sh` выполняет этот шаг и для существующей схемы.
 
 Откат удаляет таблицы вместе с данными — выполнять только на демонстрационной базе.
 Файлы можно применять и через GUI-клиент (DBeaver), порядок тот же.

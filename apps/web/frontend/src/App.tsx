@@ -12,6 +12,8 @@ import {
   toggleTask,
   type AccessDraft,
 } from './demo';
+import { hrPath, hrServices } from './hr-catalog';
+import { HrDirectory, HrPage } from './HrPages';
 import { AccessBadge, Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
 import { Avatar, Buddy, EmptyState, Icon, Modal, type Mood } from './ui';
 
@@ -23,6 +25,7 @@ const searchItems = [
     detail: service.category,
     to: '/tools?service=' + service.id,
   })),
+  ...hrServices.map((service) => ({ label: service.title, detail: 'HR-сервис', to: hrPath(service.id) })),
   ...resources.map((resource) => ({
     label: resource.title,
     detail: resource.category,
@@ -163,6 +166,7 @@ function WorkspaceShell({
   const location = useLocation();
   const navigate = useNavigate();
   const section = navigation.find((item) => item.path === location.pathname);
+  const hrService = hrServices.find((service) => hrPath(service.id) === location.pathname);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
@@ -348,7 +352,7 @@ function WorkspaceShell({
         </div>
         <nav aria-label="Разделы AI-buddy">
           {navigation.map((item) => (
-            <NavLink end key={item.path} to={item.path} onClick={() => setNavOpen(false)}>
+            <NavLink end={item.path !== '/resources'} key={item.path} to={item.path} onClick={() => setNavOpen(false)}>
               <Icon name={item.icon} size={20} />
               <span>{item.label}</span>
             </NavLink>
@@ -397,7 +401,7 @@ function WorkspaceShell({
             </button>
             <span className="breadcrumb-root">Рабочее пространство</span>
             <Icon name="chevron" size={15} />
-            <strong>{section?.label ?? 'AI-buddy'}</strong>
+            <strong>{hrService?.title ?? section?.label ?? 'AI-buddy'}</strong>
           </div>
           <div className="topbar__actions">
             <button type="button" className="search-trigger" aria-label="Поиск" onClick={() => setSearchOpen(true)}>
@@ -443,7 +447,14 @@ function WorkspaceShell({
                 <Route path="/onboarding" element={<Adaptation {...checklist} />} />
                 <Route path="/team" element={<Team onOpen={setDetail} />} />
                 <Route path="/tools" element={<Tools workspace={workspace} onOpen={setDetail} />} />
-                <Route path="/resources" element={<Resources onOpen={setDetail} />} />
+                <Route path="/resources" element={<Resources onOpen={setDetail} directory={<HrDirectory />} />} />
+                {hrServices.map((service) => (
+                  <Route
+                    key={service.id}
+                    path={hrPath(service.id)}
+                    element={<HrPage service={service} profileId={profileId} />}
+                  />
+                ))}
                 <Route path="/chat" element={<ChatPage {...chatProps} />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
               </Routes>

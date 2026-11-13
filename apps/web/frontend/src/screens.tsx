@@ -239,7 +239,7 @@ export function Dashboard({ profile, workspace, onOpen, onToggle, savingTask }: 
   );
 }
 
-function PageIntro({ title, text, tone, icon }: { title: string; text: string; tone: string; icon: IconName }) {
+export function PageIntro({ title, text, tone, icon }: { title: string; text: string; tone: string; icon: IconName }) {
   return (
     <header className={'page-intro tone-' + tone}>
       <div>
@@ -473,7 +473,7 @@ export function Tools({ workspace, onOpen }: { workspace: Workspace; onOpen: Ope
   );
 }
 
-export function Resources({ onOpen }: { onOpen: OpenDetail }) {
+export function Resources({ onOpen, directory }: { onOpen: OpenDetail; directory: ReactNode }) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('Все');
   const categories = ['Все', ...new Set(resources.map((resource) => resource.category))];
@@ -486,10 +486,14 @@ export function Resources({ onOpen }: { onOpen: OpenDetail }) {
     <>
       <PageIntro
         title="Корпоративные сервисы"
-        text="Памятки, обучение и контакты, которые пригодятся в первые недели."
+        text="Открывай HR-сервисы, инструкции и полезные материалы."
         tone="pink"
         icon="layers"
       />
+      {directory}
+      <div className="section-title">
+        <h2>Памятки и инструкции</h2>
+      </div>
       <label className="search-field resource-search">
         <Icon name="search" size={20} />
         <input
