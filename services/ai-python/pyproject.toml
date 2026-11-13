@@ -4,11 +4,15 @@ version = "0.1.0"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "flask>=3.1,<4",
+    "httpx>=0.28,<1",
     "mcp>=1.12,<2",
+    "pydantic>=2.14,<3",
 ]
 
 [dependency-groups]
 dev = [
+    "langchain>=1.4,<2",
+    "langchain-ollama>=1,<2",
     "mypy>=1.19,<3",
     "pytest>=9,<10",
     "pytest-cov>=7,<8",
@@ -28,3 +32,15 @@ target-version = "py313"
 
 [tool.ruff.lint]
 extend-select = ["I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["ai_buddy"]
+omit = ["tests/*", ".venv/*"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
