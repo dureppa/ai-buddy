@@ -1,0 +1,540 @@
+{
+  "status": "illustrative_valid_contract_not_live_quality_result",
+  "request": {
+    "request_id": "4fadd566-fccd-5c90-9464-117e4151d903",
+    "conversation_id": "22222222-2222-4222-8222-222222222222",
+    "evaluation_id": "627885d8-0880-516e-b11b-bb471da7a868",
+    "answer_id": "0dbca8cb-f12f-530a-a262-195352f720dd",
+    "task_id": "demo-absence",
+    "task_version": "1",
+    "plan_version": "1",
+    "answer_version": "1",
+    "rubric_id": "demo-absence-v1",
+    "rubric_version": "1",
+    "context_version": "1",
+    "question": "Как оформить отсутствие, что означает отправка заявки и кто одобряет переход этапа?",
+    "answer": "Открыть раздел «Отсутствия» и нажать «Новая заявка». После отправки заявка на согласовании, ещё не одобрена. Переход одобряет наставник, агент только оценивает знания.",
+    "context": "Демо-сервис: раздел «Отсутствия», кнопка «Новая заявка». Отправка означает статус «на согласовании». Переход этапа одобряет наставник, агент только оценивает знания.",
+    "criteria": [
+      {
+        "id": "steps",
+        "description": "Объясняет начало оформления.",
+        "expected": "Названы раздел Отсутствия и кнопка Новая заявка.",
+        "required": true
+      },
+      {
+        "id": "status",
+        "description": "Отличает отправку от одобрения.",
+        "expected": "После отправки заявка на согласовании, не одобрена автоматически.",
+        "required": true
+      },
+      {
+        "id": "reviewer",
+        "description": "Знает владельца решения о переходе.",
+        "expected": "Переход этапа одобряет наставник, агент только оценивает.",
+        "required": true
+      }
+    ]
+  },
+  "response": {
+    "request_id": "4fadd566-fccd-5c90-9464-117e4151d903",
+    "conversation_id": "22222222-2222-4222-8222-222222222222",
+    "assessment": {
+      "evaluation_id": "627885d8-0880-516e-b11b-bb471da7a868",
+      "answer_id": "0dbca8cb-f12f-530a-a262-195352f720dd",
+      "task_id": "demo-absence",
+      "task_version": "1",
+      "plan_version": "1",
+      "answer_version": "1",
+      "rubric_id": "demo-absence-v1",
+      "rubric_version": "1",
+      "context_version": "1",
+      "answer_sha256": "beac60a7b1f48da6d4214aaacfd8375b42589fd64454b3d6086c99ca6f18ed2a",
+      "prompt_version": "knowledge-assessment-v4",
+      "model": "qwen3:4b-q4_K_M",
+      "method": "llm",
+      "guard_reason": null,
+      "criteria": [
+        {
+          "criterion_id": "steps",
+          "required": true,
+          "verdict": "pass",
+          "reason_code": "matched",
+          "reason": "Ответ подтверждает критерий: Объясняет начало оформления.",
+          "evidence": {
+            "quote": "Открыть раздел «Отсутствия» и нажать «Новая заявка».",
+            "start": 0,
+            "end": 52
+          }
+        },
+        {
+          "criterion_id": "status",
+          "required": true,
+          "verdict": "pass",
+          "reason_code": "matched",
+          "reason": "Ответ подтверждает критерий: Отличает отправку от одобрения.",
+          "evidence": {
+            "quote": "После отправки заявка на согласовании, ещё не одобрена.",
+            "start": 53,
+            "end": 108
+          }
+        },
+        {
+          "criterion_id": "reviewer",
+          "required": true,
+          "verdict": "pass",
+          "reason_code": "matched",
+          "reason": "Ответ подтверждает критерий: Знает владельца решения о переходе.",
+          "evidence": {
+            "quote": "Переход одобряет наставник, агент только оценивает знания.",
+            "start": 109,
+            "end": 167
+          }
+        }
+      ],
+      "recommendation": "ready_for_mentor_review",
+      "manual_review_required": true
+    }
+  },
+  "schemas": {
+    "AssessmentRequest": {
+      "$defs": {
+        "Criterion": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "description": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Description",
+              "type": "string"
+            },
+            "expected": {
+              "maxLength": 400,
+              "minLength": 1,
+              "title": "Expected",
+              "type": "string"
+            },
+            "required": {
+              "title": "Required",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "description",
+            "expected",
+            "required"
+          ],
+          "title": "Criterion",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "conversation_id": {
+          "format": "uuid",
+          "title": "Conversation Id",
+          "type": "string"
+        },
+        "evaluation_id": {
+          "format": "uuid",
+          "title": "Evaluation Id",
+          "type": "string"
+        },
+        "answer_id": {
+          "format": "uuid",
+          "title": "Answer Id",
+          "type": "string"
+        },
+        "task_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Task Version",
+          "type": "string"
+        },
+        "plan_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Plan Version",
+          "type": "string"
+        },
+        "answer_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Answer Version",
+          "type": "string"
+        },
+        "rubric_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Rubric Id",
+          "type": "string"
+        },
+        "rubric_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Rubric Version",
+          "type": "string"
+        },
+        "context_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Context Version",
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 1200,
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "answer": {
+          "maxLength": 4000,
+          "title": "Answer",
+          "type": "string"
+        },
+        "context": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Context",
+          "type": "string"
+        },
+        "criteria": {
+          "items": {
+            "$ref": "#/$defs/Criterion"
+          },
+          "maxItems": 5,
+          "minItems": 1,
+          "title": "Criteria",
+          "type": "array"
+        }
+      },
+      "required": [
+        "request_id",
+        "conversation_id",
+        "evaluation_id",
+        "answer_id",
+        "task_id",
+        "task_version",
+        "plan_version",
+        "answer_version",
+        "rubric_id",
+        "rubric_version",
+        "context_version",
+        "question",
+        "answer",
+        "criteria"
+      ],
+      "title": "AssessmentRequest",
+      "type": "object"
+    },
+    "AssessmentResult": {
+      "$defs": {
+        "CriterionResult": {
+          "additionalProperties": false,
+          "properties": {
+            "criterion_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Criterion Id",
+              "type": "string"
+            },
+            "required": {
+              "title": "Required",
+              "type": "boolean"
+            },
+            "verdict": {
+              "enum": [
+                "pass",
+                "fail",
+                "unclear"
+              ],
+              "title": "Verdict",
+              "type": "string"
+            },
+            "reason_code": {
+              "title": "Reason Code",
+              "type": "string"
+            },
+            "reason": {
+              "title": "Reason",
+              "type": "string"
+            },
+            "evidence": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Evidence"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "criterion_id",
+            "required",
+            "verdict",
+            "reason_code",
+            "reason",
+            "evidence"
+          ],
+          "title": "CriterionResult",
+          "type": "object"
+        },
+        "Evidence": {
+          "additionalProperties": false,
+          "properties": {
+            "quote": {
+              "title": "Quote",
+              "type": "string"
+            },
+            "start": {
+              "title": "Start",
+              "type": "integer"
+            },
+            "end": {
+              "title": "End",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "quote",
+            "start",
+            "end"
+          ],
+          "title": "Evidence",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "evaluation_id": {
+          "format": "uuid",
+          "title": "Evaluation Id",
+          "type": "string"
+        },
+        "answer_id": {
+          "format": "uuid",
+          "title": "Answer Id",
+          "type": "string"
+        },
+        "task_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Task Version",
+          "type": "string"
+        },
+        "plan_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Plan Version",
+          "type": "string"
+        },
+        "answer_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Answer Version",
+          "type": "string"
+        },
+        "rubric_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Rubric Id",
+          "type": "string"
+        },
+        "rubric_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Rubric Version",
+          "type": "string"
+        },
+        "context_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Context Version",
+          "type": "string"
+        },
+        "answer_sha256": {
+          "title": "Answer Sha256",
+          "type": "string"
+        },
+        "prompt_version": {
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "method": {
+          "enum": [
+            "llm",
+            "rule_guard"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "guard_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "empty_answer",
+                "untrusted_content"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Guard Reason"
+        },
+        "criteria": {
+          "items": {
+            "$ref": "#/$defs/CriterionResult"
+          },
+          "title": "Criteria",
+          "type": "array"
+        },
+        "recommendation": {
+          "enum": [
+            "ready_for_mentor_review",
+            "needs_revision",
+            "needs_clarification"
+          ],
+          "title": "Recommendation",
+          "type": "string"
+        },
+        "manual_review_required": {
+          "const": true,
+          "default": true,
+          "title": "Manual Review Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "evaluation_id",
+        "answer_id",
+        "task_id",
+        "task_version",
+        "plan_version",
+        "answer_version",
+        "rubric_id",
+        "rubric_version",
+        "context_version",
+        "answer_sha256",
+        "prompt_version",
+        "model",
+        "method",
+        "guard_reason",
+        "criteria",
+        "recommendation"
+      ],
+      "title": "AssessmentResult",
+      "type": "object"
+    },
+    "ModelAssessment": {
+      "$defs": {
+        "Judgment": {
+          "additionalProperties": false,
+          "properties": {
+            "criterion_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Criterion Id",
+              "type": "string"
+            },
+            "reason_code": {
+              "enum": [
+                "matched",
+                "contradiction",
+                "missing",
+                "ambiguous"
+              ],
+              "title": "Reason Code",
+              "type": "string"
+            },
+            "evidence_id": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Evidence Id"
+            }
+          },
+          "required": [
+            "criterion_id",
+            "reason_code",
+            "evidence_id"
+          ],
+          "title": "Judgment",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "judgments": {
+          "items": {
+            "$ref": "#/$defs/Judgment"
+          },
+          "maxItems": 5,
+          "minItems": 1,
+          "title": "Judgments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "judgments"
+      ],
+      "title": "ModelAssessment",
+      "type": "object"
+    }
+  }
+}

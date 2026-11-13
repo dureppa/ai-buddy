@@ -1,0 +1,17 @@
+{
+  "scope": "Real separately launched loopback MCP process and SDK over TCP; no LLM or Go",
+  "health": {
+    "status": "alive",
+    "mode": "local_demo",
+    "go_connected": false
+  },
+  "unauthorized_status": 401,
+  "tools": [
+    "get_team_context",
+    "search_knowledge"
+  ],
+  "team_id": "demo-alex",
+  "document_ids": [
+    "demo-absences"
+  ]
+}

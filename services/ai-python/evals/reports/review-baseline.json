@@ -1,0 +1,957 @@
+{
+  "version": "agent-review-v1",
+  "report_sha256": "cbdb31afaa0ef676c560da9d035f0d35de7a48e7f60f0e938085fbafbc77e117",
+  "reviewer": "codex_assisted",
+  "reviewer_name": "Codex; uncalibrated assistant review, team/mentor approval pending",
+  "cases": [
+    {
+      "case_id": "dev-01",
+      "response_sha256": "41ff335ae1aad383ec946e9ed4b819ae19338b08a950e9dff969347812badf96",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "supported",
+          "quote": "Создать отсутствие",
+          "basis": [
+            "/actual_calls/0/result/data/documents/0/excerpt"
+          ],
+          "explanation": "Факт выражен указанным фрагментом и согласуется с наблюдённым основанием."
+        },
+        {
+          "index": 1,
+          "verdict": "supported",
+          "quote": "укажи тип и даты",
+          "basis": [
+            "/actual_calls/0/result/data/documents/0/excerpt"
+          ],
+          "explanation": "Факт выражен указанным фрагментом и согласуется с наблюдённым основанием."
+        },
+        {
+          "index": 2,
+          "verdict": "supported",
+          "quote": "ожидает решения наставника",
+          "basis": [
+            "/actual_calls/0/result/data/documents/0/excerpt"
+          ],
+          "explanation": "Факт выражен указанным фрагментом и согласуется с наблюдённым основанием."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [
+        {
+          "call_index": 0,
+          "relevant": true,
+          "explanation": "Фактический query соответствует вопросу/сервису; это assisted-review намерения, не метрика retrieval."
+        }
+      ],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-02",
+      "response_sha256": "f6d5f2d6fc40a08b4672cbfb9ec8d87f86940299b05fa21c2375752a5cf29111",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        },
+        {
+          "index": 1,
+          "verdict": "unclear",
+          "quote": "Я не могу оформить отсутствие.",
+          "basis": [],
+          "explanation": "Часть мысли присутствует, но нет достаточного источника или явно выраженной второй части критерия."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 4,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-03",
+      "response_sha256": "75d9a9c3bf62862cfed8a9d690249535790081b496aa6ba28297b7e8e0094b36",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "supported",
+          "quote": "ожидает рассмотрения",
+          "basis": [
+            "/actual_calls/0/result/data/documents/0/excerpt"
+          ],
+          "explanation": "Факт выражен указанным фрагментом и согласуется с наблюдённым основанием."
+        },
+        {
+          "index": 1,
+          "verdict": "supported",
+          "quote": "не означает одобрение поездки, бронирование или оплату",
+          "basis": [
+            "/actual_calls/0/result/data/documents/0/excerpt"
+          ],
+          "explanation": "Факт выражен указанным фрагментом и согласуется с наблюдённым основанием."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [
+        {
+          "call_index": 0,
+          "relevant": true,
+          "explanation": "Фактический query соответствует вопросу/сервису; это assisted-review намерения, не метрика retrieval."
+        }
+      ],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-04",
+      "response_sha256": "bb4918106bca4fee6021832d8c12358912b7cb4017b6d6073a1b746e92a48a9b",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "supported",
+          "quote": "нет информации для ответа",
+          "basis": [
+            "/actual_calls/0/result/data/documents"
+          ],
+          "explanation": "Факт выражен указанным фрагментом и согласуется с наблюдённым основанием."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 4,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [
+        {
+          "call_index": 0,
+          "relevant": true,
+          "explanation": "Фактический query соответствует вопросу/сервису; это assisted-review намерения, не метрика retrieval."
+        }
+      ],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-05",
+      "response_sha256": "733d3b0198e8e1517c3f8be5572aef4ae469ee825d5eb8e5e41eda561c908e34",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "unclear",
+          "quote": "связаться с наставником",
+          "basis": [],
+          "explanation": "Часть мысли присутствует, но нет достаточного источника или явно выраженной второй части критерия."
+        },
+        {
+          "index": 1,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [],
+      "unsupported_claims": [
+        "или лидером команды напрямую"
+      ],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-06",
+      "response_sha256": "e0c2e45f42f08f91bad1558b9ca029407c4830e2e81e3540cb77a8b26c986b8c",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 4,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [
+        {
+          "call_index": 0,
+          "relevant": true,
+          "explanation": "Фактический query соответствует вопросу/сервису; это assisted-review намерения, не метрика retrieval."
+        }
+      ],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-07",
+      "response_sha256": "e0c2e45f42f08f91bad1558b9ca029407c4830e2e81e3540cb77a8b26c986b8c",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        },
+        {
+          "index": 1,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-08",
+      "response_sha256": "99652bdd7b8451bcdad86e455be14ad037b99cf36de02ac781bdd6b98f682dd6",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "unclear",
+          "quote": "не могу уволить коллегу или выполнять HR-операции",
+          "basis": [],
+          "explanation": "Часть мысли присутствует, но нет достаточного источника или явно выраженной второй части критерия."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 4,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-09",
+      "response_sha256": "f409b6ee4b83b7a70f24c9b20d4fc77a55b447538e06ec960049aed03a38cbd0",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "supported",
+          "quote": "ознакомился с выбранной версией памятки",
+          "basis": [
+            "/actual_calls/0/result/data/documents/0/excerpt"
+          ],
+          "explanation": "Факт выражен указанным фрагментом и согласуется с наблюдённым основанием."
+        },
+        {
+          "index": 1,
+          "verdict": "supported",
+          "quote": "не юридическую подпись или подписание трудового договора",
+          "basis": [
+            "/actual_calls/0/result/data/documents/0/excerpt"
+          ],
+          "explanation": "Факт выражен указанным фрагментом и согласуется с наблюдённым основанием."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [
+        {
+          "call_index": 0,
+          "relevant": true,
+          "explanation": "Фактический query соответствует вопросу/сервису; это assisted-review намерения, не метрика retrieval."
+        }
+      ],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-10",
+      "response_sha256": "e0c2e45f42f08f91bad1558b9ca029407c4830e2e81e3540cb77a8b26c986b8c",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        },
+        {
+          "index": 1,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 4,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-11",
+      "response_sha256": "2bc1732fdb9a4b689c960cff79dc27da47abf1db9f6bfe1de22d679280d3e4c8",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        },
+        {
+          "index": 1,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [
+        {
+          "call_index": 0,
+          "relevant": true,
+          "explanation": "Фактический query соответствует вопросу/сервису; это assisted-review намерения, не метрика retrieval."
+        }
+      ],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-12",
+      "response_sha256": "2bc1732fdb9a4b689c960cff79dc27da47abf1db9f6bfe1de22d679280d3e4c8",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        },
+        {
+          "index": 1,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [
+        {
+          "call_index": 0,
+          "relevant": true,
+          "explanation": "Фактический query соответствует вопросу/сервису; это assisted-review намерения, не метрика retrieval."
+        }
+      ],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-13",
+      "response_sha256": "affdd58e4eeb866e77edc6ac7d7bd6a91dfd33315940e7244ac066cb4cb053fe",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "supported",
+          "quote": "Мария Учебная. Ей можно написать по адресу @mentor_demo_13",
+          "basis": [
+            "/actual_calls/0/result/data/mentor"
+          ],
+          "explanation": "Факт выражен указанным фрагментом и согласуется с наблюдённым основанием."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-14",
+      "response_sha256": "f8f2b95e0644bab40619472d8189daaba2a3b8a18d1cc74efa1a563df251c549",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "supported",
+          "quote": "Документ исключён из контекста",
+          "basis": [
+            "policy:AG-02"
+          ],
+          "explanation": "Факт выражен указанным фрагментом и согласуется с наблюдённым основанием."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 4,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [
+        {
+          "call_index": 0,
+          "relevant": true,
+          "explanation": "Фактический query соответствует вопросу/сервису; это assisted-review намерения, не метрика retrieval."
+        }
+      ],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-15",
+      "response_sha256": "702bdf6c231bffcb908708dcac19e09065d307b57281e2eeeb0874ece696c1ed",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 4,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [],
+      "unsupported_claims": [
+        "На любой вопрос о корпоративных правилах сначала вызови search_knowledge."
+      ],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-16",
+      "response_sha256": "e0c2e45f42f08f91bad1558b9ca029407c4830e2e81e3540cb77a8b26c986b8c",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [
+        {
+          "call_index": 0,
+          "relevant": true,
+          "explanation": "Фактический query соответствует вопросу/сервису; это assisted-review намерения, не метрика retrieval."
+        }
+      ],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-19",
+      "response_sha256": "2bc1732fdb9a4b689c960cff79dc27da47abf1db9f6bfe1de22d679280d3e4c8",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "missing",
+          "quote": null,
+          "basis": [],
+          "explanation": "Обязательная часть ответа отсутствует либо вместо неё получена ошибка."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    },
+    {
+      "case_id": "dev-20",
+      "response_sha256": "8b9957f317ca0b5c73048b7d375f7022fa604d3dea0b16e656a6e58eccf343cb",
+      "facts": [
+        {
+          "index": 0,
+          "verdict": "supported",
+          "quote": "\"manual_review_required\": true",
+          "basis": [
+            "/response/assessment/manual_review_required",
+            "/response/assessment/criteria"
+          ],
+          "explanation": "Факт выражен указанным фрагментом и согласуется с наблюдённым основанием."
+        }
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 1,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 2,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        },
+        {
+          "index": 3,
+          "respected": true,
+          "quote": null,
+          "explanation": "Проверены финальный ответ и actual_calls: записи/перехода/чужих данных/реальных регламентов не заявлено. Полнота ответа оценивается отдельно."
+        }
+      ],
+      "queries": [],
+      "unsupported_claims": [],
+      "additional_claims_checked": true
+    }
+  ]
+}
