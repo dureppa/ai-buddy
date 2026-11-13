@@ -70,4 +70,4 @@ Python получает выданный Go evaluation_id, версию отве
 
 Недоступные источники не дают подтверждённых регламентов. Общий статус completed и текущая отметка PUT completion недостаточны для новых review/evidence гарантий. Публичный API ещё не поддерживает этот маршрут; реализация должна явно устранить разрыв. Все пороги и demo-правила перечислены как допущения, а не правила Авито.
 
-Текущие реализации: [локальный Python MCP](mcp-demo-scope.md), [Go HTTP handoff](../../../docs/integrations/go-python-mcp.md), [development harness](eval-harness-scope.md). Go HTTP-адаптер/делегация не заменяются demo; full onboarding остаётся незавершённым.
+Текущие реализации: [локальный Python MCP](mcp-demo-scope.md), [Python Go HTTP-адаптер](go-http-adapter-scope.md), [Go HTTP handoff](../../../docs/integrations/go-python-mcp.md), [development harness](eval-harness-scope.md). Адаптер проверен на моках и не переключается в demo при сбое. Живая Go-интеграция и full onboarding остаются незавершёнными.

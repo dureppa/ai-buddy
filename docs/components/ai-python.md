@@ -4,7 +4,7 @@
 
 Flask умеет выполнять реальный прямой цикл через локальную Ollama и SDK MCP: получить контекст команды/инструкции, сформировать ответ и проверить ссылки. Включается явно, фиктивный runner не активируется. Код сервиса не импортирует LangChain/LangGraph/experiments; эти зависимости остались только для сравнения двух подходов.
 
-Поддержаны MCP search_knowledge и get_team_context, а также отдельный POST /internal/v1/assessments для оценки знаний с версиями, критериями и обязательным review наставника. Контракт и отказы assessment проверены; два новых development-примера v4 прошли, но полная человеческая/модельная приёмка не выполнена. Go → Python, Go HTTP backend, сохранение assessment/progress/evidence, шесть корпоративных tools и переходы этапов пока не реализованы. [Готовность пользовательского сценария](../../openspec/changes/implement-python-agent/scenario-status.md).
+Поддержаны MCP search_knowledge и get_team_context, Python MCP с demo/Go HTTP backend, а также отдельный POST /internal/v1/assessments для оценки знаний с версиями, критериями и обязательным review наставника. HTTP-адаптер проверен на моках, assessment — контрактными тестами и двумя development-примерами v4; полная человеческая/модельная приёмка не выполнена. Живая связь с Go, сохранение assessment/progress/evidence, шесть корпоративных tools и переходы этапов пока не подтверждены. [Готовность пользовательского сценария](../../openspec/changes/implement-python-agent/scenario-status.md).
 
 ## Локальный запуск
 
@@ -18,7 +18,7 @@ OLLAMA_NO_CLOUD=1 ollama serve
 
 Проверь `ollama list`: модель qwen3:4b-q4_K_M должна быть уже установлена. Сервис не скачивает веса. Ollama требуется запускать с отключённым облаком; Python обращается только к настроенному loopback origin. Контекст 4096, thinking=false, температура 0, seed 42, максимум ответа 384 токена для чата и 768 для assessment. Холодная загрузка может занять существенную часть бюджета: readiness её не запускает.
 
-Для работы без Go запусти отдельный [локальный Python MCP](python-mcp.md) с явным demo-токеном. Для настоящих данных позднее нужен Go HTTP backend; наличие обычного Go HTTP API само по себе не подключает его к Python MCP.
+Для работы без Go запусти отдельный [локальный Python MCP](python-mcp.md) с явным demo-токеном. Для настоящих данных включи MCP_BACKEND=go_http после появления согласованных HTTP endpoints Go; Python-адаптер готов и проверен на моках.
 
 ```bash
 AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-service-token MCP_URL=http://127.0.0.1:8002/mcp uv run --locked flask --app ai_buddy:create_app run --host 127.0.0.1 --port 8001
@@ -69,6 +69,7 @@ POST /internal/v1/turns, Authorization: Bearer AI_SERVICE_TOKEN. Закрыты�
 - ollama.py — native HTTP, проверка ответов и безопасные коды провайдера.
 - runner.py — связь контракта TurnRequest с циклом, карточки источников и безопасная диагностика.
 - mcp_client.py — SDK/Gateway; answer_policy.py — контроль источников/инструкций; config.py/schemas.py — настройки и контракты.
+- mcp_server.py — отдельный MCP demo/go_http процесс; mcp_identity.py — изолированный доверенный контекст; go_http.py — resolve и два Go HTTP-read, без повторов/redirects. tests/test_go_http.py — HTTP-моки и Flask/SDK integration.
 - tests/test_runtime.py — необходимые runtime-регрессии: вход Flask → runner, история/изоляция, провайдер/MCP/таймауты, cleanup, отсутствие частичного пакета tools и настоящий MCP-протокол. Старые тесты auth/схем/политики не дублировались.
 
 ```bash
@@ -98,7 +99,7 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 
 ## Локальный MCP без Go
 
-Доступен отдельный [Python demo MCP-сервер](python-mcp.md): два read-tools с учебным корпусом и профилями. Он запускается явно, MCP_URL=http://127.0.0.1:8002/mcp. Контекст/правила Go не подменяются реальными данными; production HTTP-адаптер ещё не реализован. В новых инструкциях MCP принадлежит Python, Go предоставляет обычный HTTP API.
+Доступен отдельный [Python MCP-сервер](python-mcp.md): demo с учебным корпусом либо go_http с проверкой делегации и двумя HTTP-read. MCP_URL=http://127.0.0.1:8002/mcp. Недоступный Go не подменяется demo. Python HTTP-адаптер проверен на моках; живое подключение требует реализации Go API по инструкции. MCP принадлежит Python, Go предоставляет обычный HTTP API.
 
 ## Общий development eval
 

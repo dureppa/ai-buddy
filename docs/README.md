@@ -5,7 +5,7 @@
 - [Оценка знаний: контракт для Go](integrations/knowledge-assessment.md), [размеченные примеры](../services/ai-python/evals/README.md) и [фактическое качество локальной модели](../services/ai-python/experiments/assessment-quality.md).
 - [Development harness и результаты](../services/ai-python/evals/HARNESS.md): реальные локальные LLM/MCP прогоны и раздельный разбор фактов.
 - [Общий golden dataset 20/10](../services/ai-python/evals/agent-v1/README.md) и [исследование контроля качества](ai/quality-control.md): ожидаемые факты/инструменты/ограничения, runbook и границы проверок.
-- [Локальный Python MCP](components/python-mcp.md): запуск без Go, два инструмента и учебные данные.
+- [Python MCP](components/python-mcp.md): demo с учебными данными либо Go HTTP-адаптер, два инструмента, настройки и проверки на моках.
 - [Архитектура](architecture.md) описывает ответственность компонентов и обмен данными.
 - [План MVP](mvp.md) описывает сценарии, интерфейсы и очередность работы.
 - [Заявка на доступ](specs/001-access-request.md) и [онбординг](specs/002-onboarding-and-context.md) задают ожидаемое поведение Buddy.
