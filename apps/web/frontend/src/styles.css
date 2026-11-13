@@ -2023,8 +2023,7 @@ svg {
   font-size: 13px;
   padding: 12px 0;
 }
-.search-result,
-.profile-option {
+.search-result {
   width: 100%;
   display: flex;
   justify-content: space-between;
@@ -2037,34 +2036,20 @@ svg {
   border-bottom: 1px solid var(--line);
   border-radius: 7px;
 }
-.search-result:hover,
-.profile-option:hover {
+.search-result:hover {
   background: #eef7eb;
 }
 .search-result strong,
-.search-result small,
-.profile-option strong,
-.profile-option small {
+.search-result small {
   display: block;
 }
-.search-result strong,
-.profile-option strong {
+.search-result strong {
   font-size: 13px;
 }
-.search-result small,
-.profile-option small {
+.search-result small {
   color: var(--muted);
   font-size: 11px;
   margin-top: 3px;
-}
-.profile-option > span:nth-child(2) {
-  flex: 1;
-}
-.profile-option[aria-pressed='true'] {
-  background: #e7f8e3;
-}
-.start-change-profile {
-  margin-top: 16px;
 }
 .alert-card {
   display: flex;
