@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"context"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -48,12 +47,13 @@ func (f *fakeCorpGateway) TryExecute(context.Context, string, string, string) (b
 
 func accessAPI(store *fakeAccessStore, corp *fakeCorpGateway) (*API, string) {
 	tokens := buddy.NewTokens(strings.Repeat("k", 32), time.Hour)
-	sessions := buddy.NewSessions(okStore(), tokens, true)
-	onb := buddy.NewOnboarding(&fakeOnbStore{})
-	access := buddy.NewAccess(store, corp)
-	notifications := buddy.NewNotifications(&fakeNotifStore{})
-	chat := buddy.NewChat(buddy.UnavailableAssistant{})
-	api := NewAPI(sessions, onb, access, notifications, chat)
+	api := NewAPI(
+		buddy.NewSessions(okStore(), tokens, true),
+		buddy.NewOnboarding(&fakeOnbStore{}),
+		buddy.NewAccess(store, corp),
+		buddy.NewNotifications(&fakeNotifStore{}),
+		buddy.NewChat(buddy.UnavailableAssistant{}),
+	)
 	token, _, _ := tokens.Issue("olga", time.Now())
 	return api, token
 }
@@ -107,6 +107,16 @@ func TestAccessHTTP(t *testing.T) {
 			wantStatus: 403, wantBody: `"code":"forbidden"`,
 		},
 		{
+			name: "срок истёк",
+			store: &fakeAccessStore{
+				draft:       buddy.AccessRequestDraft{ID: "d1", ProfileID: "olga", ServiceID: "grafana", ExpiresAt: time.Now().Add(-time.Minute)},
+				existingErr: buddy.ErrNotFound, permission: true,
+			},
+			corp:   &fakeCorpGateway{ok: true},
+			method: "POST", path: "/api/v1/access-requests/drafts/d1/confirm", auth: true,
+			wantStatus: 409, wantBody: `"code":"expired_draft"`,
+		},
+		{
 			name:   "сбой корпоративного сервиса",
 			store:  &fakeAccessStore{draft: draft, existingErr: buddy.ErrNotFound, permission: true},
 			corp:   &fakeCorpGateway{ok: false},
@@ -127,12 +137,7 @@ func TestAccessHTTP(t *testing.T) {
 				corp = &fakeCorpGateway{ok: true}
 			}
 			api, token := accessAPI(tt.store, corp)
-			req := httptest.NewRequest(tt.method, tt.path, nil)
-			if tt.auth {
-				req.Header.Set("Authorization", "Bearer "+token)
-			}
-			rec := httptest.NewRecorder()
-			api.Routes().ServeHTTP(rec, req)
+			rec := doRequest(api, token, tt.method, tt.path, "", tt.auth)
 			require.Equal(t, tt.wantStatus, rec.Code)
 			if tt.wantBody != "" {
 				require.Contains(t, rec.Body.String(), tt.wantBody)

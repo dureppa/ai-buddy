@@ -41,13 +41,49 @@ func okStore() fakeStore {
 
 func newTestAPI(demo bool, store fakeStore) (*API, *buddy.Tokens) {
 	tokens := buddy.NewTokens(strings.Repeat("k", 32), time.Hour)
-	sessions := buddy.NewSessions(store, tokens, demo)
-	onboarding := buddy.NewOnboarding(&fakeOnbStore{})
-	access := buddy.NewAccess(&fakeAccessStore{}, &fakeCorpGateway{})
-	notifications := buddy.NewNotifications(&fakeNotifStore{})
-	chat := buddy.NewChat(buddy.UnavailableAssistant{})
-	return NewAPI(sessions, onboarding, access, notifications, chat), tokens
+	api := NewAPI(
+		buddy.NewSessions(store, tokens, demo),
+		buddy.NewOnboarding(&fakeOnbStore{}),
+		buddy.NewAccess(&fakeAccessStore{}, &fakeCorpGateway{}),
+		buddy.NewNotifications(&fakeNotifStore{}),
+		buddy.NewChat(buddy.UnavailableAssistant{}),
+	)
+	return api, tokens
 }
+
+func testAPI(ns ...*fakeNotifStore) (*API, string) {
+	notifStore := &fakeNotifStore{}
+	if len(ns) > 0 {
+		notifStore = ns[0]
+	}
+	tokens := buddy.NewTokens(strings.Repeat("k", 32), time.Hour)
+	api := NewAPI(
+		buddy.NewSessions(okStore(), tokens, true),
+		buddy.NewOnboarding(&fakeOnbStore{}),
+		buddy.NewAccess(&fakeAccessStore{}, &fakeCorpGateway{}),
+		buddy.NewNotifications(notifStore),
+		buddy.NewChat(buddy.UnavailableAssistant{}),
+	)
+	token, _, _ := tokens.Issue("olga", time.Now())
+	return api, token
+}
+
+func doRequest(api *API, token, method, path, body string, auth bool) *httptest.ResponseRecorder {
+	var req *http.Request
+	if body == "" {
+		req = httptest.NewRequest(method, path, nil)
+	} else {
+		req = httptest.NewRequest(method, path, strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if auth {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	rec := httptest.NewRecorder()
+	api.Routes().ServeHTTP(rec, req)
+	return rec
+}
+
 func TestDemoSession(t *testing.T) {
 	unknown := okStore()
 	unknown.profileByID = func(context.Context, string) (buddy.Profile, error) { return buddy.Profile{}, buddy.ErrNotFound }
@@ -72,9 +108,7 @@ func TestDemoSession(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			api, _ := newTestAPI(tt.demo, tt.store)
-			req := httptest.NewRequest(tt.method, "/api/v1/demo/sessions", strings.NewReader(tt.body))
-			rec := httptest.NewRecorder()
-			api.Routes().ServeHTTP(rec, req)
+			rec := doRequest(api, "", tt.method, "/api/v1/demo/sessions", tt.body, false)
 
 			require.Equal(t, tt.wantStatus, rec.Code)
 			if tt.wantCode != "" {
@@ -137,10 +171,4 @@ func TestRequireAuth(t *testing.T) {
 			}
 		})
 	}
-}
-
-type fakeNotifStore struct{}
-
-func (fakeNotifStore) ListNotificationsByProfile(context.Context, string) ([]buddy.Notification, error) {
-	return nil, nil
 }
