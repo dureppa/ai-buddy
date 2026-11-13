@@ -30,3 +30,5 @@
 Сначала подключить Go chat → Python и два Go MCP read-tools. Затем согласовать progress/evidence/assessment и один HR-мок для завершённого шага чек-листа. Маршрут приёмки: запрос стажёра → инструкция/черновик → явное действие пользователя → результат мока сохранён Go → проверка знаний агентом → одобрение наставника → переход Go. Остальные HR-темы можно добавить как справочные инструменты после этого среза.
 
 [Контракт Flask runner](flask-runner-scope.md), [Python: запуск и ограничения](../../../docs/components/ai-python.md), [Go-компонент](../../../docs/components/backend-go.md), [сохранённый smoke](../../../services/ai-python/experiments/flask-smoke.json).
+
+Подготовлен [общий agent-v1 20/10](../../../services/ai-python/evals/agent-v1/README.md): разметка требует review, live не запускался. 26 контрактно доступных и 4 blocked-кейса не являются числом пройденных агентом сценариев. Исследование и следующие меры — [quality-control](../../../docs/ai/quality-control.md).

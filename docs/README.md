@@ -3,6 +3,7 @@
 - [OpenSpec: Python-агент и MCP](../openspec/README.md) содержит предложенные спецификации, внутренние контракты, план реализации и проверки; подключён прямой локальный Flask/LLM/MCP runner, но сквозной Go/UI-онбординг ещё не реализован.
 - [Инструкция Go → Python и MCP](integrations/go-python-mcp.md) содержит текущие HTTP/MCP-контракты, JSON-примеры, ошибки, сроки ожидания и порядок приёмки.
 - [Оценка знаний: контракт для Go](integrations/knowledge-assessment.md), [размеченные примеры](../services/ai-python/evals/README.md) и [фактическое качество локальной модели](../services/ai-python/experiments/assessment-quality.md).
+- [Общий golden dataset 20/10](../services/ai-python/evals/agent-v1/README.md) и [исследование контроля качества](ai/quality-control.md): ожидаемые факты/инструменты/ограничения, runbook и границы проверок.
 - [Архитектура](architecture.md) описывает ответственность компонентов и обмен данными.
 - [План MVP](mvp.md) описывает сценарии, интерфейсы и очередность работы.
 - [Заявка на доступ](specs/001-access-request.md) и [онбординг](specs/002-onboarding-and-context.md) задают ожидаемое поведение Buddy.
