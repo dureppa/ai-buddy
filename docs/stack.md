@@ -4,7 +4,7 @@
 
 | Компонент | Требования проекта | Где зафиксированы версии |
 | --- | --- | --- |
-| Go API и инструменты | Go 1.26.11, стандартные `net/http` и `encoding/json` для HTTP/JSON, pgx/v5 5.12.0 для PostgreSQL, официальный Go SDK 1.8.0 для MCP. | [go.mod](../services/backend-go/go.mod), [go.sum](../services/backend-go/go.sum) |
+| Go API и инструменты | Go 1.26.11, стандартные `net/http` и `encoding/json` для HTTP/JSON, pgx/v5 5.12.0 для PostgreSQL, официальный Go SDK для MCP пока не добавлен в go.mod; выбранную версию закрепить при реализации интеграции. | [go.mod](../services/backend-go/go.mod), [go.sum](../services/backend-go/go.sum) |
 | Данные | PostgreSQL 17 для пользователей, чек-листов, прогресса и заявок. Схему изменяем SQL-миграциями. Redis применяем при появлении конкретной задачи кеширования или временного состояния. | Версию образа закрепить при добавлении PostgreSQL в Docker Compose. [Поддержка PostgreSQL](https://www.postgresql.org/support/versioning/) |
 | AI-сервис | Python 3.13, Flask 3.1.3, официальный MCP SDK 1.30.0; Pydantic 2.14.3 для схем и httpx 0.28.1 для ограниченного транспорта. Зависимости и виртуальное окружение управляются через uv. | [.python-version](../services/ai-python/.python-version), [pyproject.toml](../services/ai-python/pyproject.toml), [uv.lock](../services/ai-python/uv.lock) |
 | Веб | React 19, TypeScript 6.0.3, Vite 8 и Node.js 24.22.2 LTS. React Router 7 для страниц, TanStack Query 5 для серверных данных, Zod 4 для проверки входных данных. Сейчас экраны используют локальный demo-adapter. Zustand подключаем для общего клиентского состояния, когда появляется такая потребность. | [package.json веба](../apps/web/package.json), [общие инструменты](../package.json), [package-lock.json](../package-lock.json) |
