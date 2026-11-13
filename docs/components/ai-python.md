@@ -2,7 +2,7 @@
 
 ## Статус первого среза
 
-Реализованы application factory Flask, внутренний HTTP-вход, проверка схем, ограниченный MCP-клиент и автоматические тесты. LLM, агентный цикл, оценка знаний, корпоративные prepare-tools и подключение Go ещё не реализованы. Fake runner существует только в тестах; без реального runner readiness и валидный turn возвращают 503. Go, фронтенд и публичный contracts/openapi.yaml этим срезом не изменены.
+Реализованы application factory Flask, внутренний HTTP-вход, проверка схем, ограниченный MCP-клиент и автоматические тесты. Production-подключение LLM и агентного цикла, оценка знаний, корпоративные prepare-tools и подключение Go ещё не реализованы. Сравнение двух циклов с локальной моделью вынесено в отдельный эксперимент ниже. Fake runner существует только в тестах; без реального runner readiness и валидный turn возвращают 503. Go, фронтенд и публичный contracts/openapi.yaml этим срезом не изменены.
 
 Flask принимает будущие внутренние вызовы Go. Python управляет LLM/MCP; Go остаётся владельцем личности, прав, сохранённых фактов и переходов. Контракт ниже пока не подключён коллегами и не является публичным API браузера.
 
@@ -58,3 +58,13 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 [OpenSpec](../../openspec/README.md), [контракт первого среза](../../openspec/changes/implement-python-agent/foundation-scope.md), [план](../../openspec/changes/implement-python-agent/tasks.md). Следующий срез требует выбора LLM, согласования реальных API шести сервисов и полноценного agent runner; нынешние тесты не доказывают Go/UI/e2e интеграцию.
 
 [Документация MCP-клиента](https://github.com/modelcontextprotocol/python-sdk/blob/v1.x/docs/client.md), [тестирование Flask](https://flask.palletsprojects.com/en/stable/testing/).
+
+## Эксперимент LangChain / прямого цикла
+
+Из services/ai-python: `uv sync --locked`, затем при уже работающем локальном Ollama с моделью `qwen3:4b-q4_K_M` выполнить `uv run --locked python -m experiments.compare`. Команда не скачивает модель и использует только 127.0.0.1:11434. Тестовые данные синтетические, tracing отключён. Файл experiments/comparison-results.json перезаписывается по мере прогресса; при повторном сравнении сохраните предыдущий отчёт отдельно.
+
+LangChain 1.5.0 и langchain-ollama 1.1.0 добавлены в dev-группу для запрошенного сравнения create_agent с обычным HTTP-циклом. Совместимость проверена на Python 3.13; manifest и lock обновлены вместе. Они не импортируются ai_buddy и не нужны production-каркасу. Это добавило 29 пакетов в dev-окружение, включая LangGraph транзитивно; отдельный LangGraph workflow не разрабатывался. Существующая Python job CI выполняет tests/test_agent_loops.py без весов и сети.
+
+Оба цикла используют общий Gateway и его схемы. Адаптер create_agent через middleware исполняет MCP-вызовы; автоматическое подключение произвольного серверного каталога отсутствует. Лимиты эксперимента: 3 модельных вызова, 6 попыток инструментов, 90 с на ход. Рабочий deadline Flask остаётся 25 с; production runner не подключён. Локальная 4B-модель пока не рекомендована для готового пользовательского сценария.
+
+[Условия эксперимента](../../openspec/changes/implement-python-agent/agent-loop-experiment.md), [результаты и решение](../../services/ai-python/experiments/README.md).

@@ -33,3 +33,10 @@
 ## Готовность первого Python-среза
 
 2.2 выполнена для search_knowledge/get_team_context; остальные tools ожидают согласования Go. Каркас по умолчанию возвращает AI_UNAVAILABLE, production runner не подключён. Проверки и область: [foundation-scope](foundation-scope.md), [документация Python](../../../docs/components/ai-python.md). Непроверенные задачи, в том числе сквозной маршрут, LLM и оценка знаний, не отмечаются выполненными. Тесты используют fake dependencies и реальный SDK test-server, не готовый корпоративный Go MCP.
+
+## Эксперимент оркестрации
+
+- [x] Сравнить create_agent и прямой цикл на общей локальной LLM и двух read-only MCP-tools; сохранить исходный live-отчёт и ограничения оценщика.
+- [x] Проверить оба цикла scripted-тестами с ошибками/лимитами без сетевых вызовов в CI.
+
+Это не завершает 1.4, 4.2 и подключение production runner: модель и prompt требуют улучшения и отдельной приёмки. [Условия](agent-loop-experiment.md), [результаты](../../../services/ai-python/experiments/README.md).

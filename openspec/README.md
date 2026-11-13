@@ -23,3 +23,5 @@ openspec status --change implement-python-agent --json
 Готовность первого среза и ещё невыполненные задачи разделены в tasks.md. CLI проверяет структуру, а не готовность поведения. Apply и archive не выполнять до отдельного запроса на реализацию и фактической проверки.
 
 Текущий срез: [foundation-scope](changes/implement-python-agent/foundation-scope.md).
+
+Сравнение оркестрации оформлено отдельно: [условия эксперимента](changes/implement-python-agent/agent-loop-experiment.md).
