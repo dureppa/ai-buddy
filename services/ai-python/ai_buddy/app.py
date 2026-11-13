@@ -1,5 +1,6 @@
 import asyncio
 import hmac
+import logging
 from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
 from typing import Protocol
@@ -11,6 +12,7 @@ from werkzeug.exceptions import BadRequest, RequestEntityTooLarge
 from ai_buddy.config import Settings
 from ai_buddy.errors import ErrorCode, ServiceError
 from ai_buddy.mcp_client import Gateway, Session, sdk_session
+from ai_buddy.runner import DirectRunner
 from ai_buddy.schemas import Reply, TurnRequest
 
 
@@ -29,6 +31,9 @@ def create_app(
 ) -> Flask:
     settings = settings or Settings.from_env()
     app = Flask(__name__)
+    app.logger.setLevel(logging.INFO)
+    if runner is None and settings.agent_enabled and settings.ollama_model is not None:
+        runner = DirectRunner(settings, logger=app.logger)
     app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
     factory = session_factory or (lambda context: sdk_session(settings, context))
 
@@ -75,7 +80,12 @@ def create_app(
         if not settings.configured:
             return error_response(ErrorCode.NOT_READY, 503)
         if runner is None:
-            return error_response(ErrorCode.AI_UNAVAILABLE, 503)
+            return error_response(
+                ErrorCode.NOT_READY
+                if settings.agent_enabled
+                else ErrorCode.AI_UNAVAILABLE,
+                503,
+            )
 
         async def execute() -> Reply:
             async with asyncio.timeout(settings.turn_timeout):

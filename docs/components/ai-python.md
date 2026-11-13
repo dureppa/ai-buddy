@@ -1,76 +1,85 @@
 # Python-сервис AI Buddy
 
-## Статус первого среза
+## Текущее состояние
 
-Реализованы application factory Flask, внутренний HTTP-вход, проверка схем, ограниченный MCP-клиент и автоматические тесты. Production-подключение LLM и агентного цикла, оценка знаний, корпоративные prepare-tools и подключение Go ещё не реализованы. Сравнение двух циклов с локальной моделью вынесено в отдельный эксперимент ниже. Fake runner существует только в тестах; без реального runner readiness и валидный turn возвращают 503. Go, фронтенд и публичный contracts/openapi.yaml этим срезом не изменены.
+Flask умеет выполнять реальный прямой цикл через локальную Ollama и SDK MCP: получить контекст команды/инструкции, сформировать ответ и проверить ссылки. Включается явно, фиктивный runner не активируется. Код сервиса не импортирует LangChain/LangGraph/experiments; эти зависимости остались только для сравнения двух подходов.
 
-Flask принимает будущие внутренние вызовы Go. Python управляет LLM/MCP; Go остаётся владельцем личности, прав, сохранённых фактов и переходов. Контракт ниже пока не подключён коллегами и не является публичным API браузера.
+Поддержаны только search_knowledge и get_team_context. Go → Python, Go MCP, assessment знаний, progress/evidence, шесть корпоративных tools и переходы этапов этим блоком не реализованы. [Готовность пользовательского сценария](../../openspec/changes/implement-python-agent/scenario-status.md).
 
-## Запуск
+## Локальный запуск
 
 Из services/ai-python:
 
 ```bash
 uv sync --locked
-AI_SERVICE_TOKEN=local-service-token MCP_URL=http://127.0.0.1:8080/mcp uv run --locked flask --app ai_buddy:create_app run --host 127.0.0.1 --port 8001
+# В отдельном терминале, если Ollama ещё не работает:
+OLLAMA_NO_CLOUD=1 ollama serve
 ```
 
-Это локальный development-server. WSGI-развёртывание требует отдельной настройки до production; его здесь нет. `.env.example` содержит только пример без секретов; не использовать его значения для общей среды.
+Проверь `ollama list`: модель qwen3:4b-q4_K_M должна быть уже установлена. Сервис не скачивает веса. Ollama требуется запускать с отключённым облаком; Python обращается только к настроенному loopback origin. Контекст 4096, thinking=false, температура 0, seed 42, максимум ответа 384 токена. Холодная загрузка может занять существенную часть бюджета: readiness её не запускает.
 
-GET /health/live возвращает 200, если процесс работает. GET /health/ready возвращает 503 без конфигурации и production runner. Проверка не делает сетевых/платных вызовов и не гарантирует доступность внешнего MCP.
+Нужен отдельный совместимый MCP-сервер с закрытыми схемами [первого среза](../../openspec/changes/implement-python-agent/foundation-scope.md). Адрес ниже — пример будущего Go MCP; наличие Go HTTP API само по себе не означает наличие MCP.
+
+```bash
+AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-service-token MCP_URL=http://127.0.0.1:8080/mcp uv run --locked flask --app ai_buddy:create_app run --host 127.0.0.1 --port 8001
+```
+
+Это development server. Production WSGI-развёртывание ещё не настроено. Настройки перечислены в [.env.example](../../services/ai-python/.env.example); значения токенов там примерные. uv создаёт .venv; команда `uv sync --locked --no-dev` достаточна для runtime без LangChain.
+
+Без AI_AGENT_ENABLED=true сохраняется 503/AI_UNAVAILABLE. При включении без OLLAMA_MODEL — 503/NOT_READY. GET /health/live проверяет процесс; GET /health/ready проверяет локальную конфигурацию и наличие runner, без сетевых вызовов. Даже ready=true не обещает, что модель установлена или MCP доступен: это проверяется запросом/smoke.
 
 ## Внутренний HTTP
 
-POST /internal/v1/turns, Authorization: Bearer AI_SERVICE_TOKEN. Закрытый JSON: request_id/conversation_id — UUID; message — 1–4000 непустых символов; delegation_token — отдельный токен Go для MCP; history — до 20 user/assistant сообщений; optional page_context.url — http/https без query/fragment. Максимум тела 64 KiB. Сервисный токен и делегированный токен имеют разные назначения. SecretStr скрывает делегацию в стандартной сериализации, поэтому Go отправляет исходный токен отдельным полем доверенного запроса, не дампом Python-модели.
+POST /internal/v1/turns, Authorization: Bearer AI_SERVICE_TOKEN. Закрытый JSON: request_id/conversation_id — UUID; message — 1–4000 непустых символов; delegation_token — отдельный токен Go для MCP; history — до 20 сообщений user/assistant по 4000 символов; optional page_context.url — http/https без query/fragment. Тело ≤64 KiB. Пользователь и владение диалогом проверяются Go до этого вызова. Публичный Go ChatReply не менялся.
 
-Ответ будущего runner: request_id, conversation_id, reply{text,references}. Идентификаторы задаются HTTP-обвязкой из проверенного входа. 400 — схема/JSON, 401 — авторизация, 413 — размер, 415 — тип содержимого, 503 — отсутствие runner/конфигурации, сбой или лимит. Детали исключений, токены и body провайдера не публикуются и не логируются. Существующий Go ChatReply не подменяется этой внутренней схемой.
+История передаётся модели без system-ролей и без переноса реестра источников из прошлого хода. URL передаётся как непроверенный контекст: сайт не загружается, DOM агент не видит. MCP bearer и request_id не передаются модели.
 
-## MCP
+Ответ 200: request_id, conversation_id из входа и reply{text,references}. Ссылки строятся кодом из реально процитированных допущенных id/URL, максимум 5 карточек. Сырые ответы, черновики, chain-of-thought, токены и tool output не публикуются. Пустая база знаний и исключённый документ дают безопасный содержательный ответ 200 без выдуманного успеха.
 
-Официальный SDK 1.30.0, Streamable HTTP, отдельные клиенты на ход. Поддержаны search_knowledge и get_team_context с локальными закрытыми схемами. Другие имена, включая новые progress/evidence/prepare, не публикуются до согласования их контрактов. Вызов содержит доверенный request-id в _meta и bearer делегации в заголовке; модель их не выбирает.
+400 — схема/JSON, 401 — сервисная авторизация, 413 — размер тела, 415 — Content-Type. После начала обработки 503 с безопасным code:
 
-Discovery ограничен четырьмя страницами. Результат до 32 KiB, тело транспорта до 1 MiB; редиректы запрещены. Локальная схема discovery сравнивается с удалённой без незначимых title/description. Результат проверяется Pydantic, двойное текстовое JSON-представление должно совпадать. Доменные FORBIDDEN/NOT_FOUND/CONTEXT_EXPIRED/TEMPORARILY_UNAVAILABLE сохраняются как безопасные коды; чужое message не показывается.
+| Причина | code |
+| --- | --- |
+| Нет обязательной конфигурации | NOT_READY |
+| Выключен runner, сеть Ollama/HTTP-сбой/нет модели | AI_UNAVAILABLE |
+| Таймаут LLM либо общего хода | AI_TIMEOUT |
+| Ollama вернула 429 | AI_RATE_LIMITED |
+| Неверная структура/роль, пустой/слишком большой или незавершённый ответ | AI_INVALID_RESPONSE |
+| MCP недоступен/просрочен/несовместим/отказ ACL | MCP_UNAVAILABLE, MCP_TIMEOUT, INCOMPATIBLE_SCHEMA, FORBIDDEN и другие безопасные коды SDK boundary |
+| Исчерпан бюджет | AGENT_LIMIT_REACHED |
 
-Лимиты Settings: 25 с на ход, 5 с на MCP-операцию, до 6 вызовов инструмента; автоматических повторов нет. Новые Settings можно передать application factory для теста/внутренней конфигурации. Сессии не переносятся между asyncio.run и не делят bearer между запросами. Входящий URL страницы не загружается.
+Технический/ACL-сбой MCP прекращает runtime до следующей генерации. Автоматических сетевых повторов нет. Общий deadline включает соединение, discovery, генерацию, инструменты и cleanup. Параметры: AI_TURN_TIMEOUT ≤25 с, AI_MODEL_TIMEOUT ≤25 с (по умолчанию 20); MCP — 5 с. До 3 генераций и 6 tool-попыток; одна корректировка цитаты в том же бюджете. Пакет выше остатка бюджета не исполняется частично.
 
-## Файлы
+Запрос и ответ Ollama ограничены 64 KiB; превышение запроса даёт INVALID_REQUEST до отправки. Код не обрезает историю/последний вопрос. Это ограничение байтов, не подсчёт токенов: внутреннее усечение длинного контекста Ollama не контролируется токенизатором в этом срезе. Длинные диалоги требуют отдельного управления контекстом.
 
-- services/ai-python/ai_buddy/app.py — application factory, auth, health, HTTP и deadline.
-- ai_buddy/config.py и schemas.py — конфигурация и проверяемые контракты.
-- ai_buddy/mcp_client.py — SDK transport, discovery, каталог, проверка результатов, лимиты.
-- ai_buddy/errors.py — безопасные коды.
-- tests/test_app.py — HTTP-контракт и cleanup.
-- tests/test_mcp.py — аргументы, результаты, ACL-коды, лимиты и transport.
-- tests/test_mcp_integration.py — настоящий SDK client/server через Streamable HTTP в ASGITransport без сетевых сокетов и изменения Go; concurrent bearer/meta проверяются отдельно.
+## MCP и контроль источников
 
-## Проверка
+Официальный SDK 1.30.0, Streamable HTTP, отдельные MCP/LLM-клиенты на ход и один event loop. MCP получает только свой делегированный bearer и request-id в _meta. Discovery ≤4 страниц, tool result ≤32 KiB, тело MCP-транспорта ≤1 MiB, редиректы запрещены. Схемы проверяются локально, текстовое JSON-представление не должно расходиться со structuredContent. Другие инструменты не включаются автоматически.
+
+Обнаруженные метаинструкции в документах и метаданных исключаются до передачи LLM. Пустой поиск, подозрительный документ и конфликт id имеют разные безопасные ответы. Реестр id/URL изолирован на ход; ошибочный/исключённый результат не даёт источника. Неизвестная ссылка либо отсутствие цитаты при полученных источниках допускает одну корректировку; повторная ошибка заменяет весь ответ безопасным сообщением. Проверка эвристическая и не гарантирует защиту от всех перефразировок или правильность каждого утверждения по полученной ссылке.
+
+Диагностика содержит только request-id, имя модели, версию prompt, счётчики, длительность и безопасный исход. История, токены, документы и provider body по умолчанию не логируются. Сырые ответы сохраняются только явными синтетическими экспериментами, не runtime endpoint.
+
+## Файлы и проверки
+
+- ai_buddy/app.py — Flask/auth/HTTP/deadline и выбор runner.
+- agent.py — общий прямой цикл, prompt, per-turn state, лимиты и финализация; experiments переиспользует этот код.
+- ollama.py — native HTTP, проверка ответов и безопасные коды провайдера.
+- runner.py — связь контракта TurnRequest с циклом, карточки источников и безопасная диагностика.
+- mcp_client.py — SDK/Gateway; answer_policy.py — контроль источников/инструкций; config.py/schemas.py — настройки и контракты.
+- tests/test_runtime.py — необходимые runtime-регрессии: вход Flask → runner, история/изоляция, провайдер/MCP/таймауты, cleanup, отсутствие частичного пакета tools и настоящий MCP-протокол. Старые тесты auth/схем/политики не дублировались.
 
 ```bash
-uv sync --locked
 uv run --locked ruff format --check .
 uv run --locked ruff check .
 uv run --locked mypy .
 uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=85
 ```
 
-Существующая Python job CI и just python-check запускают эти тесты при наличии .py. Покрытие измеряется по прикладному ai_buddy, тесты/зависимости исключены, локальный gate 85%. Отчёт coverage.xml игнорируется Git. Это покрытие текущего каркаса, не качества LLM или всей системы.
+Существующая Python job CI подхватывает тесты. Coverage считается по Python-коду, включая experiments и ручной smoke CLI; тесты/зависимости исключены. Локальный gate 85% сохраняет запас к требованию >80%. Пустые функции и косметические проверки ради процента не добавлялись. Отчёт coverage.xml игнорируется Git. Полный just check локально не запускался, Go/UI проверит CI.
 
-[OpenSpec](../../openspec/README.md), [контракт первого среза](../../openspec/changes/implement-python-agent/foundation-scope.md), [план](../../openspec/changes/implement-python-agent/tasks.md). Следующий срез требует выбора LLM, согласования реальных API шести сервисов и полноценного agent runner; нынешние тесты не доказывают Go/UI/e2e интеграцию.
+## Живая проверка
 
-[Документация MCP-клиента](https://github.com/modelcontextprotocol/python-sdk/blob/v1.x/docs/client.md), [тестирование Flask](https://flask.palletsprojects.com/en/stable/testing/).
+`uv run --locked python -m experiments.flask_smoke` требует установленную локальную модель и работающий Ollama. Используются настоящий Flask test client, native Ollama и SDK Streamable HTTP на синтетическом ASGI MCP; внешний Go MCP для этой команды не нужен. Сервер-мок активируется только в CLI, не подставляется приложением автоматически. Команда сохраняет [flask-smoke.json](../../services/ai-python/experiments/flask-smoke.json): наставник 9,233 с, пустые знания 4,658 с, исключение заражённого документа 3,406 с; везде 200. Прогрев 19,637 с вынесен отдельно. Это не Go/UI/e2e и не доказательство готовности полного онбординга.
 
-## Эксперимент LangChain / прямого цикла
-
-Из services/ai-python: `uv sync --locked`, затем при уже работающем локальном Ollama с моделью `qwen3:4b-q4_K_M` выполнить `uv run --locked python -m experiments.compare`. Команда не скачивает модель и использует только 127.0.0.1:11434. Тестовые данные синтетические, tracing отключён. Файл experiments/comparison-guarded.json сохраняется по мере прогресса; исходный comparison-results.json сохраняется и переоценивается оценщиком 2.1. При следующем запуске итоговый guarded-отчёт будет перезаписан.
-
-LangChain 1.5.0 и langchain-ollama 1.1.0 добавлены в dev-группу для запрошенного сравнения create_agent с обычным HTTP-циклом. Совместимость проверена на Python 3.13; manifest и lock обновлены вместе. Они не импортируются ai_buddy и не нужны production-каркасу. Это добавило 29 пакетов в dev-окружение, включая LangGraph транзитивно; отдельный LangGraph workflow не разрабатывался. Существующая Python job CI выполняет tests/test_agent_loops.py без весов и сети.
-
-Оба цикла используют общий Gateway и его схемы. Адаптер create_agent через middleware исполняет MCP-вызовы; автоматическое подключение произвольного серверного каталога отсутствует. Лимиты эксперимента: 3 модельных вызова, 6 попыток инструментов, 90 с на ход. Рабочий deadline Flask остаётся 25 с; production runner не подключён. Локальная 4B-модель пока не рекомендована для готового пользовательского сценария.
-
-[Условия эксперимента](../../openspec/changes/implement-python-agent/agent-loop-experiment.md), [результаты и решение](../../services/ai-python/experiments/README.md).
-
-### Контроль ответов и источников
-
-ai_buddy/answer_policy.py содержит общую per-turn политику для обоих экспериментальных циклов: реестр полученных id/URL, исключение подозрительных документов до передачи модели, проверка итоговых ссылок и безопасные ответы. Пустой поиск, подозрительный документ и конфликт источника имеют разные причины. Допускается одна попытка исправить цитату в рамках прежних 3 модельных вызовов; неудачный ответ не публикуется. В отчёте остаются raw_answer, draft_answers, итоговый answer и guard_events. Исключённые документы и ошибочные вызовы не создают права на цитирование.
-
-Контроль подключён к экспериментальным циклам, production runner Flask по-прежнему отсутствует. Публичные контракты и MCP-схемы не изменены. [Повторное сравнение и ограничения защиты](../../services/ai-python/experiments/safety-fix.md). Обнаружение инструкций эвристическое; наличие полученного источника не доказывает правильность каждого утверждения модели. tests/test_answer_policy.py проверяет политику, обе оркестрации и оценщик; дополнительных зависимостей нет.
+[OpenSpec runtime-среза](../../openspec/changes/implement-python-agent/flask-runner-scope.md), [сравнение оркестрации и ограничения](../../services/ai-python/experiments/safety-fix.md), [Ollama chat API](https://docs.ollama.com/api/chat), [таймауты HTTPX](https://www.python-httpx.org/advanced/timeouts/).

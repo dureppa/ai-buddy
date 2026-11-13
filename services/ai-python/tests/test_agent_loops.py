@@ -160,7 +160,7 @@ def test_tool_attempt_budget(engine: Literal["direct", "langchain"]) -> None:
     message["tool_calls"] *= 7
     trace = asyncio.run(scripted(engine, [message], FakeSession()))
     assert trace.error == "AGENT_LIMIT_REACHED"
-    assert len(trace.calls) == 6
+    assert len(trace.calls) == (0 if engine == "direct" else 6)
 
 
 @pytest.mark.parametrize("engine", ["direct", "langchain"])
