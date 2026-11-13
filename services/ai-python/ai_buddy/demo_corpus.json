@@ -1,0 +1,115 @@
+{
+  "version": "local-demo-v1",
+  "documents": [
+    {
+      "source": {
+        "id": "demo-absences",
+        "title": "Демо: Отсутствия",
+        "url": "https://demo.example/services/absences",
+        "version": "1",
+        "is_demo": true
+      },
+      "excerpt": "Учебный сервис: открой раздел «Отсутствия», нажми «Новая заявка», выбери тип и даты. После отдельного подтверждения отправки статус — «на согласовании», а не «одобрено».",
+      "keywords": "отсутствие отпуск выходной"
+    },
+    {
+      "source": {
+        "id": "demo-business_trips",
+        "title": "Демо: Командировки",
+        "url": "https://demo.example/services/business_trips",
+        "version": "1",
+        "is_demo": true
+      },
+      "excerpt": "Демо-командировка оформляется отдельной заявкой. Статус submitted означает ожидание рассмотрения, не одобрение, бронирование или оплату. Даты отсутствия не создают поездку.",
+      "keywords": "командировка поездка submitted"
+    },
+    {
+      "source": {
+        "id": "demo-hiring",
+        "title": "Демо: Найм",
+        "url": "https://demo.example/services/hiring",
+        "version": "1",
+        "is_demo": true
+      },
+      "excerpt": "В учебном найме стажёр обращается к наставнику за контактом команды. Проверка кандидатов принадлежит HR; чужие персональные карточки стажёру недоступны.",
+      "keywords": "найм кандидат hr"
+    },
+    {
+      "source": {
+        "id": "demo-dismissals",
+        "title": "Демо: Увольнения",
+        "url": "https://demo.example/services/dismissals",
+        "version": "1",
+        "is_demo": true
+      },
+      "excerpt": "Демо-памятка: вопросы завершения работы уточняют у HR и наставника. Buddy предоставляет только справку и не увольняет сотрудников.",
+      "keywords": "увольнение завершение работы"
+    },
+    {
+      "source": {
+        "id": "demo-consents",
+        "title": "Демо: Согласия",
+        "url": "https://demo.example/services/consents",
+        "version": "1",
+        "is_demo": true
+      },
+      "excerpt": "Учебное ознакомление подтверждает сам пользователь в карточке с версией материала. Это не юридическая подпись; слово «согласен» в чате не сохраняет факт.",
+      "keywords": "согласие ознакомление документ подпись"
+    },
+    {
+      "source": {
+        "id": "demo-benefits",
+        "title": "Демо: Бенефиты",
+        "url": "https://demo.example/services/benefits",
+        "version": "1",
+        "is_demo": true
+      },
+      "excerpt": "В демо-каталоге доступна «Библиотека практикумов». Выбор добровольный, не является условием онбординга и не подтверждает выдачу. Реальные условия Авито не определяются этим примером.",
+      "keywords": "бенефиты льготы библиотека"
+    }
+  ],
+  "profiles": {
+    "alex": {
+      "team": {
+        "id": "demo-alex",
+        "name": "Учебная команда Маяк",
+        "summary": "Синтетические данные для локальной разработки."
+      },
+      "mentor": {
+        "display_name": "Анна Тестова",
+        "contact": "@demo_alex_mentor"
+      },
+      "lead": null,
+      "references": [
+        {
+          "id": "demo-team-alex",
+          "title": "Демо-команда alex",
+          "url": "https://demo.example/teams/alex",
+          "version": "1",
+          "is_demo": true
+        }
+      ]
+    },
+    "nina": {
+      "team": {
+        "id": "demo-nina",
+        "name": "Учебная команда Спектр",
+        "summary": "Синтетические данные для локальной разработки."
+      },
+      "mentor": {
+        "display_name": "Иван Демонстрационный",
+        "contact": "@demo_nina_mentor"
+      },
+      "lead": null,
+      "references": [
+        {
+          "id": "demo-team-nina",
+          "title": "Демо-команда nina",
+          "url": "https://demo.example/teams/nina",
+          "version": "1",
+          "is_demo": true
+        }
+      ]
+    }
+  }
+}

@@ -1,13 +1,14 @@
 {
-  "snapshot_commit": "a51531510fd73f7a170b59cc76dc12cd9ab262cf",
-  "protocol_version": "2025-11-25",
+  "status": "proposed_go_http_contract_local_python_demo_available_http_adapter_not_implemented",
+  "schema_snapshot_commit": "a51531510fd73f7a170b59cc76dc12cd9ab262cf",
+  "architecture": "Flask agent -> Python MCP adapter -> Go HTTP API; Go does not implement MCP.",
   "http": {
     "path": "/internal/v1/turns",
     "request": {
       "request_id": "11111111-1111-4111-8111-111111111111",
       "conversation_id": "22222222-2222-4222-8222-222222222222",
       "message": "Как оформить отсутствие?",
-      "delegation_token": "synthetic-delegation-token",
+      "delegation_token": "synthetic-mcp-delegation",
       "history": [],
       "page_context": {
         "url": "https://demo.example/services/absences"
@@ -33,54 +34,132 @@
       }
     }
   },
-  "tools_list_result": {
-    "tools": [
-      {
-        "name": "search_knowledge",
-        "inputSchema": {
+  "proposed_go_http": {
+    "resolve_context": {
+      "method": "POST",
+      "path": "/internal/v1/ai/context/resolve",
+      "authorization": "Bearer <MCP_ADAPTER_SERVICE_TOKEN>",
+      "request": {
+        "delegation_token": "synthetic-mcp-delegation"
+      },
+      "success": {
+        "status": 200,
+        "body": {
+          "active": true,
+          "subject_id": "demo-profile",
+          "request_id": "11111111-1111-4111-8111-111111111111",
+          "conversation_id": "22222222-2222-4222-8222-222222222222",
+          "allowed_tools": [
+            "search_knowledge",
+            "get_team_context"
+          ],
+          "expires_at": "2026-11-13T18:00:00Z",
+          "api_token": "synthetic-go-http-access"
+        }
+      },
+      "inactive": {
+        "status": 200,
+        "body": {
+          "active": false
+        }
+      },
+      "schemas": {
+        "request": {
+          "type": "object",
           "additionalProperties": false,
           "properties": {
-            "query": {
-              "maxLength": 500,
+            "delegation_token": {
+              "type": "string",
               "minLength": 1,
-              "title": "Query",
-              "type": "string"
-            },
-            "limit": {
-              "default": 3,
-              "maximum": 5,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
+              "maxLength": 8192,
+              "pattern": "^[\\x21-\\x7e]+$"
             }
           },
           "required": [
-            "query"
-          ],
-          "title": "SearchArguments",
-          "type": "object"
-        }
-      },
-      {
-        "name": "get_team_context",
-        "inputSchema": {
+            "delegation_token"
+          ]
+        },
+        "active_response": {
+          "type": "object",
           "additionalProperties": false,
-          "properties": {},
-          "title": "EmptyArguments",
-          "type": "object"
+          "properties": {
+            "active": {
+              "const": true
+            },
+            "subject_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$"
+            },
+            "request_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "conversation_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "allowed_tools": {
+              "type": "array",
+              "uniqueItems": true,
+              "maxItems": 2,
+              "items": {
+                "enum": [
+                  "search_knowledge",
+                  "get_team_context"
+                ]
+              }
+            },
+            "expires_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "api_token": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8192,
+              "pattern": "^[\\x21-\\x7e]+$"
+            }
+          },
+          "required": [
+            "active",
+            "subject_id",
+            "request_id",
+            "conversation_id",
+            "allowed_tools",
+            "expires_at",
+            "api_token"
+          ]
+        },
+        "inactive_response": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "active": {
+              "const": false
+            }
+          },
+          "required": [
+            "active"
+          ]
         }
       }
-    ]
-  },
-  "tools": {
+    },
     "search_knowledge": {
-      "arguments": {
+      "method": "POST",
+      "path": "/internal/v1/ai/knowledge/search",
+      "authorization": "Bearer <api_token>",
+      "headers": {
+        "X-Request-ID": "11111111-1111-4111-8111-111111111111"
+      },
+      "request": {
         "query": "Как оформить отсутствие?",
         "limit": 3
       },
       "success": {
-        "isError": false,
-        "structuredContent": {
+        "status": 200,
+        "body": {
           "ok": true,
           "data": {
             "documents": [
@@ -96,25 +175,31 @@
               }
             ]
           }
-        },
-        "content": []
+        }
       },
       "empty": {
-        "isError": false,
-        "structuredContent": {
+        "status": 200,
+        "body": {
           "ok": true,
           "data": {
             "documents": []
           }
-        },
-        "content": []
-      }
+        }
+      },
+      "request_schema_ref": "#/schemas/SearchArguments",
+      "response_schema_ref": "#/schemas/SearchEnvelope"
     },
     "get_team_context": {
-      "arguments": {},
+      "method": "GET",
+      "path": "/internal/v1/ai/team-context",
+      "authorization": "Bearer <api_token>",
+      "headers": {
+        "X-Request-ID": "11111111-1111-4111-8111-111111111111"
+      },
+      "request_body": null,
       "success": {
-        "isError": false,
-        "structuredContent": {
+        "status": 200,
+        "body": {
           "ok": true,
           "data": {
             "team": {
@@ -137,12 +222,11 @@
               }
             ]
           }
-        },
-        "content": []
+        }
       },
       "empty": {
-        "isError": false,
-        "structuredContent": {
+        "status": 200,
+        "body": {
           "ok": true,
           "data": {
             "team": null,
@@ -150,71 +234,88 @@
             "lead": null,
             "references": []
           }
-        },
-        "content": []
+        }
+      },
+      "response_schema_ref": "#/schemas/TeamEnvelope"
+    },
+    "read_errors": {
+      "400": {
+        "status": 400,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "INVALID_ARGUMENTS",
+            "message": "Данные недоступны.",
+            "retryable": false
+          }
+        }
+      },
+      "401": {
+        "status": 401,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "CONTEXT_EXPIRED",
+            "message": "Данные недоступны.",
+            "retryable": false
+          }
+        }
+      },
+      "403": {
+        "status": 403,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "FORBIDDEN",
+            "message": "Данные недоступны.",
+            "retryable": false
+          }
+        }
+      },
+      "404": {
+        "status": 404,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "NOT_FOUND",
+            "message": "Данные недоступны.",
+            "retryable": false
+          }
+        }
+      },
+      "429": {
+        "status": 429,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "TEMPORARILY_UNAVAILABLE",
+            "message": "Данные недоступны.",
+            "retryable": true
+          }
+        }
+      },
+      "503": {
+        "status": 503,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "TEMPORARILY_UNAVAILABLE",
+            "message": "Данные недоступны.",
+            "retryable": true
+          }
+        }
+      },
+      "500": {
+        "status": 500,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "INTERNAL_ERROR",
+            "message": "Данные недоступны.",
+            "retryable": false
+          }
+        }
       }
-    }
-  },
-  "tool_errors": {
-    "FORBIDDEN": {
-      "isError": true,
-      "structuredContent": {
-        "ok": false,
-        "error": {
-          "code": "FORBIDDEN",
-          "message": "Нет доступа к данным.",
-          "retryable": false
-        }
-      },
-      "content": []
-    },
-    "NOT_FOUND": {
-      "isError": true,
-      "structuredContent": {
-        "ok": false,
-        "error": {
-          "code": "NOT_FOUND",
-          "message": "Данные временно недоступны.",
-          "retryable": false
-        }
-      },
-      "content": []
-    },
-    "CONTEXT_EXPIRED": {
-      "isError": true,
-      "structuredContent": {
-        "ok": false,
-        "error": {
-          "code": "CONTEXT_EXPIRED",
-          "message": "Контекст недоступен.",
-          "retryable": false
-        }
-      },
-      "content": []
-    },
-    "TEMPORARILY_UNAVAILABLE": {
-      "isError": true,
-      "structuredContent": {
-        "ok": false,
-        "error": {
-          "code": "TEMPORARILY_UNAVAILABLE",
-          "message": "Данные временно недоступны.",
-          "retryable": true
-        }
-      },
-      "content": []
-    },
-    "INVALID_ARGUMENTS": {
-      "isError": true,
-      "structuredContent": {
-        "ok": false,
-        "error": {
-          "code": "INVALID_ARGUMENTS",
-          "message": "Данные временно недоступны.",
-          "retryable": false
-        }
-      },
-      "content": []
     }
   },
   "schemas": {

@@ -24,6 +24,8 @@ npm run dev --workspace=@ai-buddy/web
 
 Полный локальный набор проверок запускается командой `just check`. Отдельные проверки frontend, Python и Go доступны через `just frontend-check`, `just python-check` и `just go-check`.
 
-Python-сервис: Flask → прямой агент → локальная Ollama и MCP, с контролем источников и таймаутами. [Запуск и границы](docs/components/ai-python.md). Добавлен [контракт оценки знаний](docs/integrations/knowledge-assessment.md) с обязательным решением наставника; локальная модель пока не прошла оценочные примеры. Go → Python и реальный Go MCP ещё не подключены; сквозной онбординг не завершён.
+Python-сервис: Flask → прямой агент → локальная Ollama и MCP, с контролем источников и таймаутами. [Запуск и границы](docs/components/ai-python.md). Добавлен [контракт оценки знаний](docs/integrations/knowledge-assessment.md) с обязательным решением наставника; локальная модель пока не прошла оценочные примеры. Go → Python и Go HTTP backend для Python MCP ещё не подключены; сквозной онбординг не завершён.
 
-[Golden dataset агента — 20 development / 10 candidate holdout](services/ai-python/evals/agent-v1/README.md): разметка и fixtures подготовлены, качество модели на новом наборе пока не измерено. [План контроля качества](docs/ai/quality-control.md).
+[Golden dataset агента — 20 development / 10 candidate holdout](services/ai-python/evals/agent-v1/README.md): разметка и fixtures подготовлены, development выполнен на 18 доступных кейсах с отдельным assisted-review. Holdout и человеческая приёмка не выполнены. [План контроля качества](docs/ai/quality-control.md).
+
+Для локальной разработки без Go доступен [Python demo MCP-сервер](docs/components/python-mcp.md) с двумя инструментами и учебными данными.

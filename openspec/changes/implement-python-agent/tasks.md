@@ -74,3 +74,20 @@
 - [ ] После заморозки выполнить holdout и сквозные Go/UI P0; не засчитывать blocked/непросмотренные кейсы.
 
 [Границы набора](golden-dataset-scope.md), [данные и runbook](../../../services/ai-python/evals/agent-v1/README.md), [исследование](../../../docs/ai/quality-control.md). Задача 4.2 остаётся открытой до human/live-приёмки. Наличие 30 эталонов не означает, что агент уже прошёл 30 кейсов.
+
+## Python MCP demo
+
+- [x] Реализовать отдельный локальный MCP с двумя read-tools и явным demo backend, без Go/UI.
+- [x] Проверить SDK-протокол, auth/Host/Origin, схемы, ошибки/таймауты/лимиты и изоляцию субъектов.
+- [ ] Подключить будущий Go HTTP backend/resolve вместо demo после согласования HTTP-контракта.
+
+[Границы](mcp-demo-scope.md), [запуск](../../../docs/components/python-mcp.md).
+
+## Development harness
+
+- [x] Реализовать общий Flask/LLM/MCP harness только для development, с actual calls, уникальными отчётами, blocked и безопасными инъекциями отказов.
+- [x] Добавить раздельный structural scorer и привязанный к SHA assisted/human review фактов/ограничений/query intent.
+- [x] Выполнить исходный и повторные development-прогоны; сохранить неудачные варианты prompt, откатить их и оставить прежний chat prompt. Исправить SDK error boundary и перейти на assessment evidence IDs.
+- [ ] Провести человеческую приёмку набора/ответов и выбрать достаточно качественную LLM. Holdout не запускать до заморозки/отдельного разрешения.
+
+[Harness](../../../services/ai-python/evals/HARNESS.md), [отчёты](../../../services/ai-python/evals/reports/README.md), [исправления](development-fixes.md). Наличие eval не закрывает качество модели и Go/UI e2e.
