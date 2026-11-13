@@ -165,3 +165,20 @@ Python и Go MUST различать текущий публичный OpenAPI �
 #### Scenario: SVC-13-S3 Проверенные ссылки
 - **WHEN** получен ответ по MCP-источнику
 - **THEN** HTTP Reply содержит безопасный текст и только реально процитированные допущенные references; trace, сырые ответы и токены не публикуются
+
+
+### Requirement: SVC-14 Отдельная версия оценки знаний
+
+Assessment MUST получать закрытый snapshot с версионированной рубрикой и возвращать только предложение наставнику. Python MUST проверять все criterion_id и дословность цитат, сам вычислять recommendation и привязывать доверенные версии. Он MUST NOT вызывать MCP или менять этап. Ошибки/таймауты MUST NOT превращаться в оценку. Точный контракт и лимиты задаёт assessment-scope.
+
+#### Scenario: SVC-14-S1 Неподтверждённая цитата
+- **WHEN** модель дала отсутствующую цитату или чужой criterion_id
+- **THEN** допускается одна коррекция в общем deadline, затем AI_INVALID_RESPONSE без assessment; истечение deadline даёт AI_TIMEOUT
+
+#### Scenario: SVC-14-S2 Обязательный критерий не выполнен
+- **WHEN** обязательный verdict равен fail при остальных pass/unclear
+- **THEN** Python возвращает needs_revision и manual_review_required=true без завершения этапа
+
+#### Scenario: SVC-14-S3 Нет ответа или подмена оценки
+- **WHEN** ответ пуст либо обнаружена инструкция изменить оценку
+- **THEN** rule_guard возвращает unclear и needs_clarification без модели, не утверждая недостаток знаний

@@ -24,4 +24,4 @@ npm run dev --workspace=@ai-buddy/web
 
 Полный локальный набор проверок запускается командой `just check`. Отдельные проверки frontend, Python и Go доступны через `just frontend-check`, `just python-check` и `just go-check`.
 
-Python-сервис: Flask → прямой агент → локальная Ollama и MCP, с контролем источников и таймаутами. [Запуск и границы](docs/components/ai-python.md). Go → Python и реальный Go MCP ещё не подключены; сквозной онбординг не завершён.
+Python-сервис: Flask → прямой агент → локальная Ollama и MCP, с контролем источников и таймаутами. [Запуск и границы](docs/components/ai-python.md). Добавлен [контракт оценки знаний](docs/integrations/knowledge-assessment.md) с обязательным решением наставника; локальная модель пока не прошла оценочные примеры. Go → Python и реальный Go MCP ещё не подключены; сквозной онбординг не завершён.

@@ -32,7 +32,7 @@
 
 ## Готовность первого Python-среза
 
-2.2 выполнена для search_knowledge/get_team_context; остальные tools ожидают согласования Go. Без явного включения runner возвращается AI_UNAVAILABLE; теперь ограниченный Ollama runner можно включить настройками (см. ниже). Проверки и область: [foundation-scope](foundation-scope.md), [документация Python](../../../docs/components/ai-python.md). Непроверенные задачи, в том числе сквозной маршрут, LLM и оценка знаний, не отмечаются выполненными. Тесты используют fake dependencies и реальный SDK test-server, не готовый корпоративный Go MCP.
+2.2 выполнена для search_knowledge/get_team_context; остальные tools ожидают согласования Go. Без явного включения runner возвращается AI_UNAVAILABLE; теперь ограниченный Ollama runner можно включить настройками (см. ниже). Проверки и область: [foundation-scope](foundation-scope.md), [документация Python](../../../docs/components/ai-python.md). Непроверенные задачи, в том числе сквозной маршрут, выбор LLM и сохранение/одобрение оценки знаний, не отмечаются выполненными. Тесты используют fake dependencies и реальный SDK test-server, не готовый корпоративный Go MCP.
 
 ## Эксперимент оркестрации
 
@@ -55,3 +55,12 @@
 - [x] Проверить необходимые runtime-границы и отказы, включая настоящий MCP-протокол; live Flask/Qwen/MCP smoke, без новых зависимостей и изменений Go/UI.
 
 Текущий режим readiness и AI_UNAVAILABLE из первого среза изменён: при AI_AGENT_ENABLED=true и OLLAMA_MODEL создаётся настоящий runner. При выключении он остаётся недоступным. [Границы](flask-runner-scope.md), [готовность сценария](scenario-status.md). Это не завершает задачи assessment, интеграции Go/MCP, шести HR-сервисов, mentor review и e2e.
+
+## Python-срез оценки знаний
+
+- [x] Описать и реализовать отдельный закрытый assessment endpoint: snapshot/версии, критерии/цитаты, code-bound recommendation, обязательный review наставника, без MCP/записи перехода.
+- [x] Проверить auth/схемы, обязательные и необязательные критерии, пустой/подменённый ответ, неверный output, одну коррекцию и ошибки/таймауты; сохранить chat-регрессии.
+- [x] Добавить черновой versioned dataset, разделить development/candidate holdout, запустить реальный development и сохранить ошибки отдельно от guards.
+- [ ] Утвердить метки и рубрики с наставником, выбрать модель с приемлемым качеством и провести независимую приёмку.
+
+[Границы](assessment-scope.md), [контракт для Go](../../../docs/integrations/knowledge-assessment.md), [фактический development](../../../services/ai-python/experiments/assessment-quality.md). В v3 модельные случаи 0/4; два guards не доказывают точность LLM. Это не завершает 1.3/1.4/3.1/4.2: Go сохраняет ответ/оценку и защищает свежесть версий, наставник принимает решение, полный набор 20/10 ещё не готов.

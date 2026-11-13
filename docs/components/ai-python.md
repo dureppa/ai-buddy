@@ -4,7 +4,7 @@
 
 Flask умеет выполнять реальный прямой цикл через локальную Ollama и SDK MCP: получить контекст команды/инструкции, сформировать ответ и проверить ссылки. Включается явно, фиктивный runner не активируется. Код сервиса не импортирует LangChain/LangGraph/experiments; эти зависимости остались только для сравнения двух подходов.
 
-Поддержаны только search_knowledge и get_team_context. Go → Python, Go MCP, assessment знаний, progress/evidence, шесть корпоративных tools и переходы этапов этим блоком не реализованы. [Готовность пользовательского сценария](../../openspec/changes/implement-python-agent/scenario-status.md).
+Поддержаны MCP search_knowledge и get_team_context, а также отдельный POST /internal/v1/assessments для оценки знаний с версиями, критериями и обязательным review наставника. Контракт и отказы assessment проверены; локальная Qwen3 4B не прошла смысловую development-приёмку. Go → Python, Go MCP, сохранение assessment/progress/evidence, шесть корпоративных tools и переходы этапов пока не реализованы. [Готовность пользовательского сценария](../../openspec/changes/implement-python-agent/scenario-status.md).
 
 ## Локальный запуск
 
@@ -16,7 +16,7 @@ uv sync --locked
 OLLAMA_NO_CLOUD=1 ollama serve
 ```
 
-Проверь `ollama list`: модель qwen3:4b-q4_K_M должна быть уже установлена. Сервис не скачивает веса. Ollama требуется запускать с отключённым облаком; Python обращается только к настроенному loopback origin. Контекст 4096, thinking=false, температура 0, seed 42, максимум ответа 384 токена. Холодная загрузка может занять существенную часть бюджета: readiness её не запускает.
+Проверь `ollama list`: модель qwen3:4b-q4_K_M должна быть уже установлена. Сервис не скачивает веса. Ollama требуется запускать с отключённым облаком; Python обращается только к настроенному loopback origin. Контекст 4096, thinking=false, температура 0, seed 42, максимум ответа 384 токена для чата и 768 для assessment. Холодная загрузка может занять существенную часть бюджета: readiness её не запускает.
 
 Нужен отдельный совместимый MCP-сервер с закрытыми схемами [первого среза](../../openspec/changes/implement-python-agent/foundation-scope.md). Адрес ниже — пример будущего Go MCP; наличие Go HTTP API само по себе не означает наличие MCP.
 
@@ -63,6 +63,8 @@ POST /internal/v1/turns, Authorization: Bearer AI_SERVICE_TOKEN. Закрыты�
 ## Файлы и проверки
 
 - ai_buddy/app.py — Flask/auth/HTTP/deadline и выбор runner.
+- assessment.py — закрытые snapshot/результат, отдельный prompt, проверка критериев/цитат и рекомендация для наставника; tests/test_assessment.py — контракт и необходимые отказы.
+- evals/knowledge-v1.json — черновая разметка оценивания; experiments/assessment_eval.py — отдельный live CLI, не часть pytest.
 - agent.py — общий прямой цикл, prompt, per-turn state, лимиты и финализация; experiments переиспользует этот код.
 - ollama.py — native HTTP, проверка ответов и безопасные коды провайдера.
 - runner.py — связь контракта TurnRequest с циклом, карточки источников и безопасная диагностика.
@@ -85,3 +87,9 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 [OpenSpec runtime-среза](../../openspec/changes/implement-python-agent/flask-runner-scope.md), [сравнение оркестрации и ограничения](../../services/ai-python/experiments/safety-fix.md), [Ollama chat API](https://docs.ollama.com/api/chat), [таймауты HTTPX](https://www.python-httpx.org/advanced/timeouts/).
 
 Для подключения коллегой: [Go → Python и два MCP-инструмента](../integrations/go-python-mcp.md), [схемы и примеры JSON](../integrations/go-python-mcp.examples.json).
+
+## Оценка знаний и качество
+
+[Контракт assessment для Go](../integrations/knowledge-assessment.md), [JSON Schema и примеры](../integrations/knowledge-assessment.examples.json). GET /health/ready/assessments проверяет конфигурацию этого режима без зависимости от MCP_URL; результат оценки не завершает этап.
+
+[Черновой эталонный набор](../../services/ai-python/evals/README.md): 6 development и 2 candidate holdout. Разметка требует проверки команды. [Live-прогон](../../services/ai-python/experiments/assessment-quality.md) v3: 0/4 модельных случаев прошли, два rule guards прошли отдельно. При ошибке нужен ручной review. Полный общий набор 20/10 и выбор модели ещё не завершены; coverage не доказывает смысловую точность.

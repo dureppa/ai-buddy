@@ -48,7 +48,12 @@ class ChatResponse(BaseModel):
 
 
 @asynccontextmanager
-async def ollama_session(settings: Settings) -> AsyncIterator[Chat]:
+async def ollama_session(
+    settings: Settings,
+    *,
+    response_schema: dict[str, Any] | None = None,
+    max_output_tokens: int = 384,
+) -> AsyncIterator[Chat]:
     if settings.ollama_model is None:
         raise ServiceError(ErrorCode.NOT_READY)
     async with httpx.AsyncClient(
@@ -61,23 +66,22 @@ async def ollama_session(settings: Settings) -> AsyncIterator[Chat]:
         async def chat(
             messages: list[dict[str, Any]], tools: list[dict[str, Any]]
         ) -> dict[str, Any]:
-            body = json.dumps(
-                {
-                    "model": settings.ollama_model,
-                    "messages": messages,
-                    "tools": tools,
-                    "stream": False,
-                    "think": False,
-                    "options": {
-                        "temperature": 0,
-                        "seed": 42,
-                        "num_ctx": 4096,
-                        "num_predict": 384,
-                    },
+            payload: dict[str, Any] = {
+                "model": settings.ollama_model,
+                "messages": messages,
+                "tools": tools,
+                "stream": False,
+                "think": False,
+                "options": {
+                    "temperature": 0,
+                    "seed": 42,
+                    "num_ctx": 4096,
+                    "num_predict": max_output_tokens,
                 },
-                ensure_ascii=False,
-                allow_nan=False,
-            ).encode()
+            }
+            if response_schema is not None:
+                payload["format"] = response_schema
+            body = json.dumps(payload, ensure_ascii=False, allow_nan=False).encode()
             if len(body) > MAX_BYTES:
                 raise ServiceError(ErrorCode.INVALID_REQUEST)
             try:

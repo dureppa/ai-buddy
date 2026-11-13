@@ -9,6 +9,7 @@ from flask import Flask, Response, jsonify, request
 from pydantic import ValidationError
 from werkzeug.exceptions import BadRequest, RequestEntityTooLarge
 
+from ai_buddy.assessment import AssessmentRequest, AssessmentResult, AssessmentRunner
 from ai_buddy.config import Settings
 from ai_buddy.errors import ErrorCode, ServiceError
 from ai_buddy.mcp_client import Gateway, Session, sdk_session
@@ -46,6 +47,61 @@ def create_app(
             }
         ), status
 
+    def authorized() -> bool:
+        expected = settings.service_token
+        supplied = request.headers.get("Authorization", "")
+        return expected is not None and hmac.compare_digest(
+            supplied.encode("utf-8"),
+            ("Bearer " + expected.get_secret_value()).encode("utf-8"),
+        )
+
+    @app.get("/health/ready/assessments")
+    def assessment_ready() -> tuple[Response, int]:
+        ok = (
+            settings.service_token is not None
+            and settings.agent_enabled
+            and settings.ollama_model is not None
+        )
+        return jsonify(ready=ok), 200 if ok else 503
+
+    @app.post("/internal/v1/assessments")
+    def assessment() -> tuple[Response, int]:
+        if not authorized():
+            return error_response(ErrorCode.UNAUTHORIZED, 401)
+        if not request.is_json:
+            return error_response(ErrorCode.INVALID_REQUEST, 415)
+        try:
+            data = AssessmentRequest.model_validate_json(request.get_data(cache=False))
+        except RequestEntityTooLarge:
+            return error_response(ErrorCode.INVALID_REQUEST, 413)
+        except (ValidationError, BadRequest):
+            return error_response(ErrorCode.INVALID_REQUEST, 400)
+        if not settings.agent_enabled:
+            return error_response(ErrorCode.AI_UNAVAILABLE, 503)
+        if settings.ollama_model is None:
+            return error_response(ErrorCode.NOT_READY, 503)
+
+        async def execute_assessment() -> AssessmentResult:
+            async with asyncio.timeout(settings.turn_timeout):
+                return await AssessmentRunner(settings, app.logger).run(data)
+
+        try:
+            result = asyncio.run(execute_assessment())
+        except TimeoutError:
+            return error_response(ErrorCode.AI_TIMEOUT, 503)
+        except ServiceError as error:
+            return error_response(error.code, 503)
+        except Exception:  # noqa: BLE001 -- no learner answer or provider details leave HTTP boundary
+            app.logger.warning(
+                "assessment_failed code=INTERNAL_ERROR request_id=%s", data.request_id
+            )
+            return error_response(ErrorCode.AI_UNAVAILABLE, 503)
+        return jsonify(
+            request_id=str(data.request_id),
+            conversation_id=str(data.conversation_id),
+            assessment=result.model_dump(mode="json"),
+        ), 200
+
     @app.get("/health/live")
     def live() -> Response:
         return jsonify(status="alive")
@@ -61,12 +117,7 @@ def create_app(
 
     @app.post("/internal/v1/turns")
     def turn() -> tuple[Response, int]:
-        expected = settings.service_token
-        supplied = request.headers.get("Authorization", "")
-        if expected is None or not hmac.compare_digest(
-            supplied.encode("utf-8"),
-            ("Bearer " + expected.get_secret_value()).encode("utf-8"),
-        ):
+        if not authorized():
             return error_response(ErrorCode.UNAUTHORIZED, 401)
         if not request.is_json:
             return error_response(ErrorCode.INVALID_REQUEST, 415)

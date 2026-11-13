@@ -395,3 +395,7 @@ error содержит только code/message, без retryable, request_id �
 - [Python-модели](../../services/ai-python/ai_buddy/schemas.py), [Gateway и транспорт](../../services/ai-python/ai_buddy/mcp_client.py), [Flask](../../services/ai-python/ai_buddy/app.py), [конфигурация](../../services/ai-python/ai_buddy/config.py), [коды](../../services/ai-python/ai_buddy/errors.py).
 - [Общие предлагаемые MCP-контракты](../../openspec/changes/implement-python-agent/mcp-contracts.md): более широкий будущий каталог, а не список включённых сейчас инструментов.
 - [Текущая готовность онбординга](../../openspec/changes/implement-python-agent/scenario-status.md), [runtime-срез](../../openspec/changes/implement-python-agent/flask-runner-scope.md).
+
+## Отдельный assessment знаний
+
+Оценка конкретного ответа по рубрике подключается отдельным POST /internal/v1/assessments, без MCP. [Контракт, примеры и ответственность Go](knowledge-assessment.md). Существующий chat request/reply этим не меняется. Python даёт рекомендацию; локальная Qwen пока не прошла приёмку оценщика, сохранение/актуальность оценок и решение наставника реализует Go.

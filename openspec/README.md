@@ -1,6 +1,6 @@
 # OpenSpec агента AI Buddy
 
-Обновлено 13 ноября 2026. Активное предложение [implement-python-agent](changes/implement-python-agent/proposal.md) описывает онбординг, с которым работает агент. Реализован ограниченный Python runtime: Flask, прямой локальный Ollama-цикл, read-only MCP и тесты; полный онбординг и Go-интеграция ещё не завершены.
+Обновлено 13 ноября 2026. Активное предложение [implement-python-agent](changes/implement-python-agent/proposal.md) описывает онбординг, с которым работает агент. Реализован ограниченный Python runtime: Flask, прямой локальный Ollama-цикл, read-only MCP, отдельный assessment endpoint и тесты; полный онбординг и Go-интеграция ещё не завершены.
 
 1. [Границы](changes/implement-python-agent/proposal.md).
 2. [Источники, решения команды и допущения](changes/implement-python-agent/sources-and-assumptions.md).
@@ -27,3 +27,5 @@ openspec status --change implement-python-agent --json
 Сравнение оркестрации оформлено отдельно: [условия эксперимента](changes/implement-python-agent/agent-loop-experiment.md).
 
 Актуальный runtime: [границы подключения Flask](changes/implement-python-agent/flask-runner-scope.md), [готовность пользовательского сценария](changes/implement-python-agent/scenario-status.md).
+
+Оценка знаний: [Python-срез](changes/implement-python-agent/assessment-scope.md), [контракт Go](../docs/integrations/knowledge-assessment.md), [черновой gold dataset](../services/ai-python/evals/README.md). Контракт реализован, локальная LLM не прошла development-проверку; Go/admin integration и общий holdout остаются открыты.
