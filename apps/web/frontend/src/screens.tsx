@@ -1,3 +1,4 @@
+import { InternMaterials } from './StaffWorkspace';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -530,6 +531,7 @@ export function Resources({ onOpen }: { onOpen: OpenDetail }) {
           </button>
         ))}
       </div>
+      <InternMaterials />
       {!visible.length && (
         <EmptyState title="Материалы не найдены" text="Измени поисковый запрос или выбери другую категорию." />
       )}

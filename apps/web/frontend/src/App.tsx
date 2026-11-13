@@ -1,3 +1,4 @@
+import { StaffEntry } from './StaffWorkspace';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
@@ -77,6 +78,7 @@ function StartScreen({ onSelect }: { onSelect: (id: ProfileId) => void }) {
               </button>
             ))}
           </div>
+          <StaffEntry />
           <p className="start-card__note">Все данные синтетические и предназначены для демонстрации сценариев.</p>
         </div>
       </section>
