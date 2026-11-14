@@ -49,7 +49,17 @@ function fileSource(file: File): Promise<StaffMaterial['source']> {
   });
 }
 
-function MaterialForm({ staff, edit, onSaved }: { staff: StaffId; edit?: StaffMaterial; onSaved: () => void }) {
+function MaterialForm({
+  staff,
+  edit,
+  group,
+  onSaved,
+}: {
+  staff: StaffId;
+  edit?: StaffMaterial;
+  group?: string;
+  onSaved: (group: string) => void;
+}) {
   const internId = products[staffAccounts[staff].productId].intern;
   const [kind, setKind] = useState<'link' | 'file'>(edit?.source.kind ?? 'link');
   const [error, setError] = useState('');
@@ -76,7 +86,7 @@ function MaterialForm({ staff, edit, onSaved }: { staff: StaffId; edit?: StaffMa
       };
       if (readStaffId(localStorage) !== staff) throw new Error('Сессия завершилась. Войди снова.');
       saveMaterial(localStorage, staff, input, edit?.id);
-      onSaved();
+      onSaved(input.group.trim());
     } catch (problem) {
       setError(
         problem instanceof DOMException
@@ -101,7 +111,7 @@ function MaterialForm({ staff, edit, onSaved }: { staff: StaffId; edit?: StaffMa
         <input
           name="group"
           list="material-groups"
-          defaultValue={edit?.group ?? 'Чаты'}
+          defaultValue={edit?.group ?? group ?? 'Чаты'}
           required
           minLength={2}
           maxLength={40}
@@ -165,6 +175,33 @@ function MaterialForm({ staff, edit, onSaved }: { staff: StaffId; edit?: StaffMa
   );
 }
 
+function materialCountLabel(count: number) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  const word =
+    mod10 === 1 && mod100 !== 11
+      ? 'материал'
+      : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
+        ? 'материала'
+        : 'материалов';
+  return count + ' ' + word;
+}
+
+function MaterialCard({ material, actions }: { material: ShownMaterial; actions?: ReactNode }) {
+  return (
+    <article className="panel staff-material">
+      <span className="icon-tile tone-lilac">
+        <Icon name={material.source.kind === 'file' ? 'file' : 'book'} />
+      </span>
+      <h3>{material.title}</h3>
+      <p>{material.description}</p>
+      <p className="staff-muted">{material.author}</p>
+      <MaterialLink material={material} />
+      {actions}
+    </article>
+  );
+}
+
 function MaterialGroups({
   items,
   idPrefix,
@@ -181,16 +218,7 @@ function MaterialGroups({
           <h2 id={idPrefix + '-' + index}>{group.name}</h2>
           <div className="tile-grid">
             {group.items.map((material) => (
-              <article className="panel staff-material" key={material.id}>
-                <span className="icon-tile tone-lilac">
-                  <Icon name={material.source.kind === 'file' ? 'file' : 'book'} />
-                </span>
-                <h3>{material.title}</h3>
-                <p>{material.description}</p>
-                <p className="staff-muted">{material.author}</p>
-                <MaterialLink material={material} />
-                {actions?.(material)}
-              </article>
+              <MaterialCard key={material.id} material={material} actions={actions?.(material)} />
             ))}
           </div>
         </section>
@@ -209,6 +237,119 @@ function MaterialLink({ material }: { material: Pick<StaffMaterial, 'source'> })
     <a className="text-link material-url" href={source.href} target="_blank" rel="noreferrer">
       {source.href}
     </a>
+  );
+}
+
+function MaterialActions({
+  material,
+  onEdit,
+  onRemove,
+}: {
+  material: StaffMaterial;
+  onEdit: (material: StaffMaterial) => void;
+  onRemove: (material: StaffMaterial) => void;
+}) {
+  return (
+    <div className="staff-actions">
+      <button type="button" className="button button--white" onClick={() => onEdit(material)}>
+        Редактировать
+      </button>
+      <button type="button" className="button button--white" onClick={() => onRemove(material)}>
+        Удалить
+      </button>
+    </div>
+  );
+}
+
+function StaffMaterials({
+  baseline,
+  ownMaterials,
+  visibleMaterials,
+  openGroup,
+  message,
+  onOpenGroup,
+  onCreate,
+  onEdit,
+  onRemove,
+}: {
+  baseline: ShownMaterial[];
+  ownMaterials: StaffMaterial[];
+  visibleMaterials: ShownMaterial[];
+  openGroup?: string;
+  message: string;
+  onOpenGroup: (group?: string) => void;
+  onCreate: () => void;
+  onEdit: (material: StaffMaterial) => void;
+  onRemove: (material: StaffMaterial) => void;
+}) {
+  const groups = groupByName([...baseline, ...visibleMaterials]);
+  const active = groups.find((group) => group.name === openGroup);
+  return (
+    <section className="staff-publications" aria-label="Материалы для стажёров">
+      {message && (
+        <p className="staff-message" role="status">
+          {message}
+        </p>
+      )}
+      {active ? (
+        <>
+          <button type="button" className="text-link staff-back" onClick={() => onOpenGroup(undefined)}>
+            <span className="staff-back__icon">
+              <Icon name="chevron" size={16} />
+            </span>
+            Все группы
+          </button>
+          <div className="section-title">
+            <h2>{active.name}</h2>
+            <button type="button" className="button button--dark" onClick={onCreate}>
+              Добавить материал
+            </button>
+          </div>
+          <div className="tile-grid">
+            {active.items.map((material) => {
+              const stored = ownMaterials.find((item) => item.id === material.id);
+              return (
+                <MaterialCard
+                  key={material.id}
+                  material={material}
+                  actions={
+                    stored ? <MaterialActions material={stored} onEdit={onEdit} onRemove={onRemove} /> : undefined
+                  }
+                />
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="section-title">
+            <h2>Группы</h2>
+            <button type="button" className="button button--dark" onClick={onCreate}>
+              Добавить материал
+            </button>
+          </div>
+          <div className="staff-grid">
+            {groups.map((group) => (
+              <button
+                key={group.name}
+                type="button"
+                className="panel staff-group"
+                onClick={() => onOpenGroup(group.name)}
+              >
+                <span className="icon-tile tone-lilac">
+                  <Icon name="layers" />
+                </span>
+                <span>
+                  <strong>{group.name}</strong>
+                  <small>{materialCountLabel(group.items.length)}</small>
+                </span>
+                <Icon name="arrow" />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -239,6 +380,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
   const product = products[account.productId];
   const isMentor = account.role === 'Наставник';
   const [section, setSection] = useState<'interns' | 'materials'>('interns');
+  const [openGroup, setOpenGroup] = useState<string>();
   const [interns, setInterns] = useState(() => internOverview(localStorage, id));
   const [selected, setSelected] = useState<ProfileId>();
   const [materials, setMaterials] = useState(() => readMaterials(localStorage));
@@ -330,7 +472,10 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
             className="filter"
             type="button"
             aria-pressed={section === 'materials'}
-            onClick={() => setSection('materials')}
+            onClick={() => {
+              setSection('materials');
+              setOpenGroup(undefined);
+            }}
           >
             Материалы для стажёров
           </button>
@@ -362,55 +507,20 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
             ))}
           </div>
         ) : (
-          <section className="staff-publications" aria-label="Материалы для стажёров">
-            <div className="material-baseline">
-              <div className="section-title">
-                <h2>Уже видно стажёру</h2>
-              </div>
-              <p className="staff-muted">Базовые материалы видны, даже если ты ещё ничего не добавил.</p>
-              <MaterialGroups items={baseline} idPrefix="baseline-materials" />
-            </div>
-            <div className="section-title">
-              <h2>Опубликованные материалы</h2>
-              <button type="button" className="button button--dark" onClick={() => setEditor('new')}>
-                Добавить материал
-              </button>
-            </div>
-            {message && (
-              <p className="staff-message" role="status">
-                {message}
-              </p>
-            )}
-            {visibleMaterials.length ? (
-              <MaterialGroups
-                idPrefix="own-materials"
-                items={visibleMaterials}
-                actions={(material) => {
-                  const stored = ownMaterials.find((item) => item.id === material.id);
-                  if (!stored) return null;
-                  return (
-                    <div className="staff-actions">
-                      <button type="button" className="button button--white" onClick={() => setEditor(stored)}>
-                        Редактировать
-                      </button>
-                      <button
-                        type="button"
-                        className="button button--white"
-                        onClick={() => {
-                          setPendingRemoval(stored);
-                          setError('');
-                        }}
-                      >
-                        Удалить
-                      </button>
-                    </div>
-                  );
-                }}
-              />
-            ) : (
-              <p className="panel staff-empty">Здесь появятся материалы, которые ты опубликуешь для стажёров.</p>
-            )}
-          </section>
+          <StaffMaterials
+            baseline={baseline}
+            ownMaterials={ownMaterials}
+            visibleMaterials={visibleMaterials}
+            openGroup={openGroup}
+            message={message}
+            onOpenGroup={setOpenGroup}
+            onCreate={() => setEditor('new')}
+            onEdit={setEditor}
+            onRemove={(material) => {
+              setPendingRemoval(material);
+              setError('');
+            }}
+          />
         )}
       </main>
       {current && (
@@ -453,9 +563,12 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
           <MaterialForm
             staff={id}
             edit={editor === 'new' ? undefined : editor}
-            onSaved={() => {
+            group={editor === 'new' ? openGroup : undefined}
+            onSaved={(group) => {
               setMaterials(readMaterials(localStorage));
               setEditor(undefined);
+              setOpenGroup(group);
+              setSection('materials');
               setMessage(editor === 'new' ? 'Материал опубликован.' : 'Изменения сохранены.');
             }}
           />
