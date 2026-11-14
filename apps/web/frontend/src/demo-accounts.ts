@@ -56,6 +56,18 @@ const internshipStages = {
 
 type Stage = keyof typeof internshipStages;
 export type AvatarVariant =
+  | 'delivery-alina'
+  | 'delivery-denis'
+  | 'delivery-vera'
+  | 'travel-artem'
+  | 'travel-polina'
+  | 'travel-kirill'
+  | 'autoteca-oleg'
+  | 'autoteca-ksenia'
+  | 'autoteca-maksim'
+  | 'help-yulia'
+  | 'help-nikita'
+  | 'help-elena'
   | 'olga'
   | 'alexander'
   | 'maria'
@@ -245,6 +257,7 @@ export function teamContacts(profileId: ProfileId) {
 
 type TeamContact = ReturnType<typeof teamContacts>[number];
 type Colleague = {
+  avatar: AvatarVariant;
   id: string;
   name: string;
   initials: string;
@@ -257,6 +270,7 @@ const colleagues: Record<ProductId, readonly Colleague[]> = {
   delivery: [
     {
       id: 'delivery-alina',
+      avatar: 'delivery-alina',
       name: 'Алина Котова',
       initials: 'АК',
       position: 'Аналитик данных',
@@ -265,6 +279,7 @@ const colleagues: Record<ProductId, readonly Colleague[]> = {
     },
     {
       id: 'delivery-denis',
+      avatar: 'delivery-denis',
       name: 'Денис Власов',
       initials: 'ДВ',
       position: 'Бэкенд-разработчик',
@@ -273,6 +288,7 @@ const colleagues: Record<ProductId, readonly Colleague[]> = {
     },
     {
       id: 'delivery-vera',
+      avatar: 'delivery-vera',
       name: 'Вера Никифорова',
       initials: 'ВН',
       position: 'Продуктовый дизайнер',
@@ -283,6 +299,7 @@ const colleagues: Record<ProductId, readonly Colleague[]> = {
   travel: [
     {
       id: 'travel-artem',
+      avatar: 'travel-artem',
       name: 'Артём Сидоров',
       initials: 'АС',
       position: 'Бэкенд-разработчик',
@@ -291,6 +308,7 @@ const colleagues: Record<ProductId, readonly Colleague[]> = {
     },
     {
       id: 'travel-polina',
+      avatar: 'travel-polina',
       name: 'Полина Захарова',
       initials: 'ПЗ',
       position: 'Инженер по тестированию',
@@ -299,6 +317,7 @@ const colleagues: Record<ProductId, readonly Colleague[]> = {
     },
     {
       id: 'travel-kirill',
+      avatar: 'travel-kirill',
       name: 'Кирилл Смирнов',
       initials: 'КС',
       position: 'Фронтенд-разработчик',
@@ -309,6 +328,7 @@ const colleagues: Record<ProductId, readonly Colleague[]> = {
   autoteca: [
     {
       id: 'autoteca-oleg',
+      avatar: 'autoteca-oleg',
       name: 'Олег Фёдоров',
       initials: 'ОФ',
       position: 'Инженер данных',
@@ -317,6 +337,7 @@ const colleagues: Record<ProductId, readonly Colleague[]> = {
     },
     {
       id: 'autoteca-ksenia',
+      avatar: 'autoteca-ksenia',
       name: 'Ксения Романова',
       initials: 'КР',
       position: 'Инженер по автоматизации тестирования',
@@ -325,6 +346,7 @@ const colleagues: Record<ProductId, readonly Colleague[]> = {
     },
     {
       id: 'autoteca-maksim',
+      avatar: 'autoteca-maksim',
       name: 'Максим Егоров',
       initials: 'МЕ',
       position: 'Фронтенд-разработчик',
@@ -335,6 +357,7 @@ const colleagues: Record<ProductId, readonly Colleague[]> = {
   help: [
     {
       id: 'help-yulia',
+      avatar: 'help-yulia',
       name: 'Юлия Миронова',
       initials: 'ЮМ',
       position: 'Редактор',
@@ -343,6 +366,7 @@ const colleagues: Record<ProductId, readonly Colleague[]> = {
     },
     {
       id: 'help-nikita',
+      avatar: 'help-nikita',
       name: 'Никита Андреев',
       initials: 'НА',
       position: 'Фронтенд-разработчик',
@@ -351,6 +375,7 @@ const colleagues: Record<ProductId, readonly Colleague[]> = {
     },
     {
       id: 'help-elena',
+      avatar: 'help-elena',
       name: 'Елена Громова',
       initials: 'ЕГ',
       position: 'Координатор социальных проектов',
@@ -360,7 +385,7 @@ const colleagues: Record<ProductId, readonly Colleague[]> = {
   ],
 };
 
-export type Person = TeamContact | (Colleague & { tone: 'paper'; role: 'Коллега'; avatar?: never });
+export type Person = TeamContact | (Colleague & { tone: 'paper'; role: 'Коллега' });
 
 export function teamColleagues(profileId: ProfileId): Person[] {
   return colleagues[profiles[profileId].productId].map((person) => ({ ...person, tone: 'paper', role: 'Коллега' }));
