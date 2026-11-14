@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { readServiceQuestions, saveServiceQuestion, serviceQuestionsKey } from './service-questions';
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -39,6 +39,16 @@ describe('service questions', () => {
     expect(readServiceQuestions(storage, 'olga').map((item) => item.id)).toEqual([saved.id]);
     expect(readServiceQuestions(storage, 'sasha').map((item) => item.text)).toEqual(['Вопрос Саши']);
     expect(stored.map((item) => item.id)).toEqual([saved.id, 'sasha-1']);
+  });
+
+  it('saves a question when the page is not a secure context', () => {
+    const storage = memoryStorage();
+    const randomUUID = vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => {
+      throw new TypeError('crypto.randomUUID is not a function');
+    });
+    const saved = saveServiceQuestion(storage, 'olga', 'Где инструкция?');
+    expect(saved.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    randomUUID.mockRestore();
   });
 
   it('rejects an empty, short or too long question and leaves storage unchanged', () => {
