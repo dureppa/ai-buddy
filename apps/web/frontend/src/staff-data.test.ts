@@ -4,6 +4,9 @@ import { tasksFor } from './checklist';
 import { products } from './demo-accounts';
 import { demoSessionKey } from './demo-session';
 import {
+  baselineFor,
+  groupByName,
+  internMaterials,
   materialsKey,
   internOverview,
   materialsFor,
@@ -24,6 +27,7 @@ function memoryStorage() {
 const input: MaterialInput = {
   title: 'Гайд по команде',
   description: 'Как познакомиться с командой и открыть рабочие ссылки.',
+  group: 'Чаты',
   audience: ['olga'],
   source: { kind: 'link', href: 'https://example.com/guide' },
 };
@@ -83,9 +87,32 @@ describe('staff workspace', () => {
   });
   it('keeps older publications visible only to the author’s current team', () => {
     const storage = memoryStorage();
-    const legacy = { ...input, id: 'old', author: 'mentor', audience: ['olga', 'sasha'] };
+    const legacy = {
+      id: 'old',
+      author: 'mentor' as const,
+      title: input.title,
+      description: input.description,
+      audience: ['olga', 'sasha'],
+      source: input.source,
+    };
     storage.setItem(materialsKey, JSON.stringify([legacy, { ...legacy, id: 'other', audience: ['sasha'] }]));
-    expect(materialsFor(storage, 'olga')).toEqual([{ ...legacy, audience: ['olga'] }]);
+    expect(materialsFor(storage, 'olga')).toEqual([{ ...legacy, audience: ['olga'], group: 'Общее' }]);
     expect(materialsFor(storage, 'sasha')).toEqual([]);
+  });
+
+  it('shows the baseline chat before staff links and keeps them in one group', () => {
+    const storage = memoryStorage();
+    saveMaterial(storage, 'mentor', input);
+    saveMaterial(storage, 'manager', { ...input, title: 'План встреч', group: 'Встречи' });
+    const shown = internMaterials(storage, 'olga');
+    expect(shown[0]).toMatchObject({
+      author: 'Базовый',
+      group: 'Чаты',
+      title: 'Общий чат для всех сотрудников Авито Доставки',
+    });
+    expect(baselineFor('sasha')[0].title).toBe('Общий чат для всех сотрудников Авито Путешествия');
+    expect(groupByName(shown).map((group) => group.name)).toEqual(['Чаты', 'Встречи']);
+    expect(groupByName(shown)[0].items.map((item) => item.author)).toEqual(['Базовый', 'Анна Ким']);
+    expect(() => saveMaterial(storage, 'mentor', { ...input, group: ' ' })).toThrow();
   });
 });

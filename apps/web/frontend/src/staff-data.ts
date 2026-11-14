@@ -39,11 +39,66 @@ const materialSchema = z.object({
   title: z.string().trim().min(2).max(100),
   description: z.string().trim().min(2).max(420),
   audience: z.array(profileSchema).min(1),
+  group: z.string().trim().min(2).max(40).default('Общее'),
   source: sourceSchema,
 });
 
 export type StaffMaterial = z.infer<typeof materialSchema>;
 export type MaterialInput = Omit<StaffMaterial, 'id' | 'author'>;
+export const materialGroupSuggestions = ['Чаты', 'Документы', 'Встречи'] as const;
+
+const baselineChats = {
+  delivery: {
+    title: 'Общий чат для всех сотрудников Авито Доставки',
+    href: 'https://chat.delivery.example/all',
+  },
+  travel: {
+    title: 'Общий чат для всех сотрудников Авито Путешествия',
+    href: 'https://chat.travel.example/all',
+  },
+  autoteca: {
+    title: 'Общий чат для всех сотрудников Автотеки',
+    href: 'https://chat.autoteca.example/all',
+  },
+  help: {
+    title: 'Общий чат для всех сотрудников #яПомогаю',
+    href: 'https://chat.help.example/all',
+  },
+} as const;
+
+export type ShownMaterial = {
+  id: string;
+  group: string;
+  title: string;
+  description: string;
+  source: StaffMaterial['source'];
+  author: string;
+};
+
+export function baselineFor(profile: ProfileId): ShownMaterial[] {
+  const productId = profiles[profile].productId;
+  const chat = baselineChats[productId];
+  return [
+    {
+      id: 'baseline-' + productId + '-chat',
+      group: 'Чаты',
+      title: chat.title,
+      description: 'Общий канал: объявления, вопросы и ссылки, которые нужны с первого дня.',
+      source: { kind: 'link', href: chat.href },
+      author: 'Базовый',
+    },
+  ];
+}
+
+export function groupByName<T extends { group: string }>(items: readonly T[]) {
+  const groups: { name: string; items: T[] }[] = [];
+  for (const item of items) {
+    const existing = groups.find((group) => group.name === item.group);
+    if (existing) existing.items.push(item);
+    else groups.push({ name: item.group, items: [item] });
+  }
+  return groups;
+}
 
 export function readStaffId(storage: Pick<Storage, 'getItem'>): StaffId | null {
   const account = readDemoSession(storage);
@@ -90,13 +145,25 @@ export function materialsFor(storage: StoragePort, profile: ProfileId) {
   return readMaterials(storage).filter((item) => item.audience.includes(profile));
 }
 
+export function internMaterials(storage: StoragePort, profile: ProfileId): ShownMaterial[] {
+  const published = materialsFor(storage, profile).map((item) => ({
+    id: item.id,
+    group: item.group,
+    title: item.title,
+    description: item.description,
+    source: item.source,
+    author: staffAccounts[item.author].name,
+  }));
+  return [...baselineFor(profile), ...published];
+}
+
 export function saveMaterial(storage: StoragePort, author: StaffId, input: MaterialInput, id?: string) {
   const entries = readMaterials(storage);
   if (id && !entries.some((item) => item.id === id && item.author === author)) {
     throw new Error('Публикация недоступна для редактирования.');
   }
   const parsed = materialSchema.safeParse({ ...input, id: id ?? globalThis.crypto.randomUUID(), author });
-  if (!parsed.success) throw new Error('Проверь название, пояснение, аудиторию и ссылку или файл.');
+  if (!parsed.success) throw new Error('Проверь название, группу, пояснение, аудиторию и ссылку или файл.');
   const intern = products[staffAccounts[author].productId].intern;
   if (parsed.data.audience.some((profile) => profile !== intern)) {
     throw new Error('Можно публиковать только для своих стажёров.');

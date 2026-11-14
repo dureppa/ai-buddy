@@ -1,7 +1,6 @@
 import { HrDayEvents } from './HrDayEvents';
 import type { HrToday } from './hr-schedule';
 import { eventDay, eventMonth, eventTime, upcomingEvents, type ScheduleEvent } from './schedule';
-import { InternMaterials } from './StaffWorkspace';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { services, stages, type Person, type ProfileId, type Service, type Task, profiles } from './data';
@@ -9,6 +8,7 @@ import { homeTasks, tasksFor } from './checklist';
 import { products, teamColleagues, teamContacts } from './demo-accounts';
 import { buddyGrowthStage, progressFor, serviceStatus, type BuddyGrowthStage, type Workspace } from './demo';
 import { Avatar, Buddy, EmptyState, Icon, PageIntro } from './ui';
+import { InternMaterials } from './StaffWorkspace';
 
 export type Detail =
   | { kind: 'task'; item: Task }
@@ -277,6 +277,7 @@ export function Dashboard({
 
 export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask }: ChecklistProps) {
   const tasks = tasksFor(profileId);
+  const [tab, setTab] = useState<'tasks' | 'materials'>('tasks');
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all');
   const next = tasks.find((task) => !workspace.completed.includes(task.id))?.id;
   const visible = tasks.filter(
@@ -290,76 +291,107 @@ export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask 
         tone="mint"
         icon="map"
       />
-      <div className="adaptation-layout">
-        <section>
-          <div className="filter-row" aria-label="Фильтр задач">
-            <button type="button" className="filter" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
-              Все задачи
-            </button>
-            <button
-              type="button"
-              className="filter"
-              aria-pressed={filter === 'pending'}
-              onClick={() => setFilter('pending')}
-            >
-              Осталось
-            </button>
-            <button type="button" className="filter" aria-pressed={filter === 'done'} onClick={() => setFilter('done')}>
-              Выполнено
-            </button>
-          </div>
-          {visible.length === 0 && (
-            <EmptyState title="В этом списке пока пусто" text="Выбери другой фильтр, чтобы увидеть задачи." />
-          )}
-          <ol className="stage-list">
-            {stages.map((stage) => {
-              const stageTasks = visible.filter((task) => task.stage === stage.id);
-              if (!stageTasks.length) return null;
-              const total = tasks.filter((task) => task.stage === stage.id);
-              const done = total.filter((task) => workspace.completed.includes(task.id)).length;
-              return (
-                <li key={stage.id} className="panel stage">
-                  <div className={'stage__header tone-' + stage.tone}>
-                    <span className="icon-tile">
-                      <Icon name="flag" size={18} />
-                    </span>
-                    <div>
-                      <h2>{stage.name}</h2>
-                      <small>{stage.dates}</small>
-                    </div>
-                    <span className="pill">
-                      {done} / {total.length}
-                    </span>
-                  </div>
-                  <ul className="task-list">
-                    {stageTasks.map((task) => (
-                      <TaskRow
-                        key={task.id}
-                        task={task}
-                        checked={workspace.completed.includes(task.id)}
-                        next={next === task.id}
-                        saving={savingTask === task.id}
-                        onOpen={onOpen}
-                        onToggle={onToggle}
-                      />
-                    ))}
-                  </ul>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-        <aside>
-          <Progress workspace={workspace} />
-          <div className="aside-note">
-            <Buddy mood={next ? 'supportive' : 'celebrating'} compact />
-            <p>{next ? 'Если шаг непонятен, я помогу разобраться.' : 'Все задачи выполнены. Ты отлично справился!'}</p>
-            <Link to="/chat" className="text-link">
-              Открыть чат <Icon name="arrow" size={17} />
-            </Link>
-          </div>
-        </aside>
+      <div className="filter-row adaptation-tabs" role="tablist" aria-label="Разделы адаптации">
+        <button
+          type="button"
+          className="filter"
+          role="tab"
+          aria-selected={tab === 'tasks'}
+          onClick={() => setTab('tasks')}
+        >
+          Задачи
+        </button>
+        <button
+          type="button"
+          className="filter"
+          role="tab"
+          aria-selected={tab === 'materials'}
+          onClick={() => setTab('materials')}
+        >
+          Материалы
+        </button>
       </div>
+      {tab === 'materials' ? (
+        <InternMaterials />
+      ) : (
+        <div className="adaptation-layout">
+          <section>
+            <div className="filter-row" aria-label="Фильтр задач">
+              <button type="button" className="filter" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
+                Все задачи
+              </button>
+              <button
+                type="button"
+                className="filter"
+                aria-pressed={filter === 'pending'}
+                onClick={() => setFilter('pending')}
+              >
+                Осталось
+              </button>
+              <button
+                type="button"
+                className="filter"
+                aria-pressed={filter === 'done'}
+                onClick={() => setFilter('done')}
+              >
+                Выполнено
+              </button>
+            </div>
+            {visible.length === 0 && (
+              <EmptyState title="В этом списке пока пусто" text="Выбери другой фильтр, чтобы увидеть задачи." />
+            )}
+            <ol className="stage-list">
+              {stages.map((stage) => {
+                const stageTasks = visible.filter((task) => task.stage === stage.id);
+                if (!stageTasks.length) return null;
+                const total = tasks.filter((task) => task.stage === stage.id);
+                const done = total.filter((task) => workspace.completed.includes(task.id)).length;
+                return (
+                  <li key={stage.id} className="panel stage">
+                    <div className={'stage__header tone-' + stage.tone}>
+                      <span className="icon-tile">
+                        <Icon name="flag" size={18} />
+                      </span>
+                      <div>
+                        <h2>{stage.name}</h2>
+                        <small>{stage.dates}</small>
+                      </div>
+                      <span className="pill">
+                        {done} / {total.length}
+                      </span>
+                    </div>
+                    <ul className="task-list">
+                      {stageTasks.map((task) => (
+                        <TaskRow
+                          key={task.id}
+                          task={task}
+                          checked={workspace.completed.includes(task.id)}
+                          next={next === task.id}
+                          saving={savingTask === task.id}
+                          onOpen={onOpen}
+                          onToggle={onToggle}
+                        />
+                      ))}
+                    </ul>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+          <aside>
+            <Progress workspace={workspace} />
+            <div className="aside-note">
+              <Buddy mood={next ? 'supportive' : 'celebrating'} compact />
+              <p>
+                {next ? 'Если шаг непонятен, я помогу разобраться.' : 'Все задачи выполнены. Ты отлично справился!'}
+              </p>
+              <Link to="/chat" className="text-link">
+                Открыть чат <Icon name="arrow" size={17} />
+              </Link>
+            </div>
+          </aside>
+        </div>
+      )}
     </>
   );
 }
@@ -497,14 +529,8 @@ export function Tools({ workspace, onOpen }: { workspace: Workspace; onOpen: Ope
 export function Resources({ directory }: { directory: ReactNode }) {
   return (
     <>
-      <PageIntro
-        title="Корпоративные сервисы"
-        text="Открывай сервисы, инструкции и полезные материалы."
-        tone="pink"
-        icon="layers"
-      />
+      <PageIntro title="Корпоративные сервисы" text="Открывай сервисы и инструкции." tone="pink" icon="layers" />
       {directory}
-      <InternMaterials />
     </>
   );
 }
