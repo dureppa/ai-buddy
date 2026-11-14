@@ -1,0 +1,222 @@
+.start-staff {
+  margin-top: 21px;
+  padding-top: 17px;
+  border-top: 1px solid var(--line);
+}
+.start-staff h2 {
+  margin-bottom: 10px;
+  font-size: 16px;
+  letter-spacing: -0.035em;
+}
+.start-staff .start-profile {
+  min-height: 62px;
+}
+.staff-top,
+.staff-account,
+.staff-person,
+.staff-progress,
+.staff-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.staff-top {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 12px clamp(16px, 4vw, 46px);
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+}
+.staff-top .start-brand {
+  margin: 0;
+}
+.staff-account {
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.staff-account small,
+.staff-person small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+}
+.staff-main {
+  max-width: 1260px;
+  margin-inline: auto;
+  padding: clamp(16px, 4vw, 46px);
+}
+.staff-tabs {
+  margin-bottom: 20px;
+}
+.staff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 248px), 1fr));
+  gap: 14px;
+}
+.staff-intern,
+.staff-material,
+.staff-empty {
+  padding: clamp(15px, 2.2vw, 23px);
+}
+.staff-intern {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  text-align: left;
+  transition:
+    border-color var(--motion),
+    transform var(--motion);
+}
+.staff-intern:hover {
+  border-color: #a0ce9e;
+  transform: translateY(-2px);
+}
+.staff-person > span:nth-child(2) {
+  flex: 1;
+}
+.staff-person strong,
+.staff-material h3 {
+  font-size: 16px;
+  letter-spacing: -0.035em;
+}
+.staff-progress {
+  justify-content: space-between;
+}
+.staff-progress strong {
+  font-size: 30px;
+  letter-spacing: -0.07em;
+}
+.staff-progress small,
+.staff-intern__next,
+.staff-muted,
+.staff-empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+.staff-intern progress {
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #edf0ee;
+  color: #2b8d4a;
+}
+.staff-intern progress::-webkit-progress-bar {
+  background: #edf0ee;
+}
+.staff-intern progress::-webkit-progress-value {
+  background: #2b8d4a;
+}
+.staff-intern progress::-moz-progress-bar {
+  background: #2b8d4a;
+}
+.staff-detail,
+.staff-form,
+.staff-material {
+  display: grid;
+  gap: 10px;
+}
+.staff-detail h3 {
+  margin-top: 7px;
+  font-size: 15px;
+}
+.staff-detail li,
+.staff-detail details {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.staff-detail li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.staff-detail li small {
+  margin-left: auto;
+  color: var(--muted);
+}
+.staff-detail summary {
+  cursor: pointer;
+}
+.staff-detail details p {
+  padding: 6px 0 0 16px;
+}
+.staff-material p,
+.staff-detail p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.staff-material h3 {
+  overflow-wrap: anywhere;
+}
+.staff-actions,
+.staff-publications > .section-title {
+  flex-wrap: wrap;
+}
+.staff-actions .button {
+  padding-inline: 10px;
+}
+.staff-form label:not(.staff-check) {
+  display: grid;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.staff-form input:not([type='checkbox']),
+.staff-form textarea,
+.staff-form select {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--background);
+  color: var(--ink);
+  font: inherit;
+}
+.staff-form fieldset {
+  padding: 8px 10px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+}
+.staff-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+.staff-check input {
+  accent-color: #2b8d4a;
+}
+.staff-form > .button {
+  justify-self: start;
+}
+.staff-error,
+.staff-message {
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+}
+.staff-error {
+  background: #ffebed;
+  color: #7a263b;
+}
+.staff-message {
+  margin-bottom: 12px;
+  background: var(--mint);
+  color: var(--dark);
+}
+.intern-materials {
+  margin: 18px 0 25px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .staff-intern {
+    transition: none;
+  }
+}
