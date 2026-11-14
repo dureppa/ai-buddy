@@ -47,6 +47,16 @@ export type StaffMaterial = z.infer<typeof materialSchema>;
 export type MaterialInput = Omit<StaffMaterial, 'id' | 'author'>;
 export const materialGroupSuggestions = ['Чаты', 'Документы', 'Встречи'] as const;
 
+export function materialGroupChoices(existing: readonly string[]) {
+  const choices: string[] = [];
+  for (const name of [...existing, ...materialGroupSuggestions]) {
+    const trimmed = name.trim();
+    if (trimmed.length < 2 || trimmed.length > 40 || choices.includes(trimmed)) continue;
+    choices.push(trimmed);
+  }
+  return choices;
+}
+
 const baselineChats = {
   delivery: {
     title: 'Общий чат для всех сотрудников Авито Доставки',

@@ -7,7 +7,7 @@ import {
   groupByName,
   internMaterials,
   internOverview,
-  materialGroupSuggestions,
+  materialGroupChoices,
   materialsKey,
   maxMaterialBytes,
   readMaterials,
@@ -54,19 +54,28 @@ function fileSource(file: File): Promise<StaffMaterial['source']> {
   });
 }
 
+const customGroupValue = 'custom-group';
+
 function MaterialForm({
   staff,
   edit,
   group,
+  groups,
   onSaved,
 }: {
   staff: StaffId;
   edit?: StaffMaterial;
   group?: string;
+  groups: readonly string[];
   onSaved: (group: string) => void;
 }) {
   const internId = products[staffAccounts[staff].productId].intern;
+  const initialGroup = edit?.group ?? group ?? groups[0] ?? 'Чаты';
   const [kind, setKind] = useState<'link' | 'file'>(edit?.source.kind ?? 'link');
+  const [custom, setCustom] = useState(() => !groups.includes(initialGroup));
+  const [selected, setSelected] = useState(() =>
+    groups.includes(initialGroup) ? initialGroup : (groups[0] ?? 'Чаты'),
+  );
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -113,20 +122,39 @@ function MaterialForm({
       </label>
       <label>
         Группа
-        <input
-          name="group"
-          list="material-groups"
-          defaultValue={edit?.group ?? group ?? 'Чаты'}
-          required
-          minLength={2}
-          maxLength={40}
-        />
-        <datalist id="material-groups">
-          {materialGroupSuggestions.map((group) => (
-            <option key={group} value={group} />
+        <select
+          name={custom ? undefined : 'group'}
+          value={custom ? customGroupValue : selected}
+          onChange={(event) => {
+            const value = event.target.value;
+            if (value === customGroupValue) setCustom(true);
+            else {
+              setCustom(false);
+              setSelected(value);
+            }
+          }}
+        >
+          {groups.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
           ))}
-        </datalist>
+          <option value={customGroupValue}>Своя группа</option>
+        </select>
       </label>
+      {custom && (
+        <label>
+          Название группы
+          <input
+            name="group"
+            required
+            minLength={2}
+            maxLength={40}
+            defaultValue={groups.includes(initialGroup) ? '' : initialGroup}
+            placeholder="Например, Онбординг"
+          />
+        </label>
+      )}
       <label>
         Пояснение
         <textarea name="description" defaultValue={edit?.description} rows={3} required minLength={2} maxLength={420} />
@@ -410,6 +438,10 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
   );
   const visibleMaterials = publishedForIntern(localStorage, product.intern);
   const baseline = baselineFor(product.intern);
+  const groupOptions = materialGroupChoices([
+    ...baseline.map((item) => item.group),
+    ...visibleMaterials.map((item) => item.group),
+  ]);
 
   function deleteMaterial() {
     if (!pendingRemoval) return;
@@ -564,6 +596,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
             staff={id}
             edit={editor === 'new' ? undefined : editor}
             group={editor === 'new' ? openGroup : undefined}
+            groups={groupOptions}
             onSaved={(group) => {
               setMaterials(readMaterials(localStorage));
               setEditor(undefined);
