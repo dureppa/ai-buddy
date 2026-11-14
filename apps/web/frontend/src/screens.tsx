@@ -15,7 +15,7 @@ import {
   profiles,
 } from './data';
 import { homeTasks, tasksFor } from './checklist';
-import { products, teamContacts } from './demo-accounts';
+import { products, teamColleagues, teamContacts } from './demo-accounts';
 import { progressFor, serviceStatus, type Workspace } from './demo';
 import { Avatar, Buddy, EmptyState, Icon, PageIntro } from './ui';
 
@@ -332,6 +332,23 @@ export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask 
   );
 }
 
+function PersonCard({ person, onOpen }: { person: Person; onOpen: OpenDetail }) {
+  return (
+    <article className={'person-card tone-' + person.tone}>
+      <Avatar initials={person.initials} tone={person.tone === 'paper' ? 'lilac' : 'paper'} avatar={person.avatar} />
+      <div>
+        {person.role !== 'Коллега' && <span className="person-label">{person.role}</span>}
+        <h3>{person.name}</h3>
+        <p>{person.position}</p>
+      </div>
+      <p className="person-bio">{person.bio}</p>
+      <button type="button" className="button button--white" onClick={() => onOpen({ kind: 'person', item: person })}>
+        Открыть профиль <Icon name="diagonal" size={16} />
+      </button>
+    </article>
+  );
+}
+
 export function Team({ profileId, onOpen }: { profileId: ProfileId; onOpen: OpenDetail }) {
   const product = products[profiles[profileId].productId];
   return (
@@ -345,22 +362,13 @@ export function Team({ profileId, onOpen }: { profileId: ProfileId; onOpen: Open
       <SectionTitle title="Твои первые контакты" />
       <div className="people-grid people-grid--featured">
         {teamContacts(profileId).map((person) => (
-          <article className={'person-card tone-' + person.tone} key={person.id}>
-            <Avatar initials={person.initials} tone="paper" avatar={person.avatar} />
-            <div>
-              <span className="person-label">{person.role}</span>
-              <h3>{person.name}</h3>
-              <p>{person.position}</p>
-            </div>
-            <p className="person-bio">{person.bio}</p>
-            <button
-              type="button"
-              className="button button--white"
-              onClick={() => onOpen({ kind: 'person', item: person })}
-            >
-              Открыть профиль <Icon name="diagonal" size={16} />
-            </button>
-          </article>
+          <PersonCard key={person.id} person={person} onOpen={onOpen} />
+        ))}
+      </div>
+      <SectionTitle title="Коллеги по команде" />
+      <div className="people-grid">
+        {teamColleagues(profileId).map((person) => (
+          <PersonCard key={person.id} person={person} onOpen={onOpen} />
         ))}
       </div>
     </>

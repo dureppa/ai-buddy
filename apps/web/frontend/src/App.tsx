@@ -7,7 +7,7 @@ import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from
 import { ChatPage, ChatWindow, type ChatEntry, type DraftState } from './Chat';
 import { tasksFor } from './checklist';
 import { navigation, resources, resourcesFor, services } from './data';
-import { isStaffId, products, profiles, teamContacts, type ProfileId } from './demo-accounts';
+import { isStaffId, products, profiles, teamColleagues, teamContacts, type ProfileId } from './demo-accounts';
 import {
   answerBuddy,
   confirmAccess,
@@ -51,7 +51,7 @@ function SearchDialog({ profileId, onClose }: { profileId: ProfileId; onClose: (
       detail: 'Задача',
       to: '/onboarding?task=' + task.id,
     })),
-    ...teamContacts(profileId).map((person) => ({
+    ...[...teamContacts(profileId), ...teamColleagues(profileId)].map((person) => ({
       label: person.name,
       detail: person.role + ' · ' + person.position,
       to: '/team?person=' + person.id,
@@ -273,7 +273,8 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   const task =
     location.pathname === '/onboarding' && tasksFor(profileId).find((item) => item.id === params.get('task'));
   const person =
-    location.pathname === '/team' && teamContacts(profileId).find((item) => item.id === params.get('person'));
+    location.pathname === '/team' &&
+    [...teamContacts(profileId), ...teamColleagues(profileId)].find((item) => item.id === params.get('person'));
   const service = location.pathname === '/tools' && services.find((item) => item.id === params.get('service'));
   const resource =
     location.pathname === '/resources' && resourcesFor(profileId).find((item) => item.id === params.get('article'));
