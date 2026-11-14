@@ -1939,6 +1939,30 @@ svg {
   line-height: 1.55;
   white-space: pre-line;
 }
+.task-materials ul {
+  display: grid;
+  gap: 10px;
+}
+.task-material {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+}
+.task-material strong {
+  font-size: 15px;
+  letter-spacing: -0.03em;
+}
+.task-material p,
+.task-material small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.task-material a {
+  color: #315e3a;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
 .detail-content dl {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);

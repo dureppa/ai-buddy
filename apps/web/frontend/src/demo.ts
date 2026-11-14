@@ -70,8 +70,8 @@ export function readWorkspace(storage: StoragePort, profile: ProfileId): Workspa
       const parsed = workspaceSchema.safeParse(JSON.parse(stored));
       if (parsed.success) {
         const ids = new Set(tasksFor(profile).map((task) => task.id));
-        const known = parsed.data.completed.filter((id) => ids.has(id));
-        const hasStaleIds = parsed.data.completed.some((id) => !ids.has(id));
+        const known = parsed.data.completed.filter((id) => ids.has(id) || id.startsWith('extra-'));
+        const hasStaleIds = parsed.data.completed.some((id) => !ids.has(id) && !id.startsWith('extra-'));
         if (hasStaleIds && known.length === 0) {
           return writeWorkspace(storage, profile, { ...seeded, requests: parsed.data.requests });
         }
@@ -108,7 +108,9 @@ export function buddyGrowthStage(profile: ProfileId, workspace: Workspace): Budd
 
 export function toggleTask(storage: StoragePort, profile: ProfileId, taskId: string): Workspace {
   const workspace = readWorkspace(storage, profile);
-  if (!tasksFor(profile).some((task) => task.id === taskId)) throw new Error('Задача недоступна.');
+  if (!tasksFor(profile).some((task) => task.id === taskId) && !taskId.startsWith('extra-')) {
+    throw new Error('Задача недоступна.');
+  }
   const completed = workspace.completed.includes(taskId)
     ? workspace.completed.filter((id) => id !== taskId)
     : [...workspace.completed, taskId];

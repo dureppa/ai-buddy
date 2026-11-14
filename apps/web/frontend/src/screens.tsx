@@ -4,7 +4,8 @@ import { eventDay, eventMonth, eventTime, upcomingEvents, type ScheduleEvent } f
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { services, stages, type Person, type ProfileId, type Service, type Task, profiles } from './data';
-import { homeTasks, tasksFor } from './checklist';
+import { homeTasks } from './checklist';
+import { checklistFor } from './staff-data';
 import { products, teamColleagues, teamContacts } from './demo-accounts';
 import { buddyGrowthStage, progressFor, serviceStatus, type BuddyGrowthStage, type Workspace } from './demo';
 import { Avatar, Buddy, EmptyState, Icon, PageIntro } from './ui';
@@ -80,8 +81,15 @@ function TaskRow({
   );
 }
 
-function Progress({ workspace }: { workspace: Workspace }) {
-  const progress = progressFor(workspace);
+function Progress({ workspace, taskIds }: { workspace: Workspace; taskIds?: readonly string[] }) {
+  const base = progressFor(workspace);
+  const completed = taskIds ? taskIds.filter((id) => workspace.completed.includes(id)).length : base.completed;
+  const remaining = taskIds ? taskIds.length - completed : base.remaining;
+  const progress = {
+    completed,
+    remaining,
+    percent: taskIds ? (taskIds.length ? Math.round((completed / taskIds.length) * 100) : 0) : base.percent,
+  };
   return (
     <section className="progress-card" aria-label="Прогресс адаптации">
       <header>
@@ -277,7 +285,10 @@ export function Dashboard({
 }
 
 export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask }: ChecklistProps) {
-  const tasks = tasksFor(profileId);
+  const tasks = checklistFor(localStorage, profileId).map((task) => ({
+    ...task,
+    summary: task.materialIds.length ? task.summary + ' · Материалы: ' + task.materialIds.length : task.summary,
+  }));
   const [tab, setTab] = useState<'tasks' | 'materials'>('tasks');
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all');
   const next = tasks.find((task) => !workspace.completed.includes(task.id))?.id;
@@ -380,7 +391,7 @@ export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask 
             </ol>
           </section>
           <aside>
-            <Progress workspace={workspace} />
+            <Progress workspace={workspace} taskIds={tasks.map((task) => task.id)} />
             <div className="aside-note">
               <Buddy mood={next ? 'supportive' : 'celebrating'} compact />
               <p>
