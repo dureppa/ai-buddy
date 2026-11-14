@@ -156,7 +156,7 @@ services:
       args:
         PUBLIC_WEB_ORIGIN: ${PUBLIC_WEB_ORIGIN:-http://127.0.0.1:${AI_BUDDY_WEB_PORT:-5173}}
     ports:
-      - "127.0.0.1:5181-5189:5181-5189"
+      - "127.0.0.1:5181-5190:5181-5190"
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5181/"]
       interval: 3s

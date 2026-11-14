@@ -19,3 +19,10 @@ it('does not list Jira among corporate services', () => {
   expect(corporateLinks.some((service) => String(service.id) === 'jira')).toBe(false);
   expect(html).not.toContain('Jira');
 });
+
+it('opens the access portal for the current intern', () => {
+  const html = renderToStaticMarkup(<CorporateDirectory profileId="olga" />);
+  expect(html).toContain('Управление доступами');
+  expect(html).toContain('profile=olga');
+  expect(html).not.toContain('access_token');
+});

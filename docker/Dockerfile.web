@@ -8,6 +8,7 @@ RUN --mount=type=cache,target=/root/.npm npm ci
 COPY apps/web/ apps/web/
 COPY apps/corporate-services/ apps/corporate-services/
 COPY services/jira/frontend/ services/jira/frontend/
+COPY services/access/frontend/ services/access/frontend/
 COPY services/hr/ services/hr/
 
 FROM build AS web-build
@@ -21,7 +22,8 @@ ENV VITE_ABSENCES_URL=${PUBLIC_HR_ORIGIN}:5181/ \
     VITE_BENEFITS_URL=${PUBLIC_HR_ORIGIN}:5186/ \
     VITE_DOCUMENTS_URL=${PUBLIC_HR_ORIGIN}:5187/ \
     VITE_EVENTS_URL=${PUBLIC_HR_ORIGIN}:5188/ \
-    VITE_JIRA_URL=${PUBLIC_HR_ORIGIN}:5189/
+    VITE_JIRA_URL=${PUBLIC_HR_ORIGIN}:5189/ \
+    VITE_ACCESS_URL=${PUBLIC_HR_ORIGIN}:5190/
 RUN npm run build --workspace=@ai-buddy/web
 
 FROM nginx:1.28-alpine AS web
