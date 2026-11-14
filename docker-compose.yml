@@ -73,6 +73,7 @@ services:
       MCP_ADAPTER_SERVICE_TOKEN: ${COMPOSE_MCP_ADAPTER_TOKEN:-local-demo-adapter-token}
       AI_DELEGATION_SECRET: ${COMPOSE_DELEGATION_SECRET:-local-demo-delegation-change-for-shared-host}
       HR_CONSENTS_URL: http://hr-consents:8185
+      HR_CONSENTS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5185/
       SESSION_SECRET: ${COMPOSE_SESSION_SECRET:-local-demo-session-change-for-shared-host}
     depends_on:
       migrate:

@@ -47,7 +47,7 @@ func (s *Store) ReadAI(ctx context.Context, profile, tool string, args map[strin
 		if mentor != nil && mentorContact != nil {
 			m = map[string]any{"display_name": *mentor, "contact": *mentorContact}
 		}
-		return map[string]any{"team": map[string]any{"id": id, "name": name, "summary": summary}, "mentor": m, "lead": map[string]any{"display_name": lead, "contact": leadContact}, "references": []any{source("team:"+id, "Команда "+name, "http://localhost:5173/team")}}, nil
+		return map[string]any{"team": map[string]any{"id": id, "name": name, "summary": summary}, "mentor": m, "lead": map[string]any{"display_name": lead, "contact": leadContact}, "references": []any{source("team:"+id, "Команда "+name, "/team")}}, nil
 	case "get_onboarding_progress":
 		if len(args) != 0 {
 			return nil, buddy.ErrInvalidInput
@@ -68,7 +68,7 @@ func (s *Store) ReadAI(ctx context.Context, profile, tool string, args map[strin
 			}
 			out = append(out, map[string]any{"id": t.ID, "title": t.Title, "status": status})
 		}
-		return map[string]any{"tasks": out, "next_task_id": next, "references": []any{source("onboarding:"+profile, "Личный чек-лист", "http://localhost:5173/onboarding")}}, nil
+		return map[string]any{"tasks": out, "next_task_id": next, "references": []any{source("onboarding:"+profile, "Личный чек-лист", "/onboarding")}}, nil
 	case "get_task_context":
 		task, ok := args["task_id"].(string)
 		if !ok || len(args) != 1 {
@@ -80,7 +80,7 @@ func (s *Store) ReadAI(ctx context.Context, profile, tool string, args map[strin
 		}
 		for _, t := range tasks {
 			if t.ID == task {
-				return map[string]any{"task_id": task, "title": t.Title, "guidance": t.Guidance, "action_url": t.ActionURL, "references": []any{source("task:"+task, t.Title, "http://localhost:5173/onboarding")}}, nil
+				return map[string]any{"task_id": task, "title": t.Title, "guidance": t.Guidance, "action_url": t.ActionURL, "references": []any{source("task:"+task, t.Title, "/onboarding")}}, nil
 			}
 		}
 		return nil, buddy.ErrNotFound
