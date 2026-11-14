@@ -1,5 +1,7 @@
 services:
   web:
+    healthcheck:
+      test: ["CMD", "nginx", "-t", "-q"]
     ports: !override
       - "0.0.0.0:80:80"
     volumes:
@@ -8,6 +10,8 @@ services:
       - ./.deploy/auth.conf:/etc/nginx/buddy-auth.conf:ro
       - ./.deploy/htpasswd:/etc/nginx/buddy.htpasswd:ro
   hr-web:
+    healthcheck:
+      test: ["CMD", "nginx", "-t", "-q"]
     ports: !override
       - "0.0.0.0:5181-5186:5181-5186"
     volumes:
