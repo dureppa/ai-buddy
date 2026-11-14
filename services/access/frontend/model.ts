@@ -63,9 +63,13 @@ export function accountContext(account: AccountId): {
   const staff = staffAccounts[account];
   return { name: staff.name, productId: staff.productId, role: null, canReview: staff.role === 'Руководитель' };
 }
-export function initialAccount(search: string): AccountId {
-  const id = new URLSearchParams(search).get('profile');
-  return id && (isProfileId(id) || (isStaffId(id) && accountContext(id).canReview)) ? id : 'maria';
+export function readAccessAccount(cookie: string): AccountId | null {
+  const id = cookie
+    .split(';')
+    .map((value) => value.trim())
+    .find((value) => value.startsWith('ai_buddy_account='))
+    ?.slice('ai_buddy_account='.length);
+  return id && (isProfileId(id) || isStaffId(id)) ? id : null;
 }
 export function parseInput(raw: unknown): RequestInput {
   const result = inputSchema.safeParse(raw);

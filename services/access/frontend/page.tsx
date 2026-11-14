@@ -1,18 +1,12 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import {
-  profiles,
-  staffAccounts,
-  products,
-  isProfileId,
-  type AccountId,
-} from '../../../apps/web/frontend/src/demo-accounts';
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
+import { profiles, products, isProfileId, type AccountId } from '../../../apps/web/frontend/src/demo-accounts';
 import { Icon } from '../../../apps/web/frontend/src/ui';
 import { catalogVersion, permissions, recommendedTemplates, templates, type AccessTemplate } from './catalog';
 import {
   accountContext,
   changeRequest,
   createRequest,
-  initialAccount,
+  readAccessAccount,
   parseInput,
   readRequests,
   saveRequests,
@@ -287,11 +281,30 @@ function RequestDetails({
     </Dialog>
   );
 }
-export function AccessPortal() {
-  const [account, setAccount] = useState(() => initialAccount(window.location.search));
-  return <Portal key={account} account={account} onAccount={setAccount} />;
+function subscribeSession(onChange: () => void) {
+  window.addEventListener('focus', onChange);
+  const timer = window.setInterval(onChange, 1000);
+  return () => {
+    window.removeEventListener('focus', onChange);
+    window.clearInterval(timer);
+  };
 }
-function Portal({ account, onAccount }: { account: AccountId; onAccount: (value: AccountId) => void }) {
+export function AccessPortal() {
+  const account = useSyncExternalStore(
+    subscribeSession,
+    () => readAccessAccount(document.cookie),
+    () => null,
+  );
+  if (!account)
+    return (
+      <main className="access-app access-main">
+        <h1>Войди в AI Buddy</h1>
+        <p>Открой сервис из своего рабочего пространства после входа в AI Buddy.</p>
+      </main>
+    );
+  return <Portal key={account} account={account} />;
+}
+function Portal({ account }: { account: AccountId }) {
   const context = accountContext(account);
   const product = products[context.productId];
   const [tab, setTab] = useState<'catalog' | 'requests'>(context.canReview ? 'requests' : 'catalog');
@@ -350,35 +363,16 @@ function Portal({ account, onAccount }: { account: AccountId; onAccount: (value:
         </a>
         <div className="access-header-right">
           <span className="access-demo">Демосреда</span>
-          <label>
-            Демопрофиль
-            <select
-              value={account}
-              onChange={(e) => {
-                const url = new URL(window.location.href);
-                url.searchParams.set('profile', e.target.value);
-                window.history.replaceState(null, '', url);
-                onAccount(e.target.value as AccountId);
-              }}
-            >
-              <optgroup label="Стажёры">
-                {Object.keys(profiles).map((id) => (
-                  <option key={id} value={id}>
-                    {accountContext(id as AccountId).name}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Руководители">
-                {Object.keys(staffAccounts)
-                  .filter((id) => accountContext(id as AccountId).canReview)
-                  .map((id) => (
-                    <option key={id} value={id}>
-                      {accountContext(id as AccountId).name}
-                    </option>
-                  ))}
-              </optgroup>
-            </select>
-          </label>
+          <div className="access-current-account">
+            <span>{context.name}</span>
+            <small>
+              {context.canReview
+                ? 'Руководитель команды'
+                : isProfileId(account)
+                  ? profiles[account].position
+                  : 'Сотрудник'}
+            </small>
+          </div>
         </div>
       </header>
       <main className="access-main">
@@ -469,7 +463,8 @@ function Portal({ account, onAccount }: { account: AccountId; onAccount: (value:
             )}
             {context.canReview && (
               <p className="access-muted">
-                Для создания заявки выберите профиль стажёра. Рассмотрение доступно в разделе «Заявки команды».
+                Заявки создаются из рабочего пространства стажёра в AI Buddy. Рассмотрение доступно в разделе «Заявки
+                команды».
               </p>
             )}
           </>

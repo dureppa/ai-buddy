@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { profiles, isProfileId } from '../../../apps/web/frontend/src/demo-accounts';
+import { profiles } from '../../../apps/web/frontend/src/demo-accounts';
 import { boardSchema, filterIssues, jiraClient, priorities, statuses, type Issue, type IssueInput } from './api';
 import type { z } from 'zod';
 import './style.css';
@@ -12,18 +12,7 @@ function setLocation(space?: string, board?: string, issue?: string) {
   }
   window.history.replaceState(null, '', url);
 }
-export function JiraPage() {
-  const requested = new URLSearchParams(window.location.search).get('profile');
-  const [profile, setProfile] = useState(requested && isProfileId(requested) ? requested : 'maria');
-  return <JiraWorkspace key={profile} profile={profile} onProfile={setProfile} />;
-}
-function JiraWorkspace({
-  profile,
-  onProfile,
-}: {
-  profile: keyof typeof profiles;
-  onProfile: (id: keyof typeof profiles) => void;
-}) {
+export function JiraPage({ profile }: { profile: keyof typeof profiles }) {
   const api = useMemo(() => jiraClient(profile), [profile]);
   const initial = new URLSearchParams(window.location.search);
   const [spaces, setSpaces] = useState<{ id: string; name: string }[]>([]);
@@ -106,25 +95,7 @@ function JiraWorkspace({
         <a href={'/?profile=' + profile} className="jira-logo">
           <span>◆</span> Jira <small>Team workspace</small>
         </a>
-        <label>
-          Демопрофиль{' '}
-          <select
-            value={profile}
-            onChange={(e) => {
-              const url = new URL(window.location.href);
-              url.search = '';
-              url.searchParams.set('profile', e.target.value);
-              window.history.replaceState(null, '', url);
-              onProfile(e.target.value as keyof typeof profiles);
-            }}
-          >
-            {Object.entries(profiles).map(([id, p]) => (
-              <option key={id} value={id}>
-                {p.fullName}
-              </option>
-            ))}
-          </select>
-        </label>
+        <span>{profiles[profile].fullName}</span>
       </header>
       <div className="jira-layout">
         <aside className="jira-sidebar">

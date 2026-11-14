@@ -6,7 +6,7 @@ import {
   accountContext,
   changeRequest,
   createRequest,
-  initialAccount,
+  readAccessAccount,
   parseInput,
   readRequests,
   saveRequests,
@@ -42,10 +42,10 @@ it('recommends role-specific resources with shared tools', () => {
   expect(recommendedTemplates('designer').map((item) => item.id)).not.toContain('dwh');
 });
 it('reads demo identity and distinguishes reviewers from mentors', () => {
-  expect(initialAccount('?profile=sasha')).toBe('sasha');
-  expect(initialAccount('?profile=manager')).toBe('manager');
-  expect(initialAccount('?profile=bad')).toBe('maria');
-  expect(initialAccount('?profile=mentor')).toBe('maria');
+  expect(readAccessAccount('other=1; ai_buddy_account=sasha')).toBe('sasha');
+  expect(readAccessAccount('ai_buddy_account=manager')).toBe('manager');
+  expect(readAccessAccount('ai_buddy_account=bad')).toBe(null);
+  expect(readAccessAccount('')).toBe(null);
   expect(accountContext('olga').role).toBe('analyst');
   expect(accountContext('manager').canReview).toBe(true);
   expect(accountContext('mentor').canReview).toBe(false);

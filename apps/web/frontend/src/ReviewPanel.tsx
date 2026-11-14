@@ -64,11 +64,11 @@ export function ReviewPanel({ profileId }: { profileId: ProfileId }) {
     };
   }, [profileId]);
   return (
-    <section className="panel hr-panel">
+    <section className="panel learning-task">
       <h2>Учебное задание: согласия</h2>
       <p>
-        В сервисе согласий выбери тот же демопрофиль и предоставь учебное согласие на внутренние новости. Затем объясни:
-        как изменить согласие, можно ли его отозвать и кто одобряет завершение задания?
+        В сервисе согласий предоставь учебное согласие на внутренние новости. Затем объясни: как изменить согласие,
+        можно ли его отозвать и кто одобряет завершение задания?
       </p>
       <a
         className="text-link"
@@ -81,7 +81,7 @@ export function ReviewPanel({ profileId }: { profileId: ProfileId }) {
       {review && <Result review={review} />}
       {error && <p role="alert">{error}</p>}
       <form
-        className="detail-form"
+        className="learning-task__form"
         onSubmit={(event) => {
           event.preventDefault();
           setPending(true);
@@ -96,6 +96,8 @@ export function ReviewPanel({ profileId }: { profileId: ProfileId }) {
         <label>
           Твой ответ
           <textarea
+            rows={4}
+            placeholder="Расскажи, как управлять согласием и завершить задание"
             value={answer}
             maxLength={4000}
             onChange={(event) => setAnswer(event.target.value)}

@@ -1,3 +1,4 @@
+import type { ProfileId } from '../../../../apps/web/frontend/src/data';
 import { useState } from 'react';
 import { backendEnabled } from '../../../../apps/web/frontend/src/backend';
 import { Icon, PageIntro } from '../../../../apps/web/frontend/src/ui';
@@ -6,8 +7,8 @@ import type { GuideItem } from '../../../../apps/corporate-services/frontend/src
 import { EventsApi } from './api';
 import { eventsService } from './meta';
 
-export function EventsPage() {
-  if (backendEnabled) return <EventsApi />;
+export function EventsPage({ profileId }: { profileId: ProfileId }) {
+  if (backendEnabled) return <EventsApi profileId={profileId} />;
   return <EventsLocal />;
 }
 

@@ -9,9 +9,9 @@ import { consentsService } from './meta';
 const consentsSchema = z.array(
   z.object({ purpose: z.string(), title: z.string(), description: z.string(), granted: z.boolean() }),
 );
-type ProfileProps = { profileId: ProfileId; onProfileChange: (id: ProfileId) => void };
+type ProfileProps = { profileId: ProfileId };
 
-export function ConsentApi({ profileId, onProfileChange }: ProfileProps) {
+export function ConsentApi({ profileId }: ProfileProps) {
   const [items, setItems] = useState<z.infer<typeof consentsSchema>>([]);
   const [pending, setPending] = useState(true);
   const [error, setError] = useState('');
@@ -55,7 +55,6 @@ export function ConsentApi({ profileId, onProfileChange }: ProfileProps) {
   return (
     <ConsentPageView
       profileId={profileId}
-      onProfileChange={onProfileChange}
       items={items}
       pending={pending}
       error={error}
@@ -67,7 +66,6 @@ export function ConsentApi({ profileId, onProfileChange }: ProfileProps) {
 
 export function ConsentPageView({
   profileId,
-  onProfileChange,
   items,
   pending,
   error,
@@ -135,25 +133,8 @@ export function ConsentPageView({
               <Avatar initials={profile.initials} avatar={profile.avatar} />
               <span>
                 <strong>{profile.fullName}</strong>
-                <small>Демопрофиль</small>
+                <small>Твой аккаунт</small>
               </span>
-            </div>
-            <div className="hr-form hr-profile-switch">
-              <label>
-                Демопрофиль
-                <select
-                  value={profileId}
-                  disabled={pending}
-                  onChange={(event) => onProfileChange(event.target.value as ProfileId)}
-                >
-                  {(['olga', 'sasha', 'maria'] as const).map((id) => (
-                    <option key={id} value={id}>
-                      {profiles[id].fullName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <small>Выбери тот же профиль, что и в AI Buddy.</small>
             </div>
             <span className="hr-metric__value">
               {pending || error ? '—' : items.filter((item) => item.granted).length + ' из ' + items.length}

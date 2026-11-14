@@ -1,3 +1,4 @@
+import { accountCookieValue } from './service-session';
 import { readHrToday } from './hr-schedule';
 import { Schedule } from './EventsPage';
 import { readSchedule, scheduleKey, type ScheduleEvent } from './schedule';
@@ -770,6 +771,10 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
 export default function App() {
   const [account, setAccount] = useState(() => readDemoSession(localStorage));
   const { pathname } = useLocation();
+
+  useEffect(() => {
+    document.cookie = accountCookieValue(account);
+  }, [account]);
 
   useEffect(() => {
     function syncSession(event: Event) {

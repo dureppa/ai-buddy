@@ -3,7 +3,7 @@
 - `just frontend-check`: Prettier, ESLint, TypeScript, 85 Vitest-тестов,
   production-сборки всех workspace (включая dist/access) — успешно.
 - Повторные corporate-services тесты после проверки пустого повреждённого
-  сохранения и профиля наставника — 32 успешно.
+  сохранения и demo-cookie аккаунта — 32 успешно.
 - `just check`: предыдущие пункты, Ruff/mypy, 406 Python-тестов (89,68% покрытия),
   стандартные Go/HR/repository-проверки прошли. Остановка только на compose-check:
   Docker CLI отсутствует. Go-тесты, требующие TEST_DATABASE_URL и

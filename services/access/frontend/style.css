@@ -554,3 +554,13 @@
     transition: none;
   }
 }
+
+.access-current-account {
+  display: grid;
+  gap: 5px;
+  font-size: 13px;
+}
+.access-current-account small {
+  color: #8791a0;
+  font-size: 11px;
+}

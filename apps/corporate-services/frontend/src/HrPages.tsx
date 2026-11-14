@@ -131,7 +131,7 @@ export function HrPage({ service, profileId }: { service: HrService; profileId: 
               <Avatar initials={profile.initials} avatar={profile.avatar} />
               <span>
                 <strong>{profile.fullName}</strong>
-                <small>Демопрофиль</small>
+                <small>Твой аккаунт</small>
               </span>
             </div>
             <span className="hr-metric__value">{metric}</span>

@@ -245,11 +245,3 @@
     transition: none;
   }
 }
-
-.hr-profile-switch {
-  margin-top: 18px;
-}
-.hr-profile-switch small {
-  font-size: 12px;
-  line-height: 1.5;
-}

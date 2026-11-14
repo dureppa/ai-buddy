@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { apiFetch } from '../../../../apps/web/frontend/src/backend';
-import { profiles, type ProfileId } from '../../../../apps/web/frontend/src/data';
+import { type ProfileId } from '../../../../apps/web/frontend/src/data';
 import { Icon, PageIntro } from '../../../../apps/web/frontend/src/ui';
 import { documentsService } from './meta';
 
@@ -14,8 +14,7 @@ const itemsSchema = z.array(
   }),
 );
 
-export function DocumentsApi() {
-  const [profileId, setProfileId] = useState<ProfileId>('maria');
+export function DocumentsApi({ profileId }: { profileId: ProfileId }) {
   const [items, setItems] = useState<z.infer<typeof itemsSchema>>([]);
   const [pending, setPending] = useState(true);
   const [error, setError] = useState('');
@@ -73,16 +72,6 @@ export function DocumentsApi() {
         icon={documentsService.icon}
       />
       <section className="panel hr-panel">
-        <label>
-          Демопрофиль{' '}
-          <select value={profileId} onChange={(event) => setProfileId(event.target.value as ProfileId)}>
-            {Object.entries(profiles).map(([id, profile]) => (
-              <option key={id} value={id}>
-                {profile.fullName}
-              </option>
-            ))}
-          </select>
-        </label>
         {pending && <p role="status">Загружаем…</p>}
         {error && <p role="alert">{error}</p>}
         <ul className="guide-list">
