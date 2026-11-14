@@ -3,7 +3,7 @@ import { HrDayEvents } from './HrDayEvents';
 import type { HrToday } from './hr-schedule';
 import { useState, type FormEvent } from 'react';
 import { eventKinds, localDateTime, type ScheduleEvent } from './schedule';
-import { Icon, Modal } from './ui';
+import { Modal, PageIntro } from './ui';
 import './schedule.css';
 
 type Props = {
@@ -15,15 +15,29 @@ type Props = {
 };
 
 export function Schedule({ events, hrEvents, hrError, now, onChange }: Props) {
-  const [editing, setEditing] = useState<ScheduleEvent | 'new' | null>(null);
+  const [editing, setEditing] = useState<ScheduleEvent | Date | null>(null);
   const [removing, setRemoving] = useState<ScheduleEvent | null>(null);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(() => new Date(now));
-  const current = editing === 'new' ? null : editing;
+  const current = editing instanceof Date ? null : editing;
+  const [revealedEventId, setRevealedEventId] = useState<string>();
 
-  function open(event: ScheduleEvent | 'new') {
+  function open(event: ScheduleEvent | Date) {
     setError('');
     setEditing(event);
+  }
+
+  function openNew() {
+    const start = new Date(selected);
+    start.setHours(9, 0, 0, 0);
+    if (start.getTime() <= Date.now()) {
+      const nextHour = new Date();
+      nextHour.setMinutes(0, 0, 0);
+      nextHour.setHours(nextHour.getHours() + 1);
+      open(nextHour);
+    } else {
+      open(start);
+    }
   }
 
   function save(event: FormEvent<HTMLFormElement>) {
@@ -42,7 +56,12 @@ export function Schedule({ events, hrEvents, hrError, now, onChange }: Props) {
       return;
     }
     const saved: ScheduleEvent = {
-      id: current?.id ?? crypto.randomUUID(),
+      id:
+        current?.id ??
+        'event-' +
+          Array.from(crypto.getRandomValues(new Uint32Array(4)), (value) => value.toString(16).padStart(8, '0')).join(
+            '',
+          ),
       title,
       kind,
       startsAt: startsAt.toISOString(),
@@ -51,103 +70,109 @@ export function Schedule({ events, hrEvents, hrError, now, onChange }: Props) {
     };
     if (onChange([...events.filter((item) => item.id !== saved.id), saved])) {
       setSelected(startsAt);
+      setRevealedEventId(saved.id);
       setEditing(null);
+    } else {
+      setError('Не удалось сохранить событие в браузере.');
     }
   }
 
   return (
-    <div className="schedule">
-      <header className="schedule-heading">
-        <div>
-          <span className="schedule-heading-icon">
-            <Icon name="calendar" size={22} />
-          </span>
-          <h1>События</h1>
-          <p>Встречи, созвоны и напоминания в одном расписании</p>
+    <>
+      <PageIntro title="События" text="Встречи, созвоны и напоминания в одном расписании" tone="mint" icon="calendar" />
+      <div className="schedule">
+        {(hrEvents.length > 0 || hrError) && (
+          <section className="schedule-day">
+            <h2>Сегодня по данным HR</h2>
+            <div className="schedule-list schedule-hr">
+              <HrDayEvents events={hrEvents} error={hrError} />
+            </div>
+          </section>
+        )}
+        <WeekCalendar
+          selected={selected}
+          today={new Date(now)}
+          events={events}
+          onSelect={(date) => {
+            setRevealedEventId(undefined);
+            setSelected(date);
+          }}
+          onOpen={open}
+          onCreate={open}
+          revealedEventId={revealedEventId}
+        />
+        <div className="schedule-toolbar">
+          <button type="button" className="button button--dark" onClick={openNew}>
+            Создать событие
+          </button>
         </div>
-        <button type="button" className="button button--dark" onClick={() => open('new')}>
-          Создать событие
-        </button>
-      </header>
-      {(hrEvents.length > 0 || hrError) && (
-        <section className="schedule-day">
-          <h2>Сегодня по данным HR</h2>
-          <div className="schedule-list schedule-hr">
-            <HrDayEvents events={hrEvents} error={hrError} />
-          </div>
-        </section>
-      )}
-      <WeekCalendar selected={selected} today={new Date(now)} events={events} onSelect={setSelected} onOpen={open} />
-      {editing && (
-        <Modal title={current ? 'Изменить событие' : 'Создать событие'} onClose={() => setEditing(null)}>
-          <form className="schedule-form" onSubmit={save}>
-            <label>
-              Название
-              <input name="title" required maxLength={120} defaultValue={current?.title} />
-            </label>
-            <label>
-              Тип
-              <select name="kind" defaultValue={current?.kind ?? 'Встреча'}>
-                {eventKinds.map((kind) => (
-                  <option key={kind}>{kind}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Дата и время
-              <input
-                name="startsAt"
-                type="datetime-local"
-                required
-                defaultValue={
-                  current
-                    ? localDateTime(current.startsAt)
-                    : localDateTime(selected.toISOString()).slice(0, 10) + 'T09:00'
-                }
-              />
-            </label>
-            {error && <p role="alert">{error}</p>}
-            <div className="schedule-actions">
-              <button type="submit" className="button button--dark">
-                Сохранить
-              </button>
-              {current && (
+        {editing && (
+          <Modal title={current ? 'Изменить событие' : 'Создать событие'} onClose={() => setEditing(null)}>
+            <form className="schedule-form" onSubmit={save}>
+              <label>
+                Название
+                <input name="title" required maxLength={120} defaultValue={current?.title} />
+              </label>
+              <label>
+                Тип
+                <select name="kind" defaultValue={current?.kind ?? 'Встреча'}>
+                  {eventKinds.map((kind) => (
+                    <option key={kind}>{kind}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Дата и время
+                <input
+                  name="startsAt"
+                  type="datetime-local"
+                  required
+                  defaultValue={localDateTime(editing instanceof Date ? editing.toISOString() : editing.startsAt)}
+                />
+              </label>
+              {error && <p role="alert">{error}</p>}
+              <div className="schedule-actions">
+                <button type="submit" className="button button--dark">
+                  Сохранить
+                </button>
+                {current && (
+                  <button
+                    type="button"
+                    className="button button--white"
+                    onClick={() => {
+                      setEditing(null);
+                      setRemoving(current);
+                    }}
+                  >
+                    Удалить
+                  </button>
+                )}
+              </div>
+            </form>
+          </Modal>
+        )}
+        {removing && (
+          <Modal title="Удалить событие?" onClose={() => setRemoving(null)}>
+            <div className="schedule-form">
+              <p>{removing.title}</p>
+              <div className="schedule-actions">
+                <button type="button" className="button button--white" onClick={() => setRemoving(null)}>
+                  Отмена
+                </button>
                 <button
                   type="button"
-                  className="button button--white"
+                  className="button button--dark"
                   onClick={() => {
-                    setEditing(null);
-                    setRemoving(current);
+                    if (onChange(events.filter((event) => event.id !== removing.id))) setRemoving(null);
                   }}
                 >
                   Удалить
                 </button>
-              )}
+              </div>
             </div>
-          </form>
-        </Modal>
-      )}
-      {removing && (
-        <Modal title="Удалить событие?" onClose={() => setRemoving(null)}>
-          <div className="schedule-form">
-            <p>{removing.title}</p>
-            <div className="schedule-actions">
-              <button type="button" className="button button--white" onClick={() => setRemoving(null)}>
-                Отмена
-              </button>
-              <button
-                type="button"
-                className="button button--dark"
-                onClick={() => {
-                  if (onChange(events.filter((event) => event.id !== removing.id))) setRemoving(null);
-                }}
-              >
-                Удалить
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-    </div>
+          </Modal>
+        )}
+      </div>
+    </>
   );
 }

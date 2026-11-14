@@ -175,8 +175,8 @@ export function ChatWindow({
         )}
         {waiting && (
           <div className="chat-entry typing" role="status" aria-label="Buddy думает">
-            <Buddy compact mood="thinking" />
-            <span>
+            <Buddy compact />
+            <span className="typing-dots" aria-hidden="true">
               <i />
               <i />
               <i />

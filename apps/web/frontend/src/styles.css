@@ -1626,7 +1626,13 @@ svg {
   padding: 6px 7px;
   min-height: 32px;
 }
-.typing > span {
+.chat-entry.typing {
+  align-items: center;
+}
+.typing > .buddy {
+  margin-top: 0;
+}
+.typing-dots {
   display: flex;
   gap: 5px;
   align-items: center;
