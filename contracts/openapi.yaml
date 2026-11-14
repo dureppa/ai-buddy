@@ -282,12 +282,48 @@ paths:
               schema: {$ref: '#/components/schemas/TaskReview'}
         '409': {description: Stale assessment or changed HR evidence}
 
+  /product-guide/team:
+    get:
+      operationId: readTeamGuide
+      summary: Прочитать статус и описание команды из сессии
+      responses:
+        '200':
+          $ref: '#/components/responses/TeamGuide'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+    post:
+      operationId: queueTeamGuide
+      summary: Поставить описание команды в очередь или вернуть текущий результат
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                retry:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          $ref: '#/components/responses/TeamGuide'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
 components:
   securitySchemes:
     sessionToken:
       type: http
       scheme: bearer
   responses:
+    TeamGuide:
+      description: Статус описания команды. Карточки присутствуют при статусе ready.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TeamGuide'
     InvalidInput:
       description: Запрос не соответствует схеме.
       content:
@@ -325,6 +361,21 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
+    TeamGuide:
+      type: object
+      required: [status]
+      properties:
+        status: {type: string, enum: [missing, pending, ready, failed]}
+        cards:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items:
+            type: object
+            required: [title, text]
+            properties:
+              title: {type: string, minLength: 1, maxLength: 80}
+              text: {type: string, minLength: 1, maxLength: 280}
     Error:
       type: object
       required: [code, message]
