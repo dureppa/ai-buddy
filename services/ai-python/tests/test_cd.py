@@ -105,6 +105,7 @@ def test_prepare_links_persistent_secrets_and_blocks_model_download(
     archive(state / (SHA + ".tar"))
     release = worker.prepare(tmp_path, SHA)
     assert (release / ".env").is_symlink()
+    assert (release / "services/ai-python/ai_buddy").stat().st_mode & 0o777 == 0o755
     assert (release / ".deploy").readlink() == tmp_path / ".deploy"
     assert worker.prepare(tmp_path, SHA) == release
     worker.auth_configs(release, tmp_path)
