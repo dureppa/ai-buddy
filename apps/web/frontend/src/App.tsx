@@ -29,7 +29,7 @@ import { Avatar, Buddy, EmptyState, Icon, Modal, type Mood } from './ui';
 
 import { corporateLinks } from './corporate-links';
 import { jiraService, jiraProfileUrl } from './tool-links';
-import { CorporateDirectory } from './CorporateDirectory';
+import { CorporateDirectory, accessPortalUrl } from './CorporateDirectory';
 import { ProductGuide } from './ProductGuide';
 
 const searchItems = [
@@ -50,7 +50,11 @@ function SearchDialog({ profileId, onClose }: { profileId: ProfileId; onClose: (
   const [query, setQuery] = useState('');
   const results = [
     ...searchItems.map((item) =>
-      item.to === jiraService.url ? { ...item, to: jiraProfileUrl(item.to, profileId) } : item,
+      item.to === jiraService.url
+        ? { ...item, to: jiraProfileUrl(item.to, profileId) }
+        : item.to === corporateLinks.find((service) => service.id === 'access')?.url
+          ? { ...item, to: accessPortalUrl(item.to, profileId) }
+          : item,
     ),
     ...tasksFor(profileId).map((task) => ({
       label: task.title,
@@ -537,7 +541,10 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                   path="/tools"
                   element={<Tools profileId={profileId} workspace={workspace} onOpen={setDetail} />}
                 />
-                <Route path="/resources" element={<Resources directory={<CorporateDirectory />} />} />
+                <Route
+                  path="/resources"
+                  element={<Resources directory={<CorporateDirectory profileId={profileId} />} />}
+                />
                 <Route path="/chat" element={<ChatPage {...chatProps} />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
               </Routes>

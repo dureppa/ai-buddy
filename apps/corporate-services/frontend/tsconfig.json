@@ -5,6 +5,8 @@
     "../../../services/hr/*/frontend/**/*.ts",
     "../../../services/hr/*/frontend/**/*.tsx",
     "../../../services/jira/frontend/**/*.ts",
-    "../../../services/jira/frontend/**/*.tsx"
+    "../../../services/jira/frontend/**/*.tsx",
+    "../../../services/access/frontend/**/*.ts",
+    "../../../services/access/frontend/**/*.tsx"
   ]
 }

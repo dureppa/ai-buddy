@@ -9,10 +9,10 @@ frontend-test:
 	npm test --workspaces
 
 frontend-lint:
-	npm exec -- eslint apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend
+	npm exec -- eslint apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend services/access/frontend
 
 frontend-format:
-	npm exec -- prettier --check apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend eslint.config.mjs prettier.config.mjs
+	npm exec -- prettier --check apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend services/access/frontend eslint.config.mjs prettier.config.mjs
 
 frontend-build:
 	npm run build --workspaces

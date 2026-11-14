@@ -59,3 +59,5 @@ docker compose --profile hr down
 ## Jira
 
 `docker compose --profile hr --profile jira up --build -d` добавляет самостоятельную БД, миграции и API Jira. UI на 5189, API внутри сети на 8189. [Настройки и ограничения CD](jira.md).
+
+Статический фронт «Управление доступами» входит в hr-web на 5190. Своего API/БД пока нет; демозаявки хранятся в браузере. [Запуск и будущий контракт](access-portal.md).

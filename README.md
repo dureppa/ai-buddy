@@ -55,3 +55,5 @@ npm run dev --workspace=@ai-buddy/corporate-services
 ### Jira: доски и задачи
 
 `docker compose --profile hr --profile jira up --build -d` запускает самостоятельный Jira-клон с отдельной PostgreSQL. Открой карточку Jira в «Инструментах и доступах» или http://localhost:5189/. Доступны пространства, доски, создание и редактирование задач. [Настройки, API и проверки](docs/components/jira.md).
+
+«Управление доступами» доступно из корпоративных сервисов на порту 5190: каталог, гибкие формы и демосогласование. [Описание и ограничения](docs/components/access-portal.md).

@@ -13,6 +13,7 @@ export default tseslint.config(
       'apps/**/frontend/**/*.{ts,tsx}',
       'services/hr/**/frontend/**/*.{ts,tsx}',
       'services/jira/frontend/**/*.{ts,tsx}',
+      'services/access/frontend/**/*.{ts,tsx}',
     ],
     languageOptions: {
       parserOptions: {
