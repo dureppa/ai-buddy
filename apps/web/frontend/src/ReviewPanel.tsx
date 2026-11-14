@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { apiFetch } from './backend';
-import { profiles, type ProfileId } from './data';
-import type { StaffId } from './demo-accounts';
+import { type ProfileId } from './data';
 
 const reviewSchema = z.object({
   profile_id: z.string(),
@@ -112,89 +111,6 @@ export function ReviewPanel({ profileId }: { profileId: ProfileId }) {
           </button>
         </div>
       </form>
-    </section>
-  );
-}
-
-export function StaffReviews({ staff }: { staff: StaffId }) {
-  const [profile, setProfile] = useState<ProfileId>('olga');
-  const [review, setReview] = useState<Review>();
-  const [note, setNote] = useState('');
-  const [error, setError] = useState('');
-  const [pending, setPending] = useState(false);
-  async function request(approve?: boolean) {
-    setPending(true);
-    setError('');
-    try {
-      const login = await fetch('/api/v1/demo/staff-sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ staff_id: staff === 'mentor' ? 'mentor' : 'lead' }),
-      });
-      if (!login.ok) throw new Error();
-      const token = z.object({ access_token: z.string() }).parse(await login.json()).access_token;
-      const response = await fetch('/api/v1/staff/reviews/' + profile, {
-        method: approve === undefined ? 'GET' : 'POST',
-        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        ...(approve === undefined
-          ? {}
-          : { body: JSON.stringify({ evaluation_id: review?.evaluation_id, approve, note }) }),
-      });
-      if (!response.ok) throw new Error();
-      setReview(reviewSchema.parse(await response.json()));
-    } catch {
-      setError('Нет доступной оценки либо она изменилась. Обнови данные перед решением.');
-    } finally {
-      setPending(false);
-    }
-  }
-  return (
-    <section className="panel hr-panel">
-      <h2>Проверка учебного задания</h2>
-      <label>
-        Стажёр{' '}
-        <select
-          value={profile}
-          disabled={pending}
-          onChange={(event) => {
-            setProfile(event.target.value as ProfileId);
-            setReview(undefined);
-            setError('');
-          }}
-        >
-          {(staff === 'mentor' ? (['olga', 'sasha'] as const) : (['olga', 'sasha', 'maria'] as const)).map((id) => (
-            <option key={id} value={id}>
-              {profiles[id].fullName}
-            </option>
-          ))}
-        </select>
-      </label>
-      <button className="button button--white" disabled={pending} onClick={() => void request()}>
-        Загрузить оценку
-      </button>
-      {error && <p role="alert">{error}</p>}
-      {review && (
-        <>
-          <p>Ответ стажёра: {review.answer}</p>
-          <Result review={review} />
-          {review.state === 'awaiting_review' && (
-            <>
-              <label>
-                Комментарий
-                <textarea value={note} maxLength={1000} onChange={(event) => setNote(event.target.value)} />
-              </label>
-              <div className="button-row">
-                <button className="button button--dark" disabled={pending} onClick={() => void request(true)}>
-                  Одобрить завершение
-                </button>
-                <button className="button button--white" disabled={pending} onClick={() => void request(false)}>
-                  На доработку
-                </button>
-              </div>
-            </>
-          )}
-        </>
-      )}
     </section>
   );
 }
