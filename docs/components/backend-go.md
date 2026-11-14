@@ -5,7 +5,7 @@
 При AI_SERVICE_URL включается Go → Flask → Python MCP → Go. Обязательны отдельные
 AI_SERVICE_TOKEN, MCP_ADAPTER_SERVICE_TOKEN и AI_DELEGATION_SECRET (32+ символа).
 HR_CONSENTS_URL задаёт API согласий. Локальные адреса HTTP и фиксированные DNS
-`ollama`/`hr-consents` поддержаны для Compose; другие origins требуют HTTPS.
+`agent`/`hr-consents` поддержаны для Compose; другие origins требуют HTTPS.
 При отсутствии AI_SERVICE_URL сохраняется прежний отказ unavailable.
 
 `internal/ai` отвечает за Flask HTTP, короткие JWT с разными audience,

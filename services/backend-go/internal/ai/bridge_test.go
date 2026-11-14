@@ -159,6 +159,8 @@ func TestDelegationIsolationAndReadRoutes(t *testing.T) {
 	require.Equal(t, 400, call(mux, "POST", "/internal/v1/ai/context/resolve", b.AdapterToken, `{"extra":1}`).Code)
 }
 func TestConfiguration(t *testing.T) {
+	_, dockerErr := New(nil, "http://agent:8001", "service-token-long", "adapter-token-long", strings.Repeat("x", 32), "http://hr-consents:8185")
+	require.NoError(t, dockerErr)
 	for _, url := range []string{"http://evil.example", "https://user@host", "https://host/path", "https://host?x=1"} {
 		_, err := New(nil, url, "service-token-long", "adapter-token-long", strings.Repeat("x", 32), "")
 		require.Error(t, err)

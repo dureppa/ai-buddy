@@ -46,7 +46,7 @@ func New(st Repository, endpoint, service, adapter, secret, hr string) (*Bridge,
 			continue
 		}
 		u, err := url.Parse(raw)
-		if err != nil || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") || (u.Scheme != "https" && !(u.Scheme == "http" && (u.Hostname() == "127.0.0.1" || u.Hostname() == "localhost" || u.Hostname() == "ollama" || u.Hostname() == "hr-consents"))) {
+		if err != nil || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") || (u.Scheme != "https" && !(u.Scheme == "http" && (u.Hostname() == "127.0.0.1" || u.Hostname() == "localhost" || u.Hostname() == "agent" || u.Hostname() == "hr-consents"))) {
 			return nil, fmt.Errorf("invalid AI/HR origin")
 		}
 	}

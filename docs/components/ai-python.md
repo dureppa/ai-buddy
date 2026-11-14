@@ -2,6 +2,8 @@
 
 ## Интеграция DeepSeek и Go (14.11.2026)
 
+Compose использует только DeepSeek API; Ollama ниже описывает отдельный исторический локальный режим и не запускается Docker-стеком.
+
 Runtime поддерживает AI_LLM_PROVIDER=ollama|deepseek для чата и assessment.
 DeepSeek использует существующий httpx, без новых runtime-зависимостей.
 Настройки: DEEPSEEK_API_KEY, DEEPSEEK_MODEL, DEEPSEEK_BASE_URL; ключ обязателен

@@ -12,10 +12,6 @@ x-python: &python
   build:
     context: .
     dockerfile: docker/Dockerfile.python
-  # Use the loopback-only addresses required by the existing Python runtime.
-  network_mode: service:ollama
-
-x-ollama-image: &ollama-image ollama/ollama:${OLLAMA_IMAGE_TAG:-0.40.16}
 
 x-hr: &hr
   profiles: [hr]
@@ -72,7 +68,7 @@ services:
     environment:
       <<: *database-env
       DEMO_MODE: "true"
-      AI_SERVICE_URL: http://ollama:8001
+      AI_SERVICE_URL: http://agent:8001
       AI_SERVICE_TOKEN: ${COMPOSE_AI_TOKEN:-local-demo-flask-token}
       MCP_ADAPTER_SERVICE_TOKEN: ${COMPOSE_MCP_ADAPTER_TOKEN:-local-demo-adapter-token}
       AI_DELEGATION_SECRET: ${COMPOSE_DELEGATION_SECRET:-local-demo-delegation-change-for-shared-host}
@@ -89,49 +85,17 @@ services:
       timeout: 3s
       retries: 15
 
-  ollama:
-    image: *ollama-image
-    environment:
-      OLLAMA_HOST: 127.0.0.1:11434
-      OLLAMA_NO_CLOUD: "1"
-      OLLAMA_NUM_PARALLEL: "1"
-    volumes:
-      - ollama:/root/.ollama
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 3s
-      timeout: 3s
-      retries: 30
-
-  model:
-    image: *ollama-image
-    network_mode: service:ollama
-    depends_on:
-      ollama:
-        condition: service_healthy
-    environment:
-      OLLAMA_HOST: 127.0.0.1:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b-q4_K_M}
-      AI_LLM_PROVIDER: ${AI_LLM_PROVIDER:-ollama}
-    entrypoint: ["/bin/sh", "-ec"]
-    command:
-      - |
-        if [ "$$AI_LLM_PROVIDER" = deepseek ]; then exit 0; fi
-        ollama show "$$OLLAMA_MODEL" >/dev/null 2>&1 || ollama pull "$$OLLAMA_MODEL"
-
   mcp:
     <<: *python
+    network_mode: service:agent
     command: ["python", "-m", "ai_buddy.mcp_server"]
     environment:
       MCP_BACKEND: go_http
       GO_API_URL: http://go:8080
       MCP_ADAPTER_SERVICE_TOKEN: ${COMPOSE_MCP_ADAPTER_TOKEN:-local-demo-adapter-token}
-      MCP_DEMO_ENABLED: "true"
-      MCP_DEMO_PROFILE: ${COMPOSE_MCP_PROFILE:-alex}
-      MCP_DEMO_TOKEN: ${COMPOSE_MCP_TOKEN:-local-demo-mcp-token}
     depends_on:
-      ollama:
-        condition: service_healthy
+      agent:
+        condition: service_started
         restart: true
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health/live', timeout=2)"]
@@ -144,23 +108,14 @@ services:
     command: ["flask", "--app", "ai_buddy:create_app", "run", "--host", "0.0.0.0", "--port", "8001"]
     environment:
       AI_AGENT_ENABLED: "true"
-      AI_LLM_PROVIDER: ${AI_LLM_PROVIDER:-ollama}
+      AI_LLM_PROVIDER: deepseek
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       AI_SERVICE_TOKEN: ${COMPOSE_AI_TOKEN:-local-demo-flask-token}
       MCP_URL: http://127.0.0.1:8002/mcp
-      OLLAMA_URL: http://127.0.0.1:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b-q4_K_M}
-      MCP_DEMO_TOKEN: ${COMPOSE_MCP_TOKEN:-local-demo-mcp-token}
       AI_TURN_TIMEOUT: "25"
       AI_MODEL_TIMEOUT: "25"
-    depends_on:
-      mcp:
-        condition: service_healthy
-        restart: true
-      model:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/ready', timeout=2)"]
       interval: 3s
@@ -310,4 +265,3 @@ services:
 
 volumes:
   postgres:
-  ollama:
