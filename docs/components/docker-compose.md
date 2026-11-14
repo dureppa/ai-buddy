@@ -55,3 +55,7 @@ docker compose --profile hr down
 
 [Публикация на сервере](server-deployment.md) использует отдельный overlay с
 паролем nginx; PUBLIC_HR_ORIGIN/PUBLIC_WEB_ORIGIN задают внешние ссылки при сборке.
+
+## Jira
+
+`docker compose --profile hr --profile jira up --build -d` добавляет самостоятельную БД, миграции и API Jira. UI на 5189, API внутри сети на 8189. [Настройки и ограничения CD](jira.md).

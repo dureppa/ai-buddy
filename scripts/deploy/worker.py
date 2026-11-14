@@ -30,6 +30,7 @@ SERVICES = (
     "hr-benefits",
     "hr-documents",
     "hr-events",
+    "jira",
 )
 COMPOSE = [
     "docker",
@@ -166,7 +167,26 @@ def backup_database(release: Path, directory: Path) -> None:
     container = run([*COMPOSE, "ps", "-q", "db"], release)
     if not container:
         raise ValueError("database is not running")
-    target = directory / "database.sql.gz"
+    dump_database(container, directory / "database.sql.gz")
+    jira = run(
+        [
+            "docker",
+            "ps",
+            "-a",
+            "--filter",
+            "label=com.docker.compose.project=ai-buddy",
+            "--filter",
+            "label=com.docker.compose.service=jira-db",
+            "--format",
+            "{{.ID}}",
+        ],
+        release,
+    )
+    if jira:
+        dump_database(jira, directory / "jira-database.sql.gz")
+
+
+def dump_database(container: str, target: Path) -> None:
     process = subprocess.Popen(
         [
             "docker",
@@ -192,10 +212,11 @@ def http_request(
     *,
     headers: dict[str, str] | None = None,
     payload: dict[str, str] | None = None,
+    port: int = 80,
 ) -> tuple[int, Any, bytes]:
     body = json.dumps(payload).encode() if payload is not None else None
     request = urllib.request.Request(
-        "http://127.0.0.1" + path,
+        f"http://127.0.0.1:{port}" + path,
         data=body,
         headers={"Content-Type": "application/json", **(headers or {})},
     )
@@ -236,6 +257,42 @@ def verify_http(root: Path) -> None:
     )
     if code != 200:
         raise ValueError("API smoke failed")
+
+
+def verify_jira(root: Path) -> None:
+    code, _, _ = http_request("/", port=5189)
+    if code != 401:
+        raise ValueError("Jira password gate failed")
+    credentials = dict(
+        line.split(": ", 1)
+        for line in (root / ".deploy" / "access.txt").read_text().splitlines()
+        if ": " in line
+    )
+    basic = base64.b64encode(
+        (credentials["Username"] + ":" + credentials["Password"]).encode()
+    ).decode()
+    code, headers, _ = http_request(
+        "/", port=5189, headers={"Authorization": "Basic " + basic}
+    )
+    cookie = headers.get("Set-Cookie", "").split(";", 1)[0]
+    if code != 200 or not cookie.startswith("ai_buddy_gate="):
+        raise ValueError("Jira login failed")
+    code, _, body = http_request(
+        "/jira-api/v1/demo/sessions",
+        port=5189,
+        headers={"Cookie": cookie},
+        payload={"profile_id": "olga"},
+    )
+    if code != 200:
+        raise ValueError("Jira session failed")
+    token = json.loads(body)["access_token"]
+    code, _, body = http_request(
+        "/jira-api/v1/me/issues",
+        port=5189,
+        headers={"Cookie": cookie, "Authorization": "Bearer " + token},
+    )
+    if code != 200 or not isinstance(json.loads(body), list):
+        raise ValueError("Jira API failed")
 
 
 def deploy(root: Path, sha: str) -> None:
@@ -292,6 +349,7 @@ def deploy(root: Path, sha: str) -> None:
             )
             status(root, sha, "checking")
             verify_http(root)
+            verify_jira(root)
             current = {
                 "sha": sha,
                 "path": str(release),

@@ -9,10 +9,10 @@ frontend-test:
 	npm test --workspaces
 
 frontend-lint:
-	npm exec -- eslint apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs
+	npm exec -- eslint apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend
 
 frontend-format:
-	npm exec -- prettier --check apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs eslint.config.mjs prettier.config.mjs
+	npm exec -- prettier --check apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend eslint.config.mjs prettier.config.mjs
 
 frontend-build:
 	npm run build --workspaces
@@ -27,8 +27,8 @@ go-check:
 
 compose-check:
 	docker compose config --quiet
-	docker compose --profile hr config --quiet
-	docker compose -f docker-compose.yml -f docker-compose.server.yml --profile hr config --quiet
+	docker compose --profile hr --profile jira config --quiet
+	docker compose -f docker-compose.yml -f docker-compose.server.yml --profile hr --profile jira config --quiet
 
 repository-check:
 	git diff --check
@@ -51,4 +51,7 @@ typecheck: frontend-typecheck python-check go-check
 
 build: frontend-build
 
-check: frontend-check python-check go-check hr-consents-check repository-check compose-check
+check: jira-check frontend-check python-check go-check hr-consents-check repository-check compose-check
+
+jira-check:
+	cd services/jira && test -z "$(gofmt -l .)" && go vet ./... && go test -race ./...

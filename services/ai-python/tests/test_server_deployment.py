@@ -15,8 +15,12 @@ def test_server_overlay_exposes_only_browser_sites() -> None:
     assert published == {"web", "hr-web"}
     assert all(
         service["restart"] == "unless-stopped"
-        for service in overlay["services"].values()
+        for name, service in overlay["services"].items()
+        if name != "jira-migrate"
     )
+    assert "restart" not in overlay["services"]["jira-migrate"]
+    for name in ("jira", "jira-db", "jira-migrate"):
+        assert overlay["services"][name]["profiles"] == []
     for name in published:
         service = overlay["services"][name]
         assert len(service["volumes"]) == 4

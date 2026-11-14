@@ -10,14 +10,16 @@ import { guideServices, type GuideService } from './guide-catalog';
 import { HrPage } from './HrPages';
 import { hrServices } from './hr-catalog';
 import './hr.css';
+import { JiraPage } from '../../../../services/jira/frontend/page';
 
 declare const __CORPORATE_SERVICE__: string;
 
 const service = [...hrServices, ...guideServices].find((item) => item.id === __CORPORATE_SERVICE__);
 const root = document.getElementById('root');
-if (!root || !service) throw new Error('Не удалось открыть корпоративный сервис.');
+if (!root || (!service && __CORPORATE_SERVICE__ !== 'jira'))
+  throw new Error('Не удалось открыть корпоративный сервис.');
 
-document.title = service.title + ' · Демосервис';
+document.title = (service?.title || 'Jira') + ' · Демосервис';
 
 function isGuideService(value: { id: string }): value is GuideService {
   return guideServices.some((item) => item.id === value.id);
@@ -45,8 +47,4 @@ function Page() {
     </main>
   );
 }
-createRoot(root).render(
-  <StrictMode>
-    <Page />
-  </StrictMode>,
-);
+createRoot(root).render(<StrictMode>{__CORPORATE_SERVICE__ === 'jira' ? <JiraPage /> : <Page />}</StrictMode>);

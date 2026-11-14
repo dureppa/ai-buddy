@@ -52,3 +52,7 @@ npm run dev --workspace=@ai-buddy/corporate-services
 | Увольнения | `GET /api/v1/me/offboarding` — шаги, срок уведомления, черновик | `PUT /api/v1/me/offboarding/checklist/{step}` — отметка шага, `POST /api/v1/me/offboarding/draft` — дата для черновика |
 | Согласия | `GET /api/v1/me/consents` — цели и текущие состояния | `PUT /api/v1/me/consents/{purpose}` — предоставить или отозвать согласие |
 | Бенефиты | `GET /api/v1/me/benefit-summary` — доступные программы, бюджет, заявки | `POST /api/v1/me/benefit-requests` — программа компенсации |
+
+## Jira
+
+На порту 5189 собирается отдельный [трекер задач](jira.md) из services/jira/frontend; backend и БД запускаются профилем jira. Он всегда использует API, не localStorage.

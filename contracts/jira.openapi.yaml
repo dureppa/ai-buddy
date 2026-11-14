@@ -1,0 +1,502 @@
+{
+  'openapi': '3.0.3',
+  'info':
+    {
+      'title': 'Jira demo API',
+      'version': '1.0.0',
+      'description': 'Standalone Jira. Read access is scoped by space and board membership. Demo login only with DEMO_MODE=true. PUT requires current version; conflicts return 409. All issue fields are sent for create/update. Users and membership are provisioned through migrations/seeds, not client input.',
+    },
+  'servers': [{ 'url': 'http://localhost:8189/api/v1' }],
+  'security': [{ 'bearerAuth': [] }],
+  'paths':
+    {
+      '/demo/sessions':
+        {
+          'post':
+            {
+              'summary': 'POST /demo/sessions',
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Success',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Session' } } },
+                    },
+                  '400':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '401':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '404':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '409':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '503':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                },
+              'security': [],
+              'requestBody':
+                {
+                  'required': true,
+                  'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Login' } } },
+                },
+            },
+        },
+      '/spaces':
+        {
+          'get':
+            {
+              'summary': 'GET /spaces',
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Success',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { 'type': 'array', 'items': { '$ref': '#/components/schemas/Space' } } },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '401':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '404':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '409':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '503':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                },
+            },
+        },
+      '/spaces/{space}/boards':
+        {
+          'get':
+            {
+              'summary': 'GET /spaces/{space}/boards',
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Success',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { 'type': 'array', 'items': { '$ref': '#/components/schemas/BoardSummary' } } },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '401':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '404':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '409':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '503':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                },
+              'parameters': [{ 'in': 'path', 'name': 'space', 'required': true, 'schema': { 'type': 'string' } }],
+            },
+        },
+      '/boards/{board}':
+        {
+          'get':
+            {
+              'summary': 'GET /boards/{board}',
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Success',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Board' } } },
+                    },
+                  '400':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '401':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '404':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '409':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '503':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                },
+              'parameters': [{ 'in': 'path', 'name': 'board', 'required': true, 'schema': { 'type': 'string' } }],
+            },
+        },
+      '/boards/{board}/issues':
+        {
+          'post':
+            {
+              'summary': 'POST /boards/{board}/issues',
+              'responses':
+                {
+                  '201':
+                    {
+                      'description': 'Success',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Saved' } } },
+                    },
+                  '400':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '401':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '404':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '409':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '503':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                },
+              'parameters': [{ 'in': 'path', 'name': 'board', 'required': true, 'schema': { 'type': 'string' } }],
+              'requestBody':
+                {
+                  'required': true,
+                  'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/IssueInput' } } },
+                },
+            },
+        },
+      '/issues/{issue}':
+        {
+          'get':
+            {
+              'summary': 'GET /issues/{issue}',
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Success',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Issue' } } },
+                    },
+                  '400':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '401':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '404':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '409':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '503':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                },
+              'parameters': [{ 'in': 'path', 'name': 'issue', 'required': true, 'schema': { 'type': 'string' } }],
+            },
+          'put':
+            {
+              'summary': 'PUT /issues/{issue}',
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Success',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Saved' } } },
+                    },
+                  '400':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '401':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '404':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '409':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '503':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                },
+              'parameters': [{ 'in': 'path', 'name': 'issue', 'required': true, 'schema': { 'type': 'string' } }],
+              'requestBody':
+                {
+                  'required': true,
+                  'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/IssueInput' } } },
+                },
+            },
+        },
+      '/me/issues':
+        {
+          'get':
+            {
+              'summary': 'GET /me/issues',
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Success',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { 'type': 'array', 'items': { '$ref': '#/components/schemas/Issue' } } },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '401':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '404':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '409':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '503':
+                    {
+                      'description': 'invalid_input / unauthenticated / not_found / version_conflict / unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                },
+            },
+        },
+    },
+  'components':
+    {
+      'securitySchemes': { 'bearerAuth': { 'type': 'http', 'scheme': 'bearer', 'bearerFormat': 'JWT' } },
+      'schemas':
+        {
+          'Issue':
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required':
+                [
+                  'id',
+                  'board_id',
+                  'space_id',
+                  'key',
+                  'title',
+                  'description',
+                  'status',
+                  'priority',
+                  'reporter_id',
+                  'created_at',
+                  'updated_at',
+                  'assignee_id',
+                  'due_date',
+                  'version',
+                ],
+              'properties':
+                {
+                  'id': { 'type': 'string', 'format': 'uuid' },
+                  'board_id': { 'type': 'string' },
+                  'space_id': { 'type': 'string' },
+                  'key': { 'type': 'string' },
+                  'title': { 'type': 'string' },
+                  'description': { 'type': 'string' },
+                  'status': { 'type': 'string', 'enum': ['todo', 'in_progress', 'review', 'done'] },
+                  'priority': { 'type': 'string', 'enum': ['low', 'medium', 'high'] },
+                  'reporter_id': { 'type': 'string' },
+                  'created_at': { 'type': 'string' },
+                  'updated_at': { 'type': 'string' },
+                  'assignee_id': { 'type': 'string', 'nullable': true },
+                  'due_date': { 'type': 'string', 'format': 'date', 'nullable': true },
+                  'version': { 'type': 'integer', 'minimum': 1 },
+                },
+            },
+          'IssueInput':
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['title', 'description', 'status', 'priority', 'assignee_id', 'due_date', 'version'],
+              'properties':
+                {
+                  'title': { 'type': 'string', 'minLength': 1, 'maxLength': 200 },
+                  'description': { 'type': 'string', 'maxLength': 10000 },
+                  'status': { 'type': 'string', 'enum': ['todo', 'in_progress', 'review', 'done'] },
+                  'priority': { 'type': 'string', 'enum': ['low', 'medium', 'high'] },
+                  'assignee_id': { 'type': 'string', 'nullable': true },
+                  'due_date': { 'type': 'string', 'format': 'date', 'nullable': true },
+                  'version': { 'type': 'integer', 'minimum': 1 },
+                },
+            },
+          'Space':
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['id', 'name', 'description'],
+              'properties':
+                { 'id': { 'type': 'string' }, 'name': { 'type': 'string' }, 'description': { 'type': 'string' } },
+            },
+          'BoardSummary':
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['id', 'name', 'space_id', 'key'],
+              'properties':
+                {
+                  'id': { 'type': 'string' },
+                  'name': { 'type': 'string' },
+                  'space_id': { 'type': 'string' },
+                  'key': { 'type': 'string' },
+                },
+            },
+          'Member':
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['id', 'name'],
+              'properties': { 'id': { 'type': 'string' }, 'name': { 'type': 'string' } },
+            },
+          'Saved':
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['id'],
+              'properties': { 'id': { 'type': 'string', 'format': 'uuid' } },
+            },
+          'Session':
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['access_token', 'profile_id', 'name'],
+              'properties':
+                {
+                  'access_token': { 'type': 'string' },
+                  'profile_id': { 'type': 'string' },
+                  'name': { 'type': 'string' },
+                },
+            },
+          'Error':
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['code'],
+              'properties': { 'code': { 'type': 'string' } },
+            },
+          'Login':
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['profile_id'],
+              'properties': { 'profile_id': { 'type': 'string' } },
+            },
+          'Board':
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['id', 'name', 'space_id', 'key', 'members', 'issues'],
+              'properties':
+                {
+                  'id': { 'type': 'string' },
+                  'name': { 'type': 'string' },
+                  'space_id': { 'type': 'string' },
+                  'key': { 'type': 'string' },
+                  'members': { 'type': 'array', 'items': { '$ref': '#/components/schemas/Member' } },
+                  'issues': { 'type': 'array', 'items': { '$ref': '#/components/schemas/Issue' } },
+                },
+            },
+        },
+    },
+}

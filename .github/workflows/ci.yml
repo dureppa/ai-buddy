@@ -24,8 +24,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm exec -- prettier --check apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend eslint.config.mjs prettier.config.mjs
-      - run: npm exec -- eslint apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend
+      - run: npm exec -- prettier --check apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend eslint.config.mjs prettier.config.mjs
+      - run: npm exec -- eslint apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend
       - run: npm run typecheck --workspaces
       - run: npm test --workspaces
       - run: npm run build --workspaces
@@ -69,6 +69,7 @@ jobs:
           --health-cmd "pg_isready -U postgres"
           --health-interval 3s --health-timeout 3s --health-retries 20
     env:
+      JIRA_TEST_DATABASE_URL: postgres://postgres:integration-only@127.0.0.1:5432/aibuddy_test?sslmode=disable
       TEST_DATABASE_URL: postgres://postgres:integration-only@127.0.0.1:5432/aibuddy_test?sslmode=disable
     steps:
       - uses: actions/checkout@v4
@@ -81,6 +82,11 @@ jobs:
             psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
           psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f services/backend-go/seeds/demo.sql
+      - working-directory: services/jira
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          go test -race ./...
       - working-directory: services/hr/consents
         run: go test -race ./...
       - working-directory: services/hr/documents
@@ -114,6 +120,6 @@ jobs:
       - run: test -f README.md && test -f AGENTS.md && test -f justfile
       - run: test -f .github/pull_request_template.md && test -f .github/CODEOWNERS
       - run: for script in scripts/deploy/*.sh; do bash -n "$script"; done
-      - run: docker compose config --quiet && docker compose --profile hr config --quiet && docker compose -f docker-compose.yml -f docker-compose.server.yml --profile hr config --quiet
+      - run: docker compose config --quiet && docker compose --profile hr --profile jira config --quiet && docker compose -f docker-compose.yml -f docker-compose.server.yml --profile hr --profile jira config --quiet
       - run: test -z "$(git ls-files | rg '(^|/)dist/|(^|/)\.venv/' || true)"
       - run: node -e "const fs=require('fs'); for (const p of ['package.json','package-lock.json','apps/web/package.json','apps/extension/package.json','services/ai-python/pyproject.toml','services/backend-go/go.mod']) { if (!fs.existsSync(p)) throw new Error('Missing '+p) }"

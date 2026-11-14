@@ -3,7 +3,7 @@ set -eu
 cd "$(dirname "$0")/.."
 trap 'echo failed > .deploy/status' EXIT
 export COMPOSE_BAKE=false
-for service in agent go web hr-web hr-absences hr-trips hr-hiring hr-offboarding hr-consents hr-benefits; do
+for service in agent go web hr-web hr-absences hr-trips hr-hiring hr-offboarding hr-consents hr-benefits hr-documents hr-events jira; do
   echo "building:$service" > .deploy/status
   echo "Building $service"
   docker compose -f docker-compose.yml -f docker-compose.server.yml --profile hr build "$service"
