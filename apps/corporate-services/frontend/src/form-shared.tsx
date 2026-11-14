@@ -16,5 +16,5 @@ export function Submit({ children, disabled }: { children: ReactNode; disabled?:
   );
 }
 
-export type SubmitAction = (action: Parameters<HrDemo['submit']>[0], message: string) => boolean;
+export type SubmitAction = (action: Parameters<HrDemo['submit']>[0], message: string) => boolean | Promise<boolean>;
 export type FormProps = { view: HrView; submit: SubmitAction };

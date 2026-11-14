@@ -52,3 +52,5 @@ npm run dev --workspace=@ai-buddy/corporate-services
 | Увольнения | `GET /api/v1/me/offboarding` — шаги, срок уведомления, черновик | `PUT /api/v1/me/offboarding/checklist/{step}` — отметка шага, `POST /api/v1/me/offboarding/draft` — дата для черновика |
 | Согласия | `GET /api/v1/me/consents` — цели и текущие состояния | `PUT /api/v1/me/consents/{purpose}` — предоставить или отозвать согласие |
 | Бенефиты | `GET /api/v1/me/benefit-summary` — доступные программы, бюджет, заявки | `POST /api/v1/me/benefit-requests` — программа компенсации |
+
+При включённом API страницы отсутствий и командировок создают заявки в соответствующих HR-сервисах. В локальном деморежиме используется браузерное хранилище. [Спецификация расписания](../specs/schedule-hr.md).

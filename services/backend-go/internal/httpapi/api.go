@@ -13,6 +13,7 @@ type API struct {
 	notifications  *buddy.Notifications
 	chat           *buddy.Chat
 	teamGuide      TeamGuideStore
+	hrToday        HRTodayReader
 	internalRoutes func(*http.ServeMux)
 }
 
@@ -41,6 +42,9 @@ func (a *API) Routes() http.Handler {
 	mux.HandleFunc("GET /api/v1/onboarding/consent-review", a.requireAuth(a.handleReview))
 	mux.HandleFunc("POST /api/v1/onboarding/consent-review", a.requireAuth(a.handleReview))
 	mux.HandleFunc("POST /api/v1/chat/messages", a.requireAuth(a.handleAskBuddy))
+	if a.hrToday != nil {
+		mux.HandleFunc("GET /api/v1/schedule/hr-today", a.requireAuth(a.handleHRToday))
+	}
 	if a.teamGuide != nil {
 		mux.HandleFunc("POST /api/v1/product-guide/team", a.requireAuth(a.handleTeamGuide))
 		mux.HandleFunc("GET /api/v1/product-guide/team", a.requireAuth(a.handleTeamGuide))

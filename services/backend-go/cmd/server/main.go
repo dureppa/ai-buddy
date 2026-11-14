@@ -75,6 +75,13 @@ func runContext(ctx context.Context) error {
 		if err = ai.OriginOK(os.Getenv("HR_EVENTS_URL")); err != nil {
 			return err
 		}
+		for _, origin := range []string{os.Getenv("HR_ABSENCES_URL"), os.Getenv("HR_TRIPS_URL")} {
+			if err = ai.OriginOK(origin); err != nil {
+				return err
+			}
+		}
+		bridge.AbsencesURL = strings.TrimRight(os.Getenv("HR_ABSENCES_URL"), "/")
+		bridge.TripsURL = strings.TrimRight(os.Getenv("HR_TRIPS_URL"), "/")
 		bridge.DocumentsURL = strings.TrimRight(os.Getenv("HR_DOCUMENTS_URL"), "/")
 		bridge.EventsURL = strings.TrimRight(os.Getenv("HR_EVENTS_URL"), "/")
 		if bridge.Secret == cfg.SessionSecret {
@@ -102,7 +109,7 @@ func runContext(ctx context.Context) error {
 	api := httpapi.NewAPI(sessions, onboarding, access, notifications, chat)
 
 	if bridge != nil {
-		api.WithInternalRoutes(bridge.Register).WithTeamGuide(st)
+		api.WithInternalRoutes(bridge.Register).WithTeamGuide(st).WithHRToday(bridge.TodayHR)
 		workerCtx, cancelWorker := context.WithCancel(ctx)
 		done := make(chan struct{})
 		go func() {
