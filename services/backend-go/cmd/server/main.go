@@ -13,6 +13,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/dureppa/ai-buddy/services/backend-go/internal/ai"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/buddy"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/config"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/httpapi"
@@ -27,15 +28,23 @@ func main() {
 }
 
 func run() error {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return runContext(ctx)
+}
+
+func runContext(ctx context.Context) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("config: %w", err)
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	poolConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
+	if err != nil {
+		return fmt.Errorf("parse postgres config: %w", err)
+	}
+	poolConfig.MaxConns = max(4, poolConfig.MaxConns)
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		return fmt.Errorf("pgx pool: %w", err)
 	}
@@ -52,14 +61,30 @@ func run() error {
 	access := buddy.NewAccess(st, corp)
 	notifications := buddy.NewNotifications(st)
 	chat := buddy.NewChat(buddy.UnavailableAssistant{})
+	var bridge *ai.Bridge
+	if os.Getenv("AI_SERVICE_URL") != "" {
+		bridge, err = ai.New(st, os.Getenv("AI_SERVICE_URL"), os.Getenv("AI_SERVICE_TOKEN"), os.Getenv("MCP_ADAPTER_SERVICE_TOKEN"), os.Getenv("AI_DELEGATION_SECRET"), os.Getenv("HR_CONSENTS_URL"))
+		if err != nil {
+			return err
+		}
+		if bridge.Secret == cfg.SessionSecret {
+			return fmt.Errorf("AI delegation and session secrets must differ")
+		}
+		bridge.HRSecret = cfg.SessionSecret
+		bridge.DemoMode = cfg.DemoMode
+		chat = buddy.NewChat(bridge)
+	}
 	api := httpapi.NewAPI(sessions, onboarding, access, notifications, chat)
 
+	if bridge != nil {
+		api.WithInternalRoutes(bridge.Register)
+	}
 	srv := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           api.Routes(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      15 * time.Second,
+		WriteTimeout:      35 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 

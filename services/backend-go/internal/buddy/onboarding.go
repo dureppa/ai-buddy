@@ -33,6 +33,9 @@ func (s *Onboarding) Get(ctx context.Context, profileID string) ([]OnboardingTas
 }
 
 func (s *Onboarding) Complete(ctx context.Context, profileID, taskID string) ([]OnboardingTask, *string, error) {
+	if taskID == "consent-news" {
+		return nil, nil, ErrForbidden
+	}
 	if taskID == "" {
 		return nil, nil, ErrNotFound
 	}

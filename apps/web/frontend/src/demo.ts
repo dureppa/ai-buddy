@@ -20,7 +20,12 @@ export type AccessDraft = {
   expiresAt: number;
 };
 
-type ReplyText = { text: string; lines?: string[]; link?: { label: string; to: string } };
+type ReplyText = {
+  references?: { title: string; url: string }[];
+  text: string;
+  lines?: string[];
+  link?: { label: string; to: string };
+};
 export type BuddyReply = ReplyText &
   (
     | { kind: 'answer' | 'access_denied' }

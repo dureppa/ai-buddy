@@ -1,0 +1,740 @@
+{
+  "get_onboarding_progress": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "ProgressData": {
+          "additionalProperties": false,
+          "properties": {
+            "tasks": {
+              "items": {
+                "$ref": "#/$defs/ProgressTask"
+              },
+              "maxItems": 100,
+              "title": "Tasks",
+              "type": "array"
+            },
+            "next_task_id": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Next Task Id"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "tasks",
+            "next_task_id",
+            "references"
+          ],
+          "title": "ProgressData",
+          "type": "object"
+        },
+        "ProgressTask": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "pending",
+                "completed"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "status"
+          ],
+          "title": "ProgressTask",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/ProgressData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "ProgressEnvelope",
+      "type": "object"
+    }
+  },
+  "get_task_context": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {
+        "task_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "title": "TaskArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        },
+        "TaskData": {
+          "additionalProperties": false,
+          "properties": {
+            "task_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Task Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "guidance": {
+              "maxLength": 4000,
+              "minLength": 1,
+              "title": "Guidance",
+              "type": "string"
+            },
+            "action_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action Url"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "task_id",
+            "title",
+            "guidance",
+            "action_url",
+            "references"
+          ],
+          "title": "TaskData",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/TaskData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "TaskEnvelope",
+      "type": "object"
+    }
+  },
+  "get_task_evidence": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {
+        "task_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "title": "TaskArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "EvidenceData": {
+          "additionalProperties": false,
+          "properties": {
+            "task_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Task Id",
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "$ref": "#/$defs/EvidenceItem"
+              },
+              "maxItems": 10,
+              "title": "Items",
+              "type": "array"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "task_id",
+            "items",
+            "references"
+          ],
+          "title": "EvidenceData",
+          "type": "object"
+        },
+        "EvidenceItem": {
+          "additionalProperties": false,
+          "properties": {
+            "version": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "kind": {
+              "const": "consent",
+              "title": "Kind",
+              "type": "string"
+            },
+            "confirmed": {
+              "title": "Confirmed",
+              "type": "boolean"
+            },
+            "summary": {
+              "maxLength": 1200,
+              "minLength": 1,
+              "title": "Summary",
+              "type": "string"
+            }
+          },
+          "required": [
+            "version",
+            "kind",
+            "confirmed",
+            "summary"
+          ],
+          "title": "EvidenceItem",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/EvidenceData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "EvidenceEnvelope",
+      "type": "object"
+    }
+  },
+  "search_knowledge": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Query",
+          "type": "string"
+        },
+        "limit": {
+          "default": 3,
+          "maximum": 5,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "SearchArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "Document": {
+          "additionalProperties": false,
+          "properties": {
+            "source": {
+              "$ref": "#/$defs/Source"
+            },
+            "excerpt": {
+              "maxLength": 1200,
+              "minLength": 1,
+              "title": "Excerpt",
+              "type": "string"
+            }
+          },
+          "required": [
+            "source",
+            "excerpt"
+          ],
+          "title": "Document",
+          "type": "object"
+        },
+        "SearchData": {
+          "additionalProperties": false,
+          "properties": {
+            "documents": {
+              "items": {
+                "$ref": "#/$defs/Document"
+              },
+              "maxItems": 5,
+              "title": "Documents",
+              "type": "array"
+            }
+          },
+          "required": [
+            "documents"
+          ],
+          "title": "SearchData",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/SearchData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "SearchEnvelope",
+      "type": "object"
+    }
+  },
+  "get_team_context": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "Contact": {
+          "additionalProperties": false,
+          "properties": {
+            "display_name": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Display Name",
+              "type": "string"
+            },
+            "contact": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "Contact",
+              "type": "string"
+            }
+          },
+          "required": [
+            "display_name",
+            "contact"
+          ],
+          "title": "Contact",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        },
+        "Team": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "name": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Name",
+              "type": "string"
+            },
+            "summary": {
+              "maxLength": 1200,
+              "minLength": 1,
+              "title": "Summary",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "summary"
+          ],
+          "title": "Team",
+          "type": "object"
+        },
+        "TeamData": {
+          "additionalProperties": false,
+          "properties": {
+            "team": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Team"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mentor": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Contact"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "lead": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Contact"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "team",
+            "mentor",
+            "lead",
+            "references"
+          ],
+          "title": "TeamData",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/TeamData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "TeamEnvelope",
+      "type": "object"
+    }
+  }
+}

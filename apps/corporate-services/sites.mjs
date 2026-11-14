@@ -18,7 +18,15 @@ for (const [id, port] of Object.entries(ports)) {
     root,
     plugins: [react()],
     define: { __CORPORATE_SERVICE__: JSON.stringify(id) },
-    server: { host: 'localhost', port, strictPort: true },
+    server: {
+      host: 'localhost',
+      port,
+      strictPort: true,
+      proxy: {
+        '/api': 'http://127.0.0.1:8080',
+        '/hr-api': { target: 'http://127.0.0.1:8185', rewrite: (path) => path.replace(/^\/hr-api/, '/api') },
+      },
+    },
     build: { outDir: '../dist/' + id, emptyOutDir: true },
   };
   if (command === 'dev') {

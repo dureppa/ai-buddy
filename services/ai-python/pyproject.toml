@@ -13,12 +13,16 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "jsonschema>=4.26,<5",
     "langchain>=1.4,<2",
     "langchain-ollama>=1,<2",
     "mypy>=1.19,<3",
     "pytest>=9,<10",
     "pytest-cov>=7,<8",
+    "pyyaml>=6.0.3,<7",
     "ruff>=0.15,<1",
+    "types-jsonschema>=4.26.0.20261006",
+    "types-pyyaml>=6.0.12.20261113",
 ]
 
 [tool.uv]

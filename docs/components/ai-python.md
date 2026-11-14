@@ -1,10 +1,32 @@
 # Python-сервис AI Buddy
 
+## Интеграция DeepSeek и Go (14.11.2026)
+
+Compose использует только DeepSeek API; Ollama ниже описывает отдельный исторический локальный режим и не запускается Docker-стеком.
+
+Runtime поддерживает AI_LLM_PROVIDER=ollama|deepseek для чата и assessment.
+DeepSeek использует существующий httpx, без новых runtime-зависимостей.
+Настройки: DEEPSEEK_API_KEY, DEEPSEEK_MODEL, DEEPSEEK_BASE_URL; ключ обязателен
+только для deepseek. Readiness проверяет конфигурацию выбранного провайдера.
+`uv run --locked --env-file .env flask --app ai_buddy:create_app run` загружает
+локальный .env явно; для облака также нужны AI_AGENT_ENABLED=true,
+AI_LLM_PROVIDER=deepseek, AI_SERVICE_TOKEN и MCP_URL. Ключ не коммитить.
+`deepseek.py` преобразует tool calls с сохранением id, ограничивает HTTP и ошибки;
+`provider.py` выбирает transport для runner/assessment. JSON mode не заменяет
+локальную проверку схемы. Повторы и смена провайдера при сбое отключены.
+
+Добавлены get_onboarding_progress/get_task_context/get_task_evidence через MCP.
+Демо-корпус по-прежнему предлагает только исходные два инструмента.
+Спецификация и границы: [SDD 004](../specs/004-agent-service-integration.md).
+Ниже сохранены детали исходного Ollama-среза; его ограничения по провайдеру
+заменяются настройками этого раздела. Полная приёмка всех HR-сервисов не заявлена.
+
+
 ## Текущее состояние
 
 Flask умеет выполнять реальный прямой цикл через локальную Ollama и SDK MCP: получить контекст команды/инструкции, сформировать ответ и проверить ссылки. Включается явно, фиктивный runner не активируется. Код сервиса не импортирует LangChain/LangGraph/experiments; эти зависимости остались только для сравнения двух подходов.
 
-Поддержаны MCP search_knowledge и get_team_context, Python MCP с demo/Go HTTP backend, а также отдельный POST /internal/v1/assessments для оценки знаний с версиями, критериями и обязательным review наставника. HTTP-адаптер проверен на моках, assessment — контрактными тестами и двумя development-примерами v4; полная человеческая/модельная приёмка не выполнена. Живая связь с Go, сохранение assessment/progress/evidence, шесть корпоративных tools и переходы этапов пока не подтверждены. [Готовность пользовательского сценария](../../openspec/changes/implement-python-agent/scenario-status.md).
+Поддержаны MCP search_knowledge и get_team_context, Python MCP с demo/Go HTTP backend, а также отдельный POST /internal/v1/assessments для оценки знаний с версиями, критериями и обязательным review наставника. HTTP-адаптер проверен на моках, assessment — контрактными тестами и двумя development-примерами v4; полная человеческая/модельная приёмка не выполнена. Живая связь с Go и HR-согласиями, сохранение assessment и одобрение учебного задания подтверждены [HTTP-прогоном](../integrations/agent-live-report.md). Остальные пять сервисов и глобальные переходы этапов не приняты. [Готовность пользовательского сценария](../../openspec/changes/implement-python-agent/scenario-status.md).
 
 ## Локальный запуск
 
@@ -28,7 +50,7 @@ AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-servic
 
 Это development server. Production WSGI-развёртывание ещё не настроено. Настройки перечислены в [.env.example](../../services/ai-python/.env.example); значения токенов там примерные. uv создаёт .venv; команда `uv sync --locked --no-dev` достаточна для runtime без LangChain.
 
-Без AI_AGENT_ENABLED=true сохраняется 503/AI_UNAVAILABLE. При включении без OLLAMA_MODEL — 503/NOT_READY. GET /health/live проверяет процесс; GET /health/ready проверяет локальную конфигурацию и наличие runner, без сетевых вызовов. Даже ready=true не обещает, что модель установлена или MCP доступен: это проверяется запросом/smoke.
+Без AI_AGENT_ENABLED=true сохраняется 503/AI_UNAVAILABLE. При отсутствии конфигурации выбранной модели — 503/NOT_READY. GET /health/live проверяет процесс; GET /health/ready проверяет локальную конфигурацию и наличие runner, без сетевых вызовов. Даже ready=true не обещает, что модель установлена или MCP доступен: это проверяется запросом/smoke.
 
 ## Внутренний HTTP
 

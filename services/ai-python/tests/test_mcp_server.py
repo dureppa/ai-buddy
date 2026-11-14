@@ -12,7 +12,7 @@ from mcp.client.streamable_http import streamable_http_client
 
 from ai_buddy.config import Settings
 from ai_buddy.errors import ErrorCode, ServiceError
-from ai_buddy.mcp_client import CONTRACTS, Gateway
+from ai_buddy.mcp_client import Gateway
 from ai_buddy.mcp_server import DemoBackend, create_demo_app, create_mcp_app
 from tests.helpers import context
 
@@ -44,7 +44,9 @@ def test_real_catalog_search_empty_team_and_profile_isolation() -> None:
         )
         async with app.router.lifespan_context(app):
             async with connected(app) as gateway:
-                assert gateway.available == frozenset(CONTRACTS)
+                assert gateway.available == frozenset(
+                    {"search_knowledge", "get_team_context"}
+                )
                 data = await gateway.call(
                     "search_knowledge", {"query": "  оформить  отсутствие ", "limit": 1}
                 )

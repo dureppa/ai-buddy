@@ -1,3 +1,4 @@
+import { askBackend, backendEnabled, readBackendConversation } from './backend';
 import { StartScreen } from './StartScreen';
 import { StaffWorkspace } from './StaffWorkspace';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -139,6 +140,35 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   const [drafts, setDrafts] = useState<Record<string, DraftState>>({});
   const [awaitingService, setAwaitingService] = useState(false);
   const nextEntry = useRef(1);
+  const [historyLoading, setHistoryLoading] = useState(backendEnabled);
+  useEffect(() => {
+    if (!backendEnabled) return;
+    let active = true;
+    readBackendConversation(profileId)
+      .then((messages) => {
+        if (!active) return;
+        setEntries(
+          messages.map((message): ChatEntry =>
+            message.role === 'user'
+              ? { id: nextEntry.current++, from: 'user', text: message.content }
+              : {
+                  id: nextEntry.current++,
+                  from: 'buddy',
+                  reply: { kind: 'answer', text: message.content, references: message.references },
+                },
+          ),
+        );
+      })
+      .catch(() => {
+        if (active) setToast({ tone: 'error', message: 'Не удалось загрузить историю диалога.' });
+      })
+      .finally(() => {
+        if (active) setHistoryLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [profileId]);
 
   const workspaceKey = ['workspace', profileId] as const;
   const workspaceQuery = useQuery({
@@ -174,6 +204,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
 
   const answerMutation = useMutation({
     mutationFn: async (text: string) => {
+      if (backendEnabled) return askBackend(profileId, text);
       await delay(580);
       return answerBuddy(text, readWorkspace(localStorage, profileId), profileId, awaitingService);
     },
@@ -263,7 +294,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     profileId,
     name: profile.name,
     entries,
-    waiting: answerMutation.isPending,
+    waiting: answerMutation.isPending || historyLoading,
     confirming: confirmation.isPending,
     drafts,
     onSend: send,

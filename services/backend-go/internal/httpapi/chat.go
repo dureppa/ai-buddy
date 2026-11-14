@@ -28,10 +28,43 @@ func (a *API) handleAskBuddy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p, _ := profileFrom(r.Context())
-	err := a.chat.Ask(r.Context(), p.ID, msg)
+	reply, err := a.chat.Ask(r.Context(), p.ID, msg)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	// В будущем здесь будет writeJSON с ChatReply, пока ассистент всегда возвращает ошибку.
+	writeJSON(w, http.StatusOK, reply)
+}
+
+func (a *API) handleConversation(w http.ResponseWriter, r *http.Request) {
+	p, _ := profileFrom(r.Context())
+	messages, err := a.chat.Conversation(r.Context(), p.ID, r.PathValue("conversation_id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"conversation_id": r.PathValue("conversation_id"), "messages": messages})
+}
+
+func (a *API) handleReview(w http.ResponseWriter, r *http.Request) {
+	p, _ := profileFrom(r.Context())
+	var result buddy.TaskReview
+	var err error
+	if r.Method == "POST" {
+		var in struct {
+			Answer string `json:"answer"`
+		}
+		if e := decodeJSON(w, r, &in); e != nil {
+			writeError(w, e)
+			return
+		}
+		result, err = a.chat.SubmitReview(r.Context(), p.ID, in.Answer)
+	} else {
+		result, err = a.chat.Review(r.Context(), p.ID)
+	}
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, 200, result)
 }

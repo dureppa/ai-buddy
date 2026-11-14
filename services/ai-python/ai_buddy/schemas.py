@@ -157,3 +157,60 @@ class SearchEnvelope(ClosedModel):
 class TeamEnvelope(ClosedModel):
     ok: Literal[True]
     data: TeamData
+
+
+class TaskArguments(ClosedModel):
+    task_id: Identifier
+
+
+class ProgressTask(ClosedModel):
+    id: Identifier
+    title: Annotated[str, Field(min_length=1, max_length=200)]
+    status: Literal["pending", "completed"]
+
+
+class ProgressData(ClosedModel):
+    tasks: Annotated[list[ProgressTask], Field(max_length=100)]
+    next_task_id: Identifier | None
+    references: Annotated[list[Source], Field(max_length=5)]
+
+
+class TaskData(ClosedModel):
+    task_id: Identifier
+    title: Annotated[str, Field(min_length=1, max_length=200)]
+    guidance: ShortText
+    action_url: str | None
+    references: Annotated[list[Source], Field(max_length=5)]
+
+    @field_validator("action_url")
+    @classmethod
+    def validate_action_url(cls, value: str | None) -> str | None:
+        return safe_url(value, relative=True) if value else value
+
+
+class EvidenceItem(ClosedModel):
+    version: Annotated[str, Field(min_length=1, max_length=128)]
+    kind: Literal["consent"]
+    confirmed: bool
+    summary: Annotated[str, Field(min_length=1, max_length=1200)]
+
+
+class EvidenceData(ClosedModel):
+    task_id: Identifier
+    items: Annotated[list[EvidenceItem], Field(max_length=10)]
+    references: Annotated[list[Source], Field(max_length=5)]
+
+
+class ProgressEnvelope(ClosedModel):
+    ok: Literal[True]
+    data: ProgressData
+
+
+class TaskEnvelope(ClosedModel):
+    ok: Literal[True]
+    data: TaskData
+
+
+class EvidenceEnvelope(ClosedModel):
+    ok: Literal[True]
+    data: EvidenceData

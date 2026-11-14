@@ -37,6 +37,9 @@ repository-check:
 	test -f .github/pull_request_template.md
 	test -z "$(git ls-files | rg '(^|/)dist/|(^|/)\.venv/' || true)"
 
+hr-consents-check:
+	cd services/hr/consents && test -z "$(gofmt -l .)" && go vet ./... && go test -race ./...
+
 test: frontend-test python-check go-check
 
 lint: frontend-lint python-check go-check
@@ -47,4 +50,4 @@ typecheck: frontend-typecheck python-check go-check
 
 build: frontend-build
 
-check: frontend-check python-check go-check repository-check
+check: frontend-check python-check go-check hr-consents-check repository-check compose-check

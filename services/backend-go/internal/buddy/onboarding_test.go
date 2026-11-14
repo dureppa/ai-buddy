@@ -111,3 +111,10 @@ func TestOnboardingGetEmptyList(t *testing.T) {
 	require.Empty(t, tasks)
 	require.Nil(t, next)
 }
+
+func TestConsentCompletionRequiresMentor(t *testing.T) {
+	_, _, err := NewOnboarding(nil).Complete(context.Background(), "olga", "consent-news")
+	if err != ErrForbidden {
+		t.Fatalf("expected forbidden, got %v", err)
+	}
+}

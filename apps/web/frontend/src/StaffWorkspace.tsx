@@ -13,6 +13,8 @@ import {
   type MaterialInput,
   type StaffMaterial,
 } from './staff-data';
+import { backendEnabled } from './backend';
+import { StaffReviews } from './ReviewPanel';
 import { Avatar, Icon, Modal } from './ui';
 import './staff.css';
 
@@ -257,6 +259,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
         </div>
       </header>
       <main className="staff-main">
+        {backendEnabled && (id === 'mentor' || id === 'manager') && <StaffReviews staff={id} />}
         <header className={'page-intro tone-' + (isMentor ? 'lilac' : 'blue')}>
           <div>
             <h1>{isMentor ? 'Кабинет наставника' : 'Кабинет руководителя'}</h1>
