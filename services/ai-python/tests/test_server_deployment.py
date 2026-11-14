@@ -9,8 +9,16 @@ def test_server_overlay_exposes_only_browser_sites() -> None:
     overlay = yaml.safe_load(
         (root / "docker-compose.server.yml").read_text().replace("!override", "")
     )
-    assert set(overlay["services"]) == {"web", "hr-web"}
-    for service in overlay["services"].values():
+    published = {
+        name for name, service in overlay["services"].items() if "ports" in service
+    }
+    assert published == {"web", "hr-web"}
+    assert all(
+        service["restart"] == "unless-stopped"
+        for service in overlay["services"].values()
+    )
+    for name in published:
+        service = overlay["services"][name]
         assert len(service["volumes"]) == 4
         assert all(mount.endswith(":ro") for mount in service["volumes"])
         assert any("htpasswd" in mount for mount in service["volumes"])

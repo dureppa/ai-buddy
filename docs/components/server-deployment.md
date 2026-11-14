@@ -9,7 +9,8 @@ HR-сайты на 5181–5186. Приватные Go/Python/PostgreSQL API не
 AI/MCP/delegation secrets, PUBLIC_HR_ORIGIN=http://<server>,
 PUBLIC_WEB_ORIGIN=http://<server>. Docker собирает ссылки для браузера по этим
 origins. Веса локальной LLM не используются. Сборки на сервере 4 ГБ выполняются
-последовательно: COMPOSE_PARALLEL_LIMIT=1.
+строго по одному сервису скриптом docker/build-server.sh: BuildKit Bake может
+игнорировать COMPOSE_PARALLEL_LIMIT для независимых целей сборки.
 
 `docker-compose.server.yml` открывает только веб-сайты и монтирует подготовленные
 конфигурации nginx из `.deploy/`: web.conf, hr-web.conf, auth-map.conf, auth.conf,
@@ -23,7 +24,7 @@ Bearer в Authorization. Без Basic/cookie закрыты и страницы,
 Запуск:
 
 ```bash
-COMPOSE_PARALLEL_LIMIT=1 docker compose -f docker-compose.yml -f docker-compose.server.yml --profile hr up --build -d --wait --wait-timeout 900
+sh docker/build-server.sh
 ```
 
 Приёмка: `config --quiet` не выводит секреты; nginx config test; без авторизации
@@ -36,3 +37,7 @@ health всех сервисов, URL возврата, отсутствие с�
 Ссылки на команду и чек-лист в источниках Go относительные. Публичный URL
 согласий задаётся HR_CONSENTS_PUBLIC_URL из PUBLIC_HR_ORIGIN, поэтому ответы
 агента и ссылки заданий не направляют браузер пользователя на localhost сервера.
+
+Серверный overlay задаёт restart=unless-stopped для долгоживущих контейнеров;
+одноразовый migrate не перезапускается. После подготовки .deploy/ и .env
+повторный запуск не меняет пароль или данные БД.
