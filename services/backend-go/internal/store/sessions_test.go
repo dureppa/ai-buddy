@@ -64,3 +64,16 @@ func TestSessionsStore(t *testing.T) {
 	_, err = st.ProfileBySessionHash(ctx, expiredHash)
 	require.ErrorIs(t, err, buddy.ErrNotFound)
 }
+
+func TestRepeatedSessionTokenIsIdempotent(t *testing.T) {
+	pool := testPool(t)
+	st := New(pool)
+	ctx := context.Background()
+	sess := buddy.Session{TokenHash: buddy.HashToken(t.Name()), ProfileID: "olga", ExpiresAt: time.Now().Add(time.Hour)}
+	t.Cleanup(func() { _, _ = pool.Exec(ctx, "DELETE FROM sessions WHERE token_hash=$1", sess.TokenHash) })
+	require.NoError(t, st.CreateSession(ctx, sess))
+	require.NoError(t, st.CreateSession(ctx, sess))
+	p, err := st.ProfileBySessionHash(ctx, sess.TokenHash)
+	require.NoError(t, err)
+	require.Equal(t, "olga", p.ID)
+}

@@ -8,7 +8,7 @@ import { homeTasks, tasksFor } from './checklist';
 import { products, teamColleagues, teamContacts } from './demo-accounts';
 import { buddyGrowthStage, progressFor, serviceStatus, type BuddyGrowthStage, type Workspace } from './demo';
 import { Avatar, Buddy, EmptyState, Icon, PageIntro } from './ui';
-import { jiraService, jiraProfileUrl } from './tool-links';
+import { jiraService, confluenceService, toolProfileUrl } from './tool-links';
 import { InternMaterials } from './StaffWorkspace';
 
 export type Detail =
@@ -449,22 +449,23 @@ export function AccessBadge({ status }: { status: keyof typeof accessLabels }) {
   );
 }
 
-export function JiraToolCard({ profileId }: { profileId: ProfileId }) {
+export function ToolLinkCard({ profileId, tool = 'jira' }: { profileId: ProfileId; tool?: 'jira' | 'confluence' }) {
+  const service = tool === 'jira' ? jiraService : confluenceService;
   return (
     <a
       className="panel service-card"
-      href={jiraProfileUrl(jiraService.url, profileId)}
+      href={toolProfileUrl(service.url, profileId)}
       target="_blank"
       rel="noopener noreferrer"
     >
       <span className="tile-top">
-        <span className="service-symbol tone-blue">J</span>
+        <span className="service-symbol tone-blue">{tool === 'jira' ? 'J' : 'C'}</span>
         <Icon name="diagonal" size={19} />
       </span>
-      <span className="tile-category">Задачи</span>
-      <strong>Jira</strong>
-      <span className="tile-description">{jiraService.description}</span>
-      <span>Открыть доски</span>
+      <span className="tile-category">{tool === 'jira' ? 'Задачи' : 'Документация'}</span>
+      <strong>{service.title}</strong>
+      <span className="tile-description">{service.description}</span>
+      <span>{tool === 'jira' ? 'Открыть доски' : 'Открыть базу знаний'}</span>
     </a>
   );
 }
@@ -480,7 +481,9 @@ export function Tools({
 }) {
   const [filter, setFilter] = useState<'all' | keyof typeof accessLabels>('all');
   const visible = services.filter((service) =>
-    service.id === 'jira' ? filter === 'all' : filter === 'all' || serviceStatus(workspace, service) === filter,
+    service.id === 'jira' || service.id === 'confluence'
+      ? filter === 'all'
+      : filter === 'all' || serviceStatus(workspace, service) === filter,
   );
   return (
     <>
@@ -521,8 +524,8 @@ export function Tools({
       </div>
       <div className="tile-grid">
         {visible.map((service) =>
-          service.id === 'jira' ? (
-            <JiraToolCard key={service.id} profileId={profileId} />
+          service.id === 'jira' || service.id === 'confluence' ? (
+            <ToolLinkCard key={service.id} profileId={profileId} tool={service.id} />
           ) : (
             <button
               type="button"

@@ -26,7 +26,7 @@ func (s *Store) ProfileByID(ctx context.Context, id string) (buddy.Profile, erro
 
 func (s *Store) CreateSession(ctx context.Context, sess buddy.Session) error {
 	_, err := s.q.Exec(ctx,
-		`INSERT INTO sessions (token_hash, profile_id, expires_at) VALUES ($1, $2, $3)`,
+		`INSERT INTO sessions (token_hash, profile_id, expires_at) VALUES ($1, $2, $3) ON CONFLICT (token_hash) DO NOTHING`,
 		sess.TokenHash, sess.ProfileID, sess.ExpiresAt,
 	)
 	if err != nil {

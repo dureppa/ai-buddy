@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Tools } from './screens';
-import { jiraProfileUrl } from './tool-links';
+import { toolProfileUrl } from './tool-links';
 
 it.each(['maria', 'sasha'] as const)('opens Jira from tools for %s', (profileId) => {
   const html = renderToStaticMarkup(
@@ -18,7 +18,17 @@ it.each(['maria', 'sasha'] as const)('opens Jira from tools for %s', (profileId)
 });
 
 it('preserves configured URL parameters and replaces an old profile', () => {
-  const url = new URL(jiraProfileUrl('https://jira.example/?board=team&profile=olga', 'sasha'));
+  const url = new URL(toolProfileUrl('https://jira.example/?board=team&profile=olga', 'sasha'));
   expect(url.searchParams.get('board')).toBe('team');
   expect(url.searchParams.getAll('profile')).toEqual(['sasha']);
+});
+
+it('opens Confluence as a separate tool without a fabricated access badge', () => {
+  const html = renderToStaticMarkup(
+    <Tools profileId="olga" workspace={{ completed: [], requests: [] }} onOpen={() => {}} />,
+  );
+  const link = (html.match(/<a\b[^>]*>[\s\S]*?<\/a>/g) || []).find((item) => item.includes('Открыть базу знаний'));
+  expect(link).toContain('profile=olga');
+  expect(link).toContain('target="_blank"');
+  expect(link).not.toContain('Доступ предоставлен');
 });

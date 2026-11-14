@@ -1,4 +1,850 @@
 {
+  "get_access_catalog": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "AccessCatalogData": {
+          "additionalProperties": false,
+          "properties": {
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            },
+            "templates": {
+              "items": {
+                "$ref": "#/$defs/AccessTemplate"
+              },
+              "maxItems": 20,
+              "title": "Templates",
+              "type": "array"
+            },
+            "context": {
+              "$ref": "#/$defs/AccessIdentity"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "version",
+            "templates",
+            "context",
+            "references"
+          ],
+          "title": "AccessCatalogData",
+          "type": "object"
+        },
+        "AccessField": {
+          "additionalProperties": false,
+          "properties": {
+            "key": {
+              "title": "Key",
+              "type": "string"
+            },
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "placeholder": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Placeholder"
+            },
+            "options": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Options"
+            }
+          },
+          "required": [
+            "key",
+            "label"
+          ],
+          "title": "AccessField",
+          "type": "object"
+        },
+        "AccessIdentity": {
+          "additionalProperties": false,
+          "properties": {
+            "profile_id": {
+              "title": "Profile Id",
+              "type": "string"
+            },
+            "product_id": {
+              "title": "Product Id",
+              "type": "string"
+            },
+            "job_role": {
+              "title": "Job Role",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "team_name": {
+              "title": "Team Name",
+              "type": "string"
+            },
+            "can_review": {
+              "title": "Can Review",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "profile_id",
+            "product_id",
+            "job_role",
+            "name",
+            "team_name",
+            "can_review"
+          ],
+          "title": "AccessIdentity",
+          "type": "object"
+        },
+        "AccessResource": {
+          "additionalProperties": false,
+          "properties": {
+            "resource_key": {
+              "title": "Resource Key",
+              "type": "string"
+            },
+            "fields": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "title": "Fields",
+              "type": "object"
+            }
+          },
+          "required": [
+            "resource_key",
+            "fields"
+          ],
+          "title": "AccessResource",
+          "type": "object"
+        },
+        "AccessTemplate": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            },
+            "icon": {
+              "title": "Icon",
+              "type": "string"
+            },
+            "color": {
+              "title": "Color",
+              "type": "string"
+            },
+            "roles": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Roles",
+              "type": "array"
+            },
+            "system": {
+              "title": "System",
+              "type": "string"
+            },
+            "keyHint": {
+              "title": "Keyhint",
+              "type": "string"
+            },
+            "levels": {
+              "items": {
+                "enum": [
+                  "read",
+                  "write",
+                  "admin"
+                ],
+                "type": "string"
+              },
+              "title": "Levels",
+              "type": "array"
+            },
+            "fields": {
+              "items": {
+                "$ref": "#/$defs/AccessField"
+              },
+              "title": "Fields",
+              "type": "array"
+            },
+            "owner": {
+              "title": "Owner",
+              "type": "string"
+            },
+            "resources": {
+              "items": {
+                "$ref": "#/$defs/AccessResource"
+              },
+              "title": "Resources",
+              "type": "array"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "description",
+            "icon",
+            "color",
+            "roles",
+            "system",
+            "keyHint",
+            "levels",
+            "fields",
+            "owner",
+            "resources"
+          ],
+          "title": "AccessTemplate",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/AccessCatalogData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "AccessCatalogEnvelope",
+      "type": "object"
+    }
+  },
+  "submit_access_request": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {
+        "template_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Template Id",
+          "type": "string"
+        },
+        "catalog_version": {
+          "maximum": 1,
+          "minimum": 1,
+          "title": "Catalog Version",
+          "type": "integer"
+        },
+        "system": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "System",
+          "type": "string"
+        },
+        "resource_key": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Resource Key",
+          "type": "string"
+        },
+        "justification": {
+          "maxLength": 2000,
+          "minLength": 10,
+          "title": "Justification",
+          "type": "string"
+        },
+        "permission": {
+          "enum": [
+            "read",
+            "write",
+            "admin"
+          ],
+          "title": "Permission",
+          "type": "string"
+        },
+        "duration_days": {
+          "maximum": 90,
+          "minimum": 1,
+          "title": "Duration Days",
+          "type": "integer"
+        },
+        "fields": {
+          "additionalProperties": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Fields",
+          "type": "object"
+        }
+      },
+      "required": [
+        "template_id",
+        "catalog_version",
+        "system",
+        "resource_key",
+        "justification",
+        "permission",
+        "duration_days",
+        "fields"
+      ],
+      "title": "AccessArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "AccessSubmitData": {
+          "additionalProperties": false,
+          "properties": {
+            "request": {
+              "$ref": "#/$defs/AccessSummary"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "minItems": 1,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "request",
+            "references"
+          ],
+          "title": "AccessSubmitData",
+          "type": "object"
+        },
+        "AccessSummary": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "number": {
+              "title": "Number",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "submitted",
+                "approved",
+                "rejected",
+                "cancelled"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "system": {
+              "title": "System",
+              "type": "string"
+            },
+            "resource_key": {
+              "title": "Resource Key",
+              "type": "string"
+            },
+            "permission": {
+              "enum": [
+                "read",
+                "write",
+                "admin"
+              ],
+              "title": "Permission",
+              "type": "string"
+            },
+            "duration_days": {
+              "title": "Duration Days",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "number",
+            "status",
+            "system",
+            "resource_key",
+            "permission",
+            "duration_days"
+          ],
+          "title": "AccessSummary",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/AccessSubmitData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "AccessSubmitEnvelope",
+      "type": "object"
+    }
+  },
+  "get_access_requests": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "AccessListData": {
+          "additionalProperties": false,
+          "properties": {
+            "requests": {
+              "items": {
+                "$ref": "#/$defs/AccessSummary"
+              },
+              "maxItems": 20,
+              "title": "Requests",
+              "type": "array"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "requests",
+            "references"
+          ],
+          "title": "AccessListData",
+          "type": "object"
+        },
+        "AccessSummary": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "number": {
+              "title": "Number",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "submitted",
+                "approved",
+                "rejected",
+                "cancelled"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "system": {
+              "title": "System",
+              "type": "string"
+            },
+            "resource_key": {
+              "title": "Resource Key",
+              "type": "string"
+            },
+            "permission": {
+              "enum": [
+                "read",
+                "write",
+                "admin"
+              ],
+              "title": "Permission",
+              "type": "string"
+            },
+            "duration_days": {
+              "title": "Duration Days",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "number",
+            "status",
+            "system",
+            "resource_key",
+            "permission",
+            "duration_days"
+          ],
+          "title": "AccessSummary",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/AccessListData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "AccessListEnvelope",
+      "type": "object"
+    }
+  },
+  "get_knowledge_page": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {
+        "page_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Page Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page_id"
+      ],
+      "title": "KnowledgeArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "KnowledgePage": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "product_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Id"
+            },
+            "parent_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parent Id"
+            },
+            "kind": {
+              "enum": [
+                "product",
+                "team",
+                "role",
+                "guide"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "body": {
+              "maxLength": 12000,
+              "title": "Body",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            },
+            "updated_at": {
+              "title": "Updated At",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "product_id",
+            "parent_id",
+            "kind",
+            "title",
+            "body",
+            "version",
+            "updated_at"
+          ],
+          "title": "KnowledgePage",
+          "type": "object"
+        },
+        "KnowledgePageData": {
+          "additionalProperties": false,
+          "properties": {
+            "page": {
+              "$ref": "#/$defs/KnowledgePage"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "page",
+            "references"
+          ],
+          "title": "KnowledgePageData",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/KnowledgePageData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "KnowledgePageEnvelope",
+      "type": "object"
+    }
+  },
   "get_onboarding_progress": {
     "arguments": {
       "additionalProperties": false,

@@ -29,7 +29,7 @@ import { AccessBadge, Adaptation, Dashboard, Resources, Team, Tools, type Detail
 import { Avatar, Buddy, EmptyState, Icon, Modal, type Mood } from './ui';
 
 import { corporateLinks } from './corporate-links';
-import { jiraService, jiraProfileUrl } from './tool-links';
+import { jiraService, confluenceService, toolProfileUrl } from './tool-links';
 import { CorporateDirectory, accessPortalUrl } from './CorporateDirectory';
 import { ProductGuide } from './ProductGuide';
 
@@ -39,7 +39,12 @@ const searchItems = [
   ...services.map((service) => ({
     label: service.title,
     detail: service.category,
-    to: service.id === 'jira' ? jiraService.url : '/tools?service=' + service.id,
+    to:
+      service.id === 'jira'
+        ? jiraService.url
+        : service.id === 'confluence'
+          ? confluenceService.url
+          : '/tools?service=' + service.id,
   })),
   ...corporateLinks.map((service) => ({ label: service.title, detail: 'Внешний сервис', to: service.url })),
 ];
@@ -51,8 +56,8 @@ function SearchDialog({ profileId, onClose }: { profileId: ProfileId; onClose: (
   const [query, setQuery] = useState('');
   const results = [
     ...searchItems.map((item) =>
-      item.to === jiraService.url
-        ? { ...item, to: jiraProfileUrl(item.to, profileId) }
+      item.to === jiraService.url || item.to === confluenceService.url
+        ? { ...item, to: toolProfileUrl(item.to, profileId) }
         : item.to === corporateLinks.find((service) => service.id === 'access')?.url
           ? { ...item, to: accessPortalUrl(item.to, profileId) }
           : item,

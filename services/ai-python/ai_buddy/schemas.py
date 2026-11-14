@@ -227,3 +227,117 @@ class TaskEnvelope(ClosedModel):
 class EvidenceEnvelope(ClosedModel):
     ok: Literal[True]
     data: EvidenceData
+
+
+class AccessArguments(ClosedModel):
+    template_id: Identifier
+    catalog_version: Annotated[int, Field(ge=1, le=1)]
+    system: Annotated[str, Field(min_length=1, max_length=120)]
+    resource_key: Annotated[str, Field(min_length=1, max_length=160)]
+    justification: Annotated[str, Field(min_length=10, max_length=2000)]
+    permission: Literal["read", "write", "admin"]
+    duration_days: Annotated[int, Field(ge=1, le=90)]
+    fields: dict[str, Annotated[str, Field(min_length=1, max_length=500)]]
+
+
+class AccessField(ClosedModel):
+    key: str
+    label: str
+    placeholder: str | None = None
+    options: list[str] | None = None
+
+
+class AccessResource(ClosedModel):
+    resource_key: str
+    fields: dict[str, str]
+
+
+class AccessTemplate(ClosedModel):
+    id: str
+    title: str
+    description: str
+    icon: str
+    color: str
+    roles: list[str]
+    system: str
+    keyHint: str
+    levels: list[Literal["read", "write", "admin"]]
+    fields: list[AccessField]
+    owner: str
+    resources: list[AccessResource]
+
+
+class AccessIdentity(ClosedModel):
+    profile_id: str
+    product_id: str
+    job_role: str
+    name: str
+    team_name: str
+    can_review: bool
+
+
+class AccessCatalogData(ClosedModel):
+    version: int
+    templates: Annotated[list[AccessTemplate], Field(max_length=20)]
+    context: AccessIdentity
+    references: Annotated[list[Source], Field(max_length=5)]
+
+
+class AccessSummary(ClosedModel):
+    id: str
+    number: str
+    status: Literal["submitted", "approved", "rejected", "cancelled"]
+    system: str
+    resource_key: str
+    permission: Literal["read", "write", "admin"]
+    duration_days: int
+
+
+class AccessSubmitData(ClosedModel):
+    request: AccessSummary
+    references: Annotated[list[Source], Field(min_length=1, max_length=5)]
+
+
+class AccessListData(ClosedModel):
+    requests: Annotated[list[AccessSummary], Field(max_length=20)]
+    references: Annotated[list[Source], Field(max_length=5)]
+
+
+class AccessCatalogEnvelope(ClosedModel):
+    ok: Literal[True]
+    data: AccessCatalogData
+
+
+class AccessSubmitEnvelope(ClosedModel):
+    ok: Literal[True]
+    data: AccessSubmitData
+
+
+class AccessListEnvelope(ClosedModel):
+    ok: Literal[True]
+    data: AccessListData
+
+
+class KnowledgeArguments(ClosedModel):
+    page_id: Identifier
+
+
+class KnowledgePage(ClosedModel):
+    id: str
+    product_id: str | None
+    parent_id: str | None
+    kind: Literal["product", "team", "role", "guide"]
+    title: str
+    body: Annotated[str, Field(max_length=12000)]
+    version: int
+    updated_at: str
+
+
+class KnowledgePageData(ClosedModel):
+    page: KnowledgePage
+    references: Annotated[list[Source], Field(max_length=5)]
+
+
+class KnowledgePageEnvelope(ClosedModel):
+    ok: Literal[True]
+    data: KnowledgePageData

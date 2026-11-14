@@ -72,3 +72,15 @@ Bearer проверяется до handshake/discovery/данных; Host/Origin
 [Границы OpenSpec](../../openspec/changes/implement-python-agent/mcp-demo-scope.md).
 
 HTTP-адаптер: `uv run --locked pytest tests/test_go_http.py` проверяет оба HTTP-read, реальные SDK initialize/list/call, Flask → SDK → Go HTTP mock, изоляцию/отзыв/TTL/метаданные, раздельные credentials, формат/размер/status/таймауты/chunks/cancellation. Внешний Go, БД, LLM и holdout этим набором не запускаются. [Границы HTTP-адаптера](../../openspec/changes/implement-python-agent/go-http-adapter-scope.md).
+
+## Серверные доступы и Confluence (следующий реализованный срез)
+
+[SDD 007](../specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
+get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
+Максимум — девять tools, запись объявляется только при AccessIntent текущего turn.
+Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
+POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
+X-Request-ID, TTL и ACL. local_demo остаётся с двумя read tools.
+Поиск включает сохранённые Confluence-страницы продукта и общие гайды; заявки
+портала/чата общие в PostgreSQL. Повторы идемпотентны; receipt из БД, approved
+не является granted. Исторические ограничения выше относятся к предыдущим срезам.

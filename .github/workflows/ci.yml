@@ -24,8 +24,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm exec -- prettier --check apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend services/access/frontend eslint.config.mjs prettier.config.mjs
-      - run: npm exec -- eslint apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend services/access/frontend
+      - run: npm exec -- prettier --check apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend services/access/frontend services/confluence/frontend eslint.config.mjs prettier.config.mjs
+      - run: npm exec -- eslint apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend services/access/frontend services/confluence/frontend
       - run: npm run typecheck --workspaces
       - run: npm test --workspaces
       - run: npm run build --workspaces

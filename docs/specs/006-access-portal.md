@@ -36,3 +36,5 @@ justification, permission, duration_days, fields, catalog_version. Go получ
 отделены: только подтверждённое изменение в целевой системе даёт статус granted.
 Будущий API: contracts/access-portal.openapi.yaml. Текущий SDD 001 остаётся
 baseline и не меняет контракт в этом фронтенд-срезе.
+
+Текущий серверный этап реализован в [SDD 007](007-agent-access-confluence.md). Описанный выше localStorage/design-only API относится к исходному фронтенд-прототипу и заменён Go/PostgreSQL/MCP; provisioning по-прежнему отсутствует.

@@ -2,19 +2,19 @@
   'openapi': '3.0.3',
   'info':
     {
-      'title': 'Access portal integration proposal',
-      'version': '0.1.0',
-      'description': 'DESIGN ONLY: no HTTP server or MCP tools are implemented by the frontend PR. Demo frontend persists requests in browser storage. Proposed API derives profile, product, team and position from authenticated server context, validates template configuration and resource ownership, then prepares a draft. Confirmation is bound to owner, version, expiry and idempotency key. Approved is not granted: only a target-system provisioning check can issue granted. The agent may list eligible templates, prepare a draft and read own status, but cannot approve or grant rights.',
+      'title': 'AI Buddy access portal',
+      'version': '1.0.0',
+      'description': 'Implemented Go/PostgreSQL API. Context is derived from authenticated profile. Explicit chat request authorizes submission for that turn. Approved does not grant actual target-system rights. Local demo sessions are not production authentication.',
     },
-  'servers': [{ 'url': '/access-api/v1' }],
+  'servers': [{ 'url': '/api/v1' }],
   'security': [{ 'bearerAuth': [] }],
   'paths':
     {
-      '/catalog':
+      '/portal-access/catalog':
         {
           'get':
             {
-              'summary': 'Read eligible templates and field configuration',
+              'summary': 'Eligible templates, fixed resources and trusted profile',
               'responses':
                 {
                   '200':
@@ -24,47 +24,42 @@
                     },
                   '400':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Invalid input',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '401':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Invalid or expired session',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '403':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Role or product policy denied',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '404':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Missing or inaccessible object',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '409':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
-                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
-                    },
-                  '422':
-                    {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Stale decision or idempotency conflict',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '503':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Storage unavailable',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                 },
             },
         },
-      '/me/requests':
+      '/portal-access/requests':
         {
           'get':
             {
-              'summary': 'Read current user requests',
+              'summary': 'Own requests; product requests for a reviewer (latest 100)',
               'responses':
                 {
                   '200':
@@ -78,102 +73,39 @@
                     },
                   '400':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Invalid input',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '401':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Invalid or expired session',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '403':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Role or product policy denied',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '404':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Missing or inaccessible object',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '409':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
-                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
-                    },
-                  '422':
-                    {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Stale decision or idempotency conflict',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '503':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Storage unavailable',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                 },
             },
-        },
-      '/drafts':
-        {
           'post':
             {
-              'summary': 'Prepare a draft without submitting a request',
-              'responses':
-                {
-                  '200':
-                    {
-                      'description': 'Success',
-                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Draft' } } },
-                    },
-                  '400':
-                    {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
-                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
-                    },
-                  '401':
-                    {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
-                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
-                    },
-                  '403':
-                    {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
-                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
-                    },
-                  '404':
-                    {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
-                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
-                    },
-                  '409':
-                    {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
-                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
-                    },
-                  '422':
-                    {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
-                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
-                    },
-                  '503':
-                    {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
-                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
-                    },
-                },
-              'requestBody':
-                {
-                  'required': true,
-                  'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/RequestInput' } } },
-                },
-            },
-        },
-      '/drafts/{draft_id}/confirm':
-        {
-          'post':
-            {
-              'summary': 'Confirm an unchanged owned draft exactly once',
+              'summary': 'Submit or return an existing active request',
               'responses':
                 {
                   '200':
@@ -183,37 +115,91 @@
                     },
                   '400':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Invalid input',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '401':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Invalid or expired session',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '403':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Role or product policy denied',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '404':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Missing or inaccessible object',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '409':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
-                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
-                    },
-                  '422':
-                    {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Stale decision or idempotency conflict',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                   '503':
                     {
-                      'description': 'Invalid input / unauthenticated / forbidden / not found / stale or expired / template validation / unavailable',
+                      'description': 'Storage unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                },
+              'requestBody':
+                {
+                  'required': true,
+                  'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/RequestInput' } } },
+                },
+              'parameters':
+                [
+                  {
+                    'name': 'Idempotency-Key',
+                    'in': 'header',
+                    'required': true,
+                    'schema': { 'type': 'string', 'minLength': 1, 'maxLength': 128 },
+                  },
+                ],
+            },
+        },
+      '/portal-access/requests/{id}/decision':
+        {
+          'post':
+            {
+              'summary': 'Reviewer approves/rejects; owner cancels a submitted request',
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Success',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Request' } } },
+                    },
+                  '400':
+                    {
+                      'description': 'Invalid input',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '401':
+                    {
+                      'description': 'Invalid or expired session',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '403':
+                    {
+                      'description': 'Role or product policy denied',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '404':
+                    {
+                      'description': 'Missing or inaccessible object',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '409':
+                    {
+                      'description': 'Stale decision or idempotency conflict',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '503':
+                    {
+                      'description': 'Storage unavailable',
                       'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
                     },
                 },
@@ -228,27 +214,23 @@
                             {
                               'type': 'object',
                               'additionalProperties': false,
-                              'required': ['version'],
-                              'properties': { 'version': { 'type': 'integer', 'minimum': 1 } },
+                              'required': ['action', 'note'],
+                              'properties':
+                                {
+                                  'action': { 'type': 'string', 'enum': ['approved', 'rejected', 'cancelled'] },
+                                  'note':
+                                    {
+                                      'type': 'string',
+                                      'maxLength': 2000,
+                                      'description': 'At least 5 characters for rejection',
+                                    },
+                                },
                             },
                         },
                     },
                 },
               'parameters':
-                [
-                  {
-                    'name': 'draft_id',
-                    'in': 'path',
-                    'required': true,
-                    'schema': { 'type': 'string', 'format': 'uuid' },
-                  },
-                  {
-                    'name': 'Idempotency-Key',
-                    'in': 'header',
-                    'required': true,
-                    'schema': { 'type': 'string', 'minLength': 1 },
-                  },
-                ],
+                [{ 'name': 'id', 'in': 'path', 'required': true, 'schema': { 'type': 'string', 'format': 'uuid' } }],
             },
         },
     },
@@ -257,6 +239,19 @@
       'securitySchemes': { 'bearerAuth': { 'type': 'http', 'scheme': 'bearer' } },
       'schemas':
         {
+          'Error':
+            {
+              'type': 'object',
+              'required': ['code'],
+              'properties':
+                {
+                  'code':
+                    {
+                      'type': 'string',
+                      'enum': ['invalid_input', 'unauthenticated', 'forbidden', 'not_found', 'conflict', 'unavailable'],
+                    },
+                },
+            },
           'RequestInput':
             {
               'type': 'object',
@@ -275,7 +270,7 @@
               'properties':
                 {
                   'template_id': { 'type': 'string' },
-                  'catalog_version': { 'type': 'integer', 'minimum': 1 },
+                  'catalog_version': { 'type': 'integer', 'enum': [1] },
                   'system': { 'type': 'string', 'minLength': 1, 'maxLength': 120 },
                   'resource_key': { 'type': 'string', 'minLength': 1, 'maxLength': 160 },
                   'justification': { 'type': 'string', 'minLength': 10, 'maxLength': 2000 },
@@ -284,78 +279,120 @@
                   'fields': { 'type': 'object', 'additionalProperties': { 'type': 'string', 'maxLength': 500 } },
                 },
             },
-          'Draft':
-            {
-              'type': 'object',
-              'required': ['id', 'version', 'expires_at', 'input'],
-              'properties':
-                {
-                  'id': { 'type': 'string', 'format': 'uuid' },
-                  'version': { 'type': 'integer', 'minimum': 1 },
-                  'expires_at': { 'type': 'string', 'format': 'date-time' },
-                  'input': { '$ref': '#/components/schemas/RequestInput' },
-                },
-            },
           'Request':
             {
               'type': 'object',
-              'required': ['id', 'number', 'status', 'input'],
+              'required':
+                [
+                  'id',
+                  'number',
+                  'profile_id',
+                  'product_id',
+                  'input',
+                  'status',
+                  'origin',
+                  'created_at',
+                  'decision_by',
+                  'decision_note',
+                  'decided_at',
+                ],
               'properties':
                 {
                   'id': { 'type': 'string', 'format': 'uuid' },
                   'number': { 'type': 'string' },
-                  'status':
-                    {
-                      'type': 'string',
-                      'enum': ['submitted', 'approved', 'rejected', 'cancelled', 'provisioning', 'granted', 'failed'],
-                    },
+                  'profile_id': { 'type': 'string' },
+                  'product_id': { 'type': 'string' },
                   'input': { '$ref': '#/components/schemas/RequestInput' },
+                  'status': { 'type': 'string', 'enum': ['submitted', 'approved', 'rejected', 'cancelled'] },
+                  'origin': { 'type': 'string', 'enum': ['portal', 'agent'] },
+                  'created_at': { 'type': 'string', 'format': 'date-time' },
+                  'decision_by': { 'type': 'string', 'nullable': true },
+                  'decision_note': { 'type': 'string' },
+                  'decided_at': { 'type': 'string', 'nullable': true, 'format': 'date-time' },
                 },
             },
-          'Error':
+          'Field':
             {
               'type': 'object',
-              'required': ['code', 'message'],
-              'properties': { 'code': { 'type': 'string' }, 'message': { 'type': 'string' } },
+              'required': ['key', 'label'],
+              'properties':
+                {
+                  'key': { 'type': 'string' },
+                  'label': { 'type': 'string' },
+                  'options': { 'type': 'array', 'items': { 'type': 'string' } },
+                  'placeholder': { 'type': 'string' },
+                },
+            },
+          'Resource':
+            {
+              'type': 'object',
+              'required': ['resource_key', 'fields'],
+              'properties':
+                {
+                  'resource_key': { 'type': 'string' },
+                  'fields': { 'type': 'object', 'additionalProperties': { 'type': 'string' } },
+                },
+            },
+          'Template':
+            {
+              'type': 'object',
+              'required':
+                [
+                  'id',
+                  'title',
+                  'description',
+                  'icon',
+                  'color',
+                  'system',
+                  'keyHint',
+                  'owner',
+                  'roles',
+                  'levels',
+                  'fields',
+                  'resources',
+                ],
+              'properties':
+                {
+                  'id': { 'type': 'string' },
+                  'title': { 'type': 'string' },
+                  'description': { 'type': 'string' },
+                  'icon': { 'type': 'string' },
+                  'color': { 'type': 'string' },
+                  'system': { 'type': 'string' },
+                  'keyHint': { 'type': 'string' },
+                  'owner': { 'type': 'string' },
+                  'roles':
+                    {
+                      'type': 'array',
+                      'items': { 'type': 'string', 'enum': ['analyst', 'backend', 'tester', 'designer'] },
+                    },
+                  'levels': { 'type': 'array', 'items': { 'type': 'string', 'enum': ['read', 'write', 'admin'] } },
+                  'fields': { 'type': 'array', 'items': { '$ref': '#/components/schemas/Field' } },
+                  'resources': { 'type': 'array', 'items': { '$ref': '#/components/schemas/Resource' } },
+                },
             },
           'Catalog':
             {
               'type': 'object',
-              'required': ['version', 'templates'],
+              'required': ['version', 'context', 'templates'],
               'properties':
                 {
-                  'version': { 'type': 'integer' },
-                  'templates':
+                  'version': { 'type': 'integer', 'enum': [1] },
+                  'context':
                     {
-                      'type': 'array',
-                      'items':
+                      'type': 'object',
+                      'required': ['profile_id', 'product_id', 'job_role', 'name', 'team_name', 'can_review'],
+                      'properties':
                         {
-                          'type': 'object',
-                          'required': ['id', 'title', 'levels', 'fields'],
-                          'properties':
-                            {
-                              'id': { 'type': 'string' },
-                              'title': { 'type': 'string' },
-                              'levels':
-                                { 'type': 'array', 'items': { 'type': 'string', 'enum': ['read', 'write', 'admin'] } },
-                              'fields':
-                                {
-                                  'type': 'array',
-                                  'items':
-                                    {
-                                      'type': 'object',
-                                      'required': ['key', 'label'],
-                                      'properties':
-                                        {
-                                          'key': { 'type': 'string' },
-                                          'label': { 'type': 'string' },
-                                          'options': { 'type': 'array', 'items': { 'type': 'string' } },
-                                        },
-                                    },
-                                },
-                            },
+                          'profile_id': { 'type': 'string' },
+                          'product_id': { 'type': 'string' },
+                          'job_role': { 'type': 'string' },
+                          'name': { 'type': 'string' },
+                          'team_name': { 'type': 'string' },
+                          'can_review': { 'type': 'boolean' },
                         },
                     },
+                  'templates': { 'type': 'array', 'items': { '$ref': '#/components/schemas/Template' } },
                 },
             },
         },
