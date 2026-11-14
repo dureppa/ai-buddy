@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { services, tasks } from './data';
+import { tasksFor } from './checklist';
+import { services } from './data';
 import {
   products,
   profiles,
@@ -52,7 +53,7 @@ export function readStaffId(storage: Pick<Storage, 'getItem'>): StaffId | null {
 export function internOverview(storage: StoragePort, staff: StaffId) {
   const id = products[staffAccounts[staff].productId].intern;
   const workspace = readWorkspace(storage, id);
-  const checklist = tasks.map((task) => ({ ...task, done: workspace.completed.includes(task.id) }));
+  const checklist = tasksFor(id).map((task) => ({ ...task, done: workspace.completed.includes(task.id) }));
   const requests = workspace.requests.flatMap((request) => {
     const service = services.find((item) => item.id === request.serviceId);
     return service ? [{ ...request, title: service.title, owner: service.owner }] : [];

@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { resources, services, tasks, type Service } from './data';
+import { tasksFor } from './checklist';
+import { resources, services, type Service } from './data';
 import { products, profiles, teamContacts, type ProfileId } from './demo-accounts';
 
 const requestSchema = z.object({
@@ -33,26 +34,49 @@ export type BuddyReply = ReplyText &
     | { kind: 'access_confirmation_required'; draft: AccessDraft }
   );
 
+function seedCompleted(profile: ProfileId) {
+  const list = tasksFor(profile);
+  const stageId = profiles[profile].stageId;
+  if (stageId === 'final') return list.map((task) => task.id);
+  if (stageId === 'midpoint') {
+    return list
+      .filter((task) => task.stage === 'week-1' || task.stage === 'week-2' || task.stage === 'month-1')
+      .map((task) => task.id);
+  }
+  return list
+    .filter((task) => task.stage === 'week-1')
+    .slice(0, 3)
+    .map((task) => task.id);
+}
+
+function seedWorkspace(profile: ProfileId): Workspace {
+  return {
+    completed: seedCompleted(profile),
+    requests:
+      profile === 'maria' ? [{ id: 'maria-grafana', number: 'Д-001', serviceId: 'grafana', status: 'submitted' }] : [],
+  };
+}
+
 export function readWorkspace(storage: StoragePort, profile: ProfileId): Workspace {
+  const seeded = seedWorkspace(profile);
   try {
     const stored = storage.getItem('ai-buddy.workspace.' + profile);
     if (stored) {
       const parsed = workspaceSchema.safeParse(JSON.parse(stored));
-      if (parsed.success) return parsed.data;
+      if (parsed.success) {
+        const ids = new Set(tasksFor(profile).map((task) => task.id));
+        const known = parsed.data.completed.filter((id) => ids.has(id));
+        const hasStaleIds = parsed.data.completed.some((id) => !ids.has(id));
+        if (hasStaleIds && known.length === 0) {
+          return writeWorkspace(storage, profile, { ...seeded, requests: parsed.data.requests });
+        }
+        return { completed: known, requests: parsed.data.requests };
+      }
     }
   } catch {
     // Fall back to the initial demo when saved browser data cannot be read.
   }
-  const completedByStage: Record<(typeof profiles)[ProfileId]['stageId'], string[]> = {
-    first: ['welcome', 'account', 'chat-join'],
-    midpoint: tasks.slice(0, 10).map((task) => task.id),
-    final: tasks.map((task) => task.id),
-  };
-  return {
-    completed: completedByStage[profiles[profile].stageId],
-    requests:
-      profile === 'maria' ? [{ id: 'maria-grafana', number: 'Д-001', serviceId: 'grafana', status: 'submitted' }] : [],
-  };
+  return seeded;
 }
 
 export function writeWorkspace(storage: StoragePort, profile: ProfileId, workspace: Workspace): Workspace {
@@ -61,13 +85,14 @@ export function writeWorkspace(storage: StoragePort, profile: ProfileId, workspa
 }
 
 export function progressFor(workspace: Workspace) {
-  const completed = tasks.filter((task) => workspace.completed.includes(task.id)).length;
-  return { completed, remaining: tasks.length - completed, percent: Math.round((completed / tasks.length) * 100) };
+  const catalog = tasksFor('olga');
+  const completed = catalog.filter((task) => workspace.completed.includes(task.id)).length;
+  return { completed, remaining: catalog.length - completed, percent: Math.round((completed / catalog.length) * 100) };
 }
 
 export function toggleTask(storage: StoragePort, profile: ProfileId, taskId: string): Workspace {
   const workspace = readWorkspace(storage, profile);
-  if (!tasks.some((task) => task.id === taskId)) throw new Error('Задача недоступна.');
+  if (!tasksFor(profile).some((task) => task.id === taskId)) throw new Error('Задача недоступна.');
   const completed = workspace.completed.includes(taskId)
     ? workspace.completed.filter((id) => id !== taskId)
     : [...workspace.completed, taskId];
@@ -199,7 +224,7 @@ export function answerBuddy(
       link: { label: 'Карточка сервиса', to: '/tools?service=' + service.id },
     };
   if (/сегодня|начат|задач|план|остал/.test(question)) {
-    const pending = tasks.filter((task) => !workspace.completed.includes(task.id));
+    const pending = tasksFor(profile).filter((task) => !workspace.completed.includes(task.id));
     return {
       kind: 'answer',
       text:

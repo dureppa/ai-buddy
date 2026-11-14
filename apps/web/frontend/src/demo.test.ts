@@ -9,7 +9,8 @@ import {
   type AccessDraft,
   type StoragePort,
 } from './demo';
-import { resourcesFor, services, tasks } from './data';
+import { tasksFor } from './checklist';
+import { resourcesFor, services } from './data';
 import { products, profiles, staffAccounts } from './demo-accounts';
 
 type Memory = StoragePort & { data: Map<string, string> };
@@ -30,10 +31,10 @@ describe('AI-buddy demo workspace', () => {
   it('persists a completed onboarding task and recalculates progress', () => {
     const storage = memory();
     const initial = readWorkspace(storage, 'olga');
-    const updated = toggleTask(storage, 'olga', 'papers');
-    expect(updated.completed).toContain('papers');
+    const updated = toggleTask(storage, 'olga', 'dev-principles');
+    expect(updated.completed).toContain('dev-principles');
     expect(progressFor(updated).completed).toBe(progressFor(initial).completed + 1);
-    expect(readWorkspace(storage, 'olga').completed).toContain('papers');
+    expect(readWorkspace(storage, 'olga').completed).toContain('dev-principles');
   });
 
   it('requires explicit confirmation before saving an access request', () => {
@@ -98,10 +99,10 @@ describe('AI-buddy demo workspace', () => {
 
   it('toggles a completed task back to pending and rejects unknown tasks', () => {
     const storage = memory();
-    const completed = toggleTask(storage, 'olga', 'papers');
-    const pending = toggleTask(storage, 'olga', 'papers');
-    expect(completed.completed).toContain('papers');
-    expect(pending.completed).not.toContain('papers');
+    const completed = toggleTask(storage, 'olga', 'dev-principles');
+    const pending = toggleTask(storage, 'olga', 'dev-principles');
+    expect(completed.completed).toContain('dev-principles');
+    expect(pending.completed).not.toContain('dev-principles');
     expect(() => toggleTask(storage, 'olga', 'missing-task')).toThrow('Задача недоступна.');
   });
 
@@ -109,7 +110,19 @@ describe('AI-buddy demo workspace', () => {
     const storage = memory();
     storage.setItem('ai-buddy.workspace.olga', '{broken');
     expect(readWorkspace(storage, 'olga').requests).toEqual([]);
-    expect(readWorkspace(storage, 'olga').completed).toContain('welcome');
+    expect(readWorkspace(storage, 'olga').completed).toContain('meet-team');
+    storage.setItem(
+      'ai-buddy.workspace.olga',
+      JSON.stringify({
+        completed: ['papers', 'welcome'],
+        requests: [{ id: 'kept', number: 'Д-009', serviceId: 'jira', status: 'submitted' }],
+      }),
+    );
+    const reset = readWorkspace(storage, 'olga');
+    expect(reset.completed).toContain('meet-team');
+    expect(reset.completed).not.toContain('papers');
+    expect(reset.requests).toEqual([{ id: 'kept', number: 'Д-009', serviceId: 'jira', status: 'submitted' }]);
+    expect(JSON.parse(storage.getItem('ai-buddy.workspace.olga') || '{}').completed).toContain('meet-team');
   });
 
   it('rejects an expired draft and protects another profile', () => {
@@ -138,8 +151,8 @@ describe('AI-buddy demo workspace', () => {
         services.find((service) => service.id === 'grafana')!,
       ),
     ).toBe('submitted');
-    const complete = { completed: tasks.map((task) => task.id), requests: [] };
-    expect(progressFor(complete)).toEqual({ completed: tasks.length, remaining: 0, percent: 100 });
+    const complete = { completed: tasksFor('olga').map((task) => task.id), requests: [] };
+    expect(progressFor(complete)).toEqual({ completed: tasksFor('olga').length, remaining: 0, percent: 100 });
   });
   it.each(Object.values(products))('uses $name and its team and role in demo answers and materials', (product) => {
     const id = product.intern;

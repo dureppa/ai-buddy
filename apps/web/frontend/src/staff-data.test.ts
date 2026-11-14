@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readWorkspace, toggleTask } from './demo';
+import { tasksFor } from './checklist';
 import { products } from './demo-accounts';
 import { demoSessionKey } from './demo-session';
 import {
@@ -43,11 +44,13 @@ describe('staff workspace', () => {
   it('reads current progress, nearest step and access request details', () => {
     const storage = memoryStorage();
     const before = readWorkspace(storage, 'olga').completed.length;
-    toggleTask(storage, 'olga', 'papers');
+    toggleTask(storage, 'olga', 'dev-principles');
     const [olga] = internOverview(storage, 'manager');
     const [maria] = internOverview(storage, 'help-manager');
     expect(olga.progress.completed).toBe(before + 1);
-    expect(olga.next?.id).toBe('intro');
+    expect(olga.next?.id).toBe('avito-numbers');
+    expect(olga.checklist.find((item) => item.id === 'avito-cli')?.title).toBe('Получи доступ к витринам');
+    expect(tasksFor('sasha').find((item) => item.id === 'avito-cli')?.title).toBe('Настрой avito-cli');
     expect(maria.requests[0]).toMatchObject({ number: 'Д-001', title: 'Grafana' });
     expect(maria.requests[0].owner).toBeTruthy();
   });
