@@ -8,13 +8,6 @@
   margin-top: 3px;
   color: var(--tone-ink);
 }
-.hr-back {
-  margin: 0 0 14px 2px;
-}
-.hr-back-icon {
-  display: inline-flex;
-  transform: rotate(180deg);
-}
 .hr-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);

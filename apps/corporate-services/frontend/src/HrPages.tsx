@@ -416,12 +416,6 @@ export function HrPage({ service, profileId }: { service: HrService; profileId: 
 
   return (
     <main className="hr-page">
-      <a className="text-link hr-back" href={import.meta.env.VITE_AI_BUDDY_URL || 'http://localhost:5173/resources'}>
-        <span className="hr-back-icon">
-          <Icon name="arrow" size={16} />
-        </span>
-        Вернуться в AI Buddy
-      </a>
       <PageIntro title={service.title} text={service.description} tone={service.tone} icon={service.icon} />
       <div className="hr-layout">
         <Panel title={title}>

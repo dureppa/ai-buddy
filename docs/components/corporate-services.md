@@ -27,7 +27,7 @@ AI Buddy открывает шесть самостоятельных сайто
 npm run dev --workspace=@ai-buddy/corporate-services
 ```
 
-Для одного сайта передай его идентификатор, например `npm run dev --workspace=@ai-buddy/corporate-services -- absences`. Сборка всех сайтов выполняется командой `npm run build --workspace=@ai-buddy/corporate-services`. Каждый каталог сборки можно опубликовать отдельно. Для ссылки возврата в AI Buddy настрой `VITE_AI_BUDDY_URL` в `apps/corporate-services/frontend/.env` перед запуском или сборкой.
+Для одного сайта передай его идентификатор, например `npm run dev --workspace=@ai-buddy/corporate-services -- absences`. Сборка всех сайтов выполняется командой `npm run build --workspace=@ai-buddy/corporate-services`. Каждый каталог сборки можно опубликовать отдельно. Сайты не содержат ссылки возврата в AI Buddy.
 
 - `sites.mjs` запускает и собирает сайты по карте `frontend/service-ports.json`.
 - `frontend/src/main.tsx` выбирает страницу для конкретной сборки, `HrPages.tsx` содержит интерфейсы.
