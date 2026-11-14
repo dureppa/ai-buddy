@@ -1,9 +1,12 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { isProfileId, products, profiles, staffAccounts, type ProfileId, type StaffId } from './demo-accounts';
 import { readDemoSession } from './demo-session';
 import {
+  baselineFor,
+  groupByName,
+  internMaterials,
   internOverview,
-  materialsFor,
+  materialGroupSuggestions,
   materialsKey,
   maxMaterialBytes,
   readMaterials,
@@ -11,6 +14,7 @@ import {
   removeMaterial,
   saveMaterial,
   type MaterialInput,
+  type ShownMaterial,
   type StaffMaterial,
 } from './staff-data';
 import { backendEnabled } from './backend';
@@ -68,6 +72,7 @@ function MaterialForm({ staff, edit, onSaved }: { staff: StaffId; edit?: StaffMa
       const input: MaterialInput = {
         title: String(data.get('title')),
         description: String(data.get('description')),
+        group: String(data.get('group')),
         audience: data.getAll('audience') as ProfileId[],
         source,
       };
@@ -92,6 +97,22 @@ function MaterialForm({ staff, edit, onSaved }: { staff: StaffId; edit?: StaffMa
       <label>
         Название
         <input name="title" defaultValue={edit?.title} required minLength={2} maxLength={100} />
+      </label>
+      <label>
+        Группа
+        <input
+          name="group"
+          list="material-groups"
+          defaultValue={edit?.group ?? 'Чаты'}
+          required
+          minLength={2}
+          maxLength={40}
+        />
+        <datalist id="material-groups">
+          {materialGroupSuggestions.map((group) => (
+            <option key={group} value={group} />
+          ))}
+        </datalist>
       </label>
       <label>
         Пояснение
@@ -146,7 +167,41 @@ function MaterialForm({ staff, edit, onSaved }: { staff: StaffId; edit?: StaffMa
   );
 }
 
-function MaterialLink({ material }: { material: StaffMaterial }) {
+function MaterialGroups({
+  items,
+  idPrefix,
+  actions,
+}: {
+  items: ShownMaterial[];
+  idPrefix: string;
+  actions?: (material: ShownMaterial) => ReactNode;
+}) {
+  return (
+    <div className="material-groups">
+      {groupByName(items).map((group, index) => (
+        <section key={group.name} aria-labelledby={idPrefix + '-' + index}>
+          <h2 id={idPrefix + '-' + index}>{group.name}</h2>
+          <div className="tile-grid">
+            {group.items.map((material) => (
+              <article className="panel staff-material" key={material.id}>
+                <span className="icon-tile tone-lilac">
+                  <Icon name={material.source.kind === 'file' ? 'file' : 'book'} />
+                </span>
+                <h3>{material.title}</h3>
+                <p>{material.description}</p>
+                <p className="staff-muted">{material.author}</p>
+                <MaterialLink material={material} />
+                {actions?.(material)}
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function MaterialLink({ material }: { material: Pick<StaffMaterial, 'source'> }) {
   const source = material.source;
   return source.kind === 'file' ? (
     <a className="text-link" href={source.href} download={source.name}>
@@ -166,32 +221,17 @@ export function InternMaterials() {
 }
 
 function ProfileMaterials({ profileId }: { profileId: ProfileId }) {
-  const [items, setItems] = useState(() => materialsFor(localStorage, profileId));
+  const [items, setItems] = useState(() => internMaterials(localStorage, profileId));
   useEffect(() => {
     function refresh(event: StorageEvent) {
-      if (event.key === materialsKey || event.key === null) setItems(materialsFor(localStorage, profileId));
+      if (event.key === materialsKey || event.key === null) setItems(internMaterials(localStorage, profileId));
     }
     window.addEventListener('storage', refresh);
     return () => window.removeEventListener('storage', refresh);
   }, [profileId]);
-  if (!items.length) return null;
   return (
-    <section className="intern-materials" aria-labelledby="intern-materials-title">
-      <div className="section-title">
-        <h2 id="intern-materials-title">Материалы от команды</h2>
-      </div>
-      <div className="tile-grid">
-        {items.map((material) => (
-          <article className="panel staff-material" key={material.id}>
-            <span className="icon-tile tone-lilac">
-              <Icon name={material.source.kind === 'file' ? 'file' : 'book'} />
-            </span>
-            <h3>{material.title}</h3>
-            <p>{material.description}</p>
-            <MaterialLink material={material} />
-          </article>
-        ))}
-      </div>
+    <section className="intern-materials" aria-label="Материалы от команды">
+      <MaterialGroups items={items} idPrefix="intern-materials" />
     </section>
   );
 }
@@ -220,7 +260,16 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
   }, [id]);
 
   const current = interns.find((intern) => intern.id === selected);
-  const visibleMaterials = materials.filter((material) => material.author === id);
+  const ownMaterials = materials.filter((material) => material.author === id);
+  const visibleMaterials: ShownMaterial[] = ownMaterials.map((material) => ({
+    id: material.id,
+    group: material.group,
+    title: material.title,
+    description: material.description,
+    source: material.source,
+    author: account.name,
+  }));
+  const baseline = baselineFor(product.intern);
 
   function deleteMaterial() {
     if (!pendingRemoval) return;
@@ -317,6 +366,13 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
           </div>
         ) : (
           <section className="staff-publications" aria-label="Материалы для стажёров">
+            <div className="material-baseline">
+              <div className="section-title">
+                <h2>Уже видно стажёру</h2>
+              </div>
+              <p className="staff-muted">Базовые материалы видны, даже если ты ещё ничего не добавил.</p>
+              <MaterialGroups items={baseline} idPrefix="baseline-materials" />
+            </div>
             <div className="section-title">
               <h2>Опубликованные материалы</h2>
               <button type="button" className="button button--dark" onClick={() => setEditor('new')}>
@@ -329,33 +385,31 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
               </p>
             )}
             {visibleMaterials.length ? (
-              <div className="staff-grid">
-                {visibleMaterials.map((material) => (
-                  <article className="panel staff-material" key={material.id}>
-                    <h3>{material.title}</h3>
-                    <p>{material.description}</p>
-                    <p className="staff-muted">
-                      {material.audience.map((profile) => profiles[profile].fullName).join(', ')}
-                    </p>
-                    <MaterialLink material={material} />
+              <MaterialGroups
+                idPrefix="own-materials"
+                items={visibleMaterials}
+                actions={(material) => {
+                  const stored = ownMaterials.find((item) => item.id === material.id);
+                  if (!stored) return null;
+                  return (
                     <div className="staff-actions">
-                      <button type="button" className="button button--white" onClick={() => setEditor(material)}>
+                      <button type="button" className="button button--white" onClick={() => setEditor(stored)}>
                         Редактировать
                       </button>
                       <button
                         type="button"
                         className="button button--white"
                         onClick={() => {
-                          setPendingRemoval(material);
+                          setPendingRemoval(stored);
                           setError('');
                         }}
                       >
                         Удалить
                       </button>
                     </div>
-                  </article>
-                ))}
-              </div>
+                  );
+                }}
+              />
             ) : (
               <p className="panel staff-empty">Здесь появятся материалы, которые ты опубликуешь для стажёров.</p>
             )}
