@@ -4,7 +4,6 @@ import { ConsentApi, ConsentPageView } from '../../../../services/hr/consents/fr
 
 const props = {
   profileId: 'maria' as const,
-  onProfileChange: () => undefined,
   onToggle: () => undefined,
   items: [
     { purpose: 'news', title: 'Новости', description: 'Обновления', granted: true },
@@ -23,7 +22,8 @@ it('keeps the full HR layout for live consents and supported profiles', () => {
   expect(html).toContain('1 из 2');
   expect(html).toContain('aria-label="Отозвать: Новости"');
   expect(html).toContain('aria-label="Разрешить: Фотографии"');
-  expect(html).not.toContain('value="timur"');
+  expect(html).not.toContain('<select');
+  expect(html).not.toContain('Демопрофиль');
   expect(html).not.toContain('localhost:5173');
 });
 
@@ -46,7 +46,7 @@ it('renders feedback and an empty confirmed state', () => {
 });
 
 it('initial API rendering includes the full page while fetching', () => {
-  const html = renderToStaticMarkup(<ConsentApi profileId="maria" onProfileChange={props.onProfileChange} />);
+  const html = renderToStaticMarkup(<ConsentApi profileId="maria" />);
   expect(html).toContain('class="hr-layout"');
   expect(html).toContain('Загружаем');
 });

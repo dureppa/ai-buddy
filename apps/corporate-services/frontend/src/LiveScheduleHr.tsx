@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { profiles, type ProfileId } from '../../../web/frontend/src/data';
+import { type ProfileId } from '../../../web/frontend/src/data';
 import { hrStatus, readAbsences, readTrips, submitHrRequest } from '../../../web/frontend/src/hr-schedule';
 import { PageIntro } from '../../../web/frontend/src/ui';
 import { VacationForm } from '../../../../services/hr/absences/frontend/VacationForm';
@@ -10,23 +10,12 @@ import { makeHrDemo } from './hr-demo';
 
 type Service = 'absences' | 'trips';
 
-export function LiveScheduleHr({ service }: { service: Service }) {
-  const [profileId, setProfileId] = useState<ProfileId>('maria');
+export function LiveScheduleHr({ service, profileId }: { service: Service; profileId: ProfileId }) {
   const meta = hrServices.find((item) => item.id === service)!;
 
   return (
     <main className="hr-page">
       <PageIntro title={meta.title} text={meta.description} tone={meta.tone} icon={meta.icon} />
-      <label>
-        Демопрофиль{' '}
-        <select value={profileId} onChange={(event) => setProfileId(event.target.value as ProfileId)}>
-          {Object.entries(profiles).map(([id, profile]) => (
-            <option key={id} value={id}>
-              {profile.fullName}
-            </option>
-          ))}
-        </select>
-      </label>
       <Requests key={profileId} service={service} profileId={profileId} />
     </main>
   );
