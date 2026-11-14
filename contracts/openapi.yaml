@@ -8,6 +8,34 @@ servers:
 security:
   - sessionToken: []
 paths:
+  /schedule/hr-today:
+    get:
+      operationId: readHRToday
+      summary: Получить отпуска и командировки текущего профиля за сегодня
+      responses:
+        '200':
+          description: Сведения за московский день и список недоступных источников.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events, unavailable]
+                properties:
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, title, detail, service]
+                      properties:
+                        id: {type: string}
+                        title: {type: string}
+                        detail: {type: string}
+                        service: {type: string, enum: [absences, trips]}
+                  unavailable:
+                    type: array
+                    items: {type: string, enum: [absences, trips]}
+        '401':
+          description: Требуется действующая сессия.
   /demo/sessions:
     post:
       operationId: createDemoSession

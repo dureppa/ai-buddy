@@ -41,7 +41,8 @@ const seed = `
 INSERT INTO absence_settings (profile_id, vacation_days, vacation_notice_days) VALUES
     ('olga',  7,  30),
     ('sasha', 16, 14),
-    ('maria', 24, 7)
+    ('maria', 24, 7),
+    ('timur', 7, 30)
 ON CONFLICT (profile_id) DO NOTHING;`
 
 func main() {

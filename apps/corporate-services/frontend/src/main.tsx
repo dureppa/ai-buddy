@@ -1,3 +1,4 @@
+import { LiveScheduleHr } from './LiveScheduleHr';
 import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../../../web/frontend/src/styles.css';
@@ -29,6 +30,9 @@ function Page() {
   const [profileId, setProfileId] = useState<ProfileId>('maria');
   if (!service) return null;
   if (isGuideService(service)) return service.id === 'documents' ? <DocumentsPage /> : <EventsPage />;
+  if (backendEnabled && (service.id === 'absences' || service.id === 'trips')) {
+    return <LiveScheduleHr service={service.id} />;
+  }
   if (service.id !== 'consents' || !backendEnabled) return <HrPage service={service} profileId="maria" />;
   return (
     <main className="hr-page">

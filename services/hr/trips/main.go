@@ -49,7 +49,8 @@ const seed = `
 INSERT INTO trip_settings (profile_id, travel_enabled, travel_budget) VALUES
     ('olga',  false, 0),
     ('sasha', true,  35000),
-    ('maria', true,  65000)
+    ('maria', true,  65000),
+    ('timur', false, 0)
 ON CONFLICT (profile_id) DO NOTHING;
 INSERT INTO trip_destinations (id, title, description, estimate) VALUES
     ('kazan',        'Казань',          'Встреча продуктовой команды',     18000),

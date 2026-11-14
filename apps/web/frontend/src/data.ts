@@ -1,4 +1,3 @@
-import { profiles, type ProfileId } from './demo-accounts';
 export type { AvatarVariant, Person, ProfileId } from './demo-accounts';
 export { profiles } from './demo-accounts';
 
@@ -9,73 +8,12 @@ export { homeTasks, stages, tasksFor, type StageId, type Task } from './checklis
 export const navigation = [
   { path: '/home', label: 'Главная', icon: 'home' },
   { path: '/onboarding', label: 'Моя адаптация', icon: 'map' },
+  { path: '/events', label: 'События', icon: 'calendar' },
   { path: '/team', label: 'Моя команда', icon: 'users' },
   { path: '/tools', label: 'Инструменты и доступы', icon: 'grid' },
   { path: '/resources', label: 'Корпоративные сервисы', icon: 'layers' },
   { path: '/chat', label: 'Чат с Buddy', icon: 'sparkles' },
 ] as const;
-
-export type Event = {
-  day: string;
-  month: string;
-  title: string;
-  detail: string;
-  tone: Tone;
-  description: string;
-};
-
-const eventsByStage: Record<(typeof profiles)[ProfileId]['stageId'], Event[]> = {
-  first: [
-    {
-      day: '16',
-      month: 'НОЯ',
-      title: 'Встреча с лидом',
-      detail: 'Сегодня · 14:00–14:30',
-      tone: 'lilac',
-      description: 'Руководитель расскажет о задачах команды и обсудит твои цели на первые недели.',
-    },
-    {
-      day: '17',
-      month: 'НОЯ',
-      title: 'Кофе с наставником',
-      detail: 'Завтра · 11:00–11:30',
-      tone: 'pink',
-      description: 'Неформальное знакомство с наставником. Можно задать вопросы о команде и повседневной работе.',
-    },
-    {
-      day: '19',
-      month: 'НОЯ',
-      title: 'Знакомство с продуктом',
-      detail: 'Четверг · 15:00–16:00',
-      tone: 'blue',
-      description: 'Команда покажет пользовательские сценарии и расскажет, над чем работает сейчас.',
-    },
-  ],
-  midpoint: [
-    {
-      day: '13',
-      month: 'ФЕВ',
-      title: 'Встреча на экваторе',
-      detail: 'Сегодня · 12:00–12:30',
-      tone: 'lilac',
-      description: 'Обсуди с наставником результаты первых месяцев и цели на вторую половину стажировки.',
-    },
-  ],
-  final: [
-    {
-      day: '14',
-      month: 'МАЙ',
-      title: 'Итоговая встреча с лидом',
-      detail: 'Сегодня · 15:00–15:30',
-      tone: 'mint',
-      description: 'Подведи итоги стажировки, обсуди обратную связь и договорись о следующих шагах.',
-    },
-  ],
-};
-
-export function eventsFor(profileId: ProfileId) {
-  return eventsByStage[profiles[profileId].stageId];
-}
 
 export const services = [
   {

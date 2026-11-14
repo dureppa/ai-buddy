@@ -1,3 +1,6 @@
+import { readHrToday } from './hr-schedule';
+import { Schedule } from './EventsPage';
+import { readSchedule, scheduleKey, type ScheduleEvent } from './schedule';
 import { askBackend, backendEnabled, readBackendConversation } from './backend';
 import { StartScreen } from './StartScreen';
 import { StaffWorkspace } from './StaffWorkspace';
@@ -137,6 +140,54 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   const navigate = useNavigate();
   const section = navigation.find((item) => item.path === location.pathname);
   const [detail, setDetail] = useState<Detail | null>(null);
+  const hrToday = useQuery({
+    queryKey: ['hr-today', profileId, location.pathname],
+    queryFn: ({ signal }) => readHrToday(profileId, signal),
+    enabled: backendEnabled && ['/home', '/events'].includes(location.pathname),
+    refetchOnWindowFocus: 'always',
+    refetchInterval: 60_000,
+  });
+  const hrEvents = hrToday.data?.events ?? [];
+  const hrError = hrToday.isError || Boolean(hrToday.data?.unavailable.length);
+  const [events, setEvents] = useState(() => readSchedule(localStorage, profileId));
+  const [scheduleNow, setScheduleNow] = useState(Date.now);
+  useEffect(() => {
+    const key = scheduleKey(profileId);
+    try {
+      if (localStorage.getItem(key) === null) {
+        localStorage.setItem(key, JSON.stringify(readSchedule(localStorage, profileId)));
+      }
+    } catch {
+      // The demo schedule remains readable if storage is unavailable.
+    }
+    function syncSchedule(event: StorageEvent) {
+      if (event.key === key || event.key === null) setEvents(readSchedule(localStorage, profileId));
+    }
+    function updateTime() {
+      setScheduleNow(Date.now());
+    }
+    const timer = window.setInterval(updateTime, 15_000);
+    window.addEventListener('storage', syncSchedule);
+    window.addEventListener('focus', updateTime);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('storage', syncSchedule);
+      window.removeEventListener('focus', updateTime);
+    };
+  }, [profileId]);
+
+  function changeSchedule(next: ScheduleEvent[]) {
+    try {
+      localStorage.setItem(scheduleKey(profileId), JSON.stringify(next));
+      setEvents(next);
+      setScheduleNow(Date.now());
+      return true;
+    } catch {
+      setToast({ message: 'Не удалось сохранить расписание.', tone: 'error' });
+      return false;
+    }
+  }
+
   const [searchOpen, setSearchOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [readAlerts, setReadAlerts] = useState(false);
@@ -457,6 +508,10 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                     <Dashboard
                       profileId={profileId}
                       {...checklist}
+                      hrEvents={hrEvents}
+                      hrError={hrError}
+                      events={events}
+                      scheduleNow={scheduleNow}
                       grownStage={grownStage}
                       onGrowthEnd={() => setGrownStage(null)}
                     />
@@ -464,6 +519,18 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                 />
                 <Route path="/product-guide" element={<ProductGuide profileId={profileId} />} />
                 <Route path="/onboarding" element={<Adaptation profileId={profileId} {...checklist} />} />
+                <Route
+                  path="/events"
+                  element={
+                    <Schedule
+                      hrEvents={hrEvents}
+                      hrError={hrError}
+                      events={events}
+                      now={scheduleNow}
+                      onChange={changeSchedule}
+                    />
+                  }
+                />
                 <Route path="/team" element={<Team profileId={profileId} onOpen={setDetail} />} />
                 <Route path="/tools" element={<Tools workspace={workspace} onOpen={setDetail} />} />
                 <Route

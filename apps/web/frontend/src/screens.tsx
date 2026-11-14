@@ -1,17 +1,10 @@
+import { HrDayEvents } from './HrDayEvents';
+import type { HrToday } from './hr-schedule';
+import { eventDay, eventMonth, eventTime, upcomingEvents, type ScheduleEvent } from './schedule';
 import { InternMaterials } from './StaffWorkspace';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  eventsFor,
-  services,
-  stages,
-  type Event,
-  type Person,
-  type ProfileId,
-  type Service,
-  type Task,
-  profiles,
-} from './data';
+import { services, stages, type Person, type ProfileId, type Service, type Task, profiles } from './data';
 import { homeTasks, tasksFor } from './checklist';
 import { products, teamColleagues, teamContacts } from './demo-accounts';
 import { buddyGrowthStage, progressFor, serviceStatus, type BuddyGrowthStage, type Workspace } from './demo';
@@ -21,7 +14,7 @@ export type Detail =
   | { kind: 'task'; item: Task }
   | { kind: 'person'; item: Person }
   | { kind: 'service'; item: Service }
-  | { kind: 'event'; item: Event }
+  | { kind: 'event'; item: Pick<ScheduleEvent, 'title' | 'description'> & { detail: string } }
   | { kind: 'settings' }
   | { kind: 'survey' };
 export type OpenDetail = (detail: Detail) => void;
@@ -149,11 +142,23 @@ export function Dashboard({
   onOpen,
   onToggle,
   savingTask,
+  events,
+  hrEvents,
+  hrError,
+  scheduleNow,
   grownStage,
   onGrowthEnd,
-}: ChecklistProps & { grownStage: BuddyGrowthStage | null; onGrowthEnd: () => void }) {
+}: ChecklistProps & {
+  events: ScheduleEvent[];
+  scheduleNow: number;
+  hrEvents: HrToday['events'];
+  hrError: boolean;
+  grownStage: BuddyGrowthStage | null;
+  onGrowthEnd: () => void;
+}) {
   const profile = profiles[profileId];
   const product = products[profile.productId];
+  const nextEvents = upcomingEvents(events, scheduleNow).slice(0, 3);
   const dashboardTasks = homeTasks(profileId);
   const allDone = progressFor(workspace).remaining === 0;
   const growthStage = buddyGrowthStage(profileId, workspace);
@@ -218,24 +223,36 @@ export function Dashboard({
         </section>
         <section className="panel events-panel">
           <SectionTitle title="Ближайшие события">
-            <Icon name="calendar" size={19} />
+            <Link className="text-link" to="/events" aria-label="Открыть расписание">
+              <Icon name="calendar" size={19} />
+            </Link>
           </SectionTitle>
+          <HrDayEvents events={hrEvents} error={hrError} />
+          {!nextEvents.length && !hrEvents.length && !hrError && <p>Ближайших событий нет.</p>}
           <ul className="event-list">
-            {eventsFor(profileId).map((event) => (
-              <li key={event.title}>
-                <button type="button" className="event-row" onClick={() => onOpen({ kind: 'event', item: event })}>
-                  <span className={'event-date tone-' + event.tone}>
-                    <strong>{event.day}</strong>
-                    <small>{event.month}</small>
-                  </span>
-                  <span>
-                    <strong>{event.title}</strong>
-                    <small>{event.detail}</small>
-                  </span>
-                  <Icon name="chevron" size={16} />
-                </button>
-              </li>
-            ))}
+            {nextEvents.map((event) => {
+              const date = new Date(event.startsAt);
+              const detail = eventDay.format(date) + ' · ' + eventTime.format(date);
+              return (
+                <li key={event.id}>
+                  <button
+                    type="button"
+                    className="event-row"
+                    onClick={() => onOpen({ kind: 'event', item: { ...event, detail } })}
+                  >
+                    <span className={'event-date tone-' + event.tone}>
+                      <strong>{date.getDate()}</strong>
+                      <small>{eventMonth.format(date).replace('.', '')}</small>
+                    </span>
+                    <span>
+                      <strong>{event.title}</strong>
+                      <small>{detail}</small>
+                    </span>
+                    <Icon name="chevron" size={16} />
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </section>
       </div>
