@@ -243,4 +243,125 @@ export function teamContacts(profileId: ProfileId) {
   return [manager, mentor].map((id) => ({ ...staffAccounts[id], id }));
 }
 
-export type Person = ReturnType<typeof teamContacts>[number];
+type TeamContact = ReturnType<typeof teamContacts>[number];
+type Colleague = {
+  id: string;
+  name: string;
+  initials: string;
+  position: string;
+  bio: string;
+  contact: string;
+};
+
+const colleagues: Record<ProductId, readonly Colleague[]> = {
+  delivery: [
+    {
+      id: 'delivery-alina',
+      name: 'Алина Котова',
+      initials: 'АК',
+      position: 'Аналитик данных',
+      bio: 'Ведёт дашборд воронки доставки и подскажет, где найти события оформления заказа.',
+      contact: 'alina@delivery.example',
+    },
+    {
+      id: 'delivery-denis',
+      name: 'Денис Власов',
+      initials: 'ДВ',
+      position: 'Бэкенд-разработчик',
+      bio: 'Поддерживает расчёт сроков и стоимости доставки. Подскажет, как формируются статусы заказа.',
+      contact: 'denis@delivery.example',
+    },
+    {
+      id: 'delivery-vera',
+      name: 'Вера Никифорова',
+      initials: 'ВН',
+      position: 'Продуктовый дизайнер',
+      bio: 'Проектирует оформление заказа и покажет, какие варианты проверяли в экспериментах.',
+      contact: 'vera@delivery.example',
+    },
+  ],
+  travel: [
+    {
+      id: 'travel-artem',
+      name: 'Артём Сидоров',
+      initials: 'АС',
+      position: 'Бэкенд-разработчик',
+      bio: 'Развивает календарь доступности жилья. Поможет воспроизвести бронирование на тестовом стенде.',
+      contact: 'artem@travel.example',
+    },
+    {
+      id: 'travel-polina',
+      name: 'Полина Захарова',
+      initials: 'ПЗ',
+      position: 'Инженер по тестированию',
+      bio: 'Проверяет подтверждение и отмену брони. Поделится тестовыми сценариями и данными.',
+      contact: 'polina@travel.example',
+    },
+    {
+      id: 'travel-kirill',
+      name: 'Кирилл Смирнов',
+      initials: 'КС',
+      position: 'Фронтенд-разработчик',
+      bio: 'Отвечает за форму бронирования и объяснит, как интерфейс обрабатывает ошибки API.',
+      contact: 'kirill@travel.example',
+    },
+  ],
+  autoteca: [
+    {
+      id: 'autoteca-oleg',
+      name: 'Олег Фёдоров',
+      initials: 'ОФ',
+      position: 'Инженер данных',
+      bio: 'Загружает и нормализует данные об автомобилях. Подскажет, откуда берутся поля в тестовом отчёте.',
+      contact: 'oleg@autoteca.example',
+    },
+    {
+      id: 'autoteca-ksenia',
+      name: 'Ксения Романова',
+      initials: 'КР',
+      position: 'Инженер по автоматизации тестирования',
+      bio: 'Поддерживает автотесты поиска по VIN и госномеру. Покажет, как запускать проверки и читать отчёты.',
+      contact: 'ksenia@autoteca.example',
+    },
+    {
+      id: 'autoteca-maksim',
+      name: 'Максим Егоров',
+      initials: 'МЕ',
+      position: 'Фронтенд-разработчик',
+      bio: 'Разрабатывает интерфейс отчёта. Поможет разобраться, где возникает ошибка отображения данных.',
+      contact: 'maksim@autoteca.example',
+    },
+  ],
+  help: [
+    {
+      id: 'help-yulia',
+      name: 'Юлия Миронова',
+      initials: 'ЮМ',
+      position: 'Редактор',
+      bio: 'Готовит тексты страниц инициатив. Поможет сформулировать условия участия и действия на кнопках.',
+      contact: 'yulia@help.example',
+    },
+    {
+      id: 'help-nikita',
+      name: 'Никита Андреев',
+      initials: 'НА',
+      position: 'Фронтенд-разработчик',
+      bio: 'Собирает страницы инициатив. Обсудит с тобой адаптивность макетов и подскажет, какие компоненты уже есть.',
+      contact: 'nikita@help.example',
+    },
+    {
+      id: 'help-elena',
+      name: 'Елена Громова',
+      initials: 'ЕГ',
+      position: 'Координатор социальных проектов',
+      bio: 'Общается с организаторами и подскажет, что важно показать участникам на странице проекта.',
+      contact: 'elena@help.example',
+    },
+  ],
+};
+
+export type Person = TeamContact | (Colleague & { tone: 'paper'; role: 'Коллега'; avatar?: never });
+
+export function teamColleagues(profileId: ProfileId): Person[] {
+  return colleagues[profiles[profileId].productId].map((person) => ({ ...person, tone: 'paper', role: 'Коллега' }));
+}
