@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   answerBuddy,
+  buddyGrowthStage,
   confirmAccess,
   progressFor,
   readWorkspace,
@@ -18,6 +19,34 @@ function memory(): Memory {
   const data = new Map<string, string>();
   return { data, getItem: (key) => data.get(key) ?? null, setItem: (key, value) => void data.set(key, value) };
 }
+
+describe('Buddy growth on the dashboard', () => {
+  it('shows the matching age for the demo profiles', () => {
+    const storage = memory();
+    expect(buddyGrowthStage('olga', readWorkspace(storage, 'olga'))).toBe('baby');
+    expect(buddyGrowthStage('timur', readWorkspace(storage, 'timur'))).toBe('baby');
+    expect(buddyGrowthStage('sasha', readWorkspace(storage, 'sasha'))).toBe('young');
+    expect(buddyGrowthStage('maria', readWorkspace(storage, 'maria'))).toBe('adult');
+  });
+
+  it('requires the midpoint milestone and an actual 85% completion for the adult form', () => {
+    const storage = memory();
+    const young = toggleTask(storage, 'olga', 'equator-meeting');
+    expect(buddyGrowthStage('olga', young)).toBe('young');
+    expect(buddyGrowthStage('olga', readWorkspace(storage, 'olga'))).toBe('young');
+
+    const otherIds = tasksFor('olga')
+      .map(({ id }) => id)
+      .filter((id) => id !== 'equator-meeting');
+    const threshold = Math.ceil((otherIds.length + 1) * 0.85);
+    const completed = ['equator-meeting', ...otherIds.slice(0, threshold - 2)];
+    expect(buddyGrowthStage('olga', { ...young, completed })).toBe('young');
+
+    completed.push(otherIds[threshold - 2]);
+    expect(buddyGrowthStage('olga', { ...young, completed })).toBe('adult');
+    expect(buddyGrowthStage('olga', { ...young, completed: otherIds })).toBe('baby');
+  });
+});
 
 describe('AI-buddy demo workspace', () => {
   it('opens the final profile with a finished checklist and a saved request', () => {

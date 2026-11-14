@@ -9,6 +9,9 @@ import dariaAvatar from './assets/avatars/avatar-9.webp';
 import mikhailAvatar from './assets/avatars/avatar-10.webp';
 import timurAvatar from './assets/avatars/avatar-8.webp';
 import buddy from './assets/buddy.webp';
+import buddyBaby from './assets/buddy-baby.webp';
+import buddyAdult from './assets/buddy-adult.webp';
+import type { BuddyGrowthStage } from './demo';
 import alexanderAvatar from './assets/avatars/profile-alexander.webp';
 import mariaAvatar from './assets/avatars/profile-maria.webp';
 import olgaAvatar from './assets/avatars/profile-olga.webp';
@@ -100,13 +103,37 @@ export function Avatar({
 
 export type Mood = 'happy' | 'thinking' | 'surprised' | 'supportive' | 'celebrating';
 
-export function Buddy({ mood = 'happy', compact = false }: { mood?: Mood; compact?: boolean }) {
+const buddyImages = { baby: buddyBaby, young: buddy, adult: buddyAdult };
+
+export function Buddy({
+  mood = 'happy',
+  compact = false,
+  growthStage,
+  onGrowthEnd,
+}: {
+  mood?: Mood;
+  compact?: boolean;
+  growthStage?: BuddyGrowthStage;
+  onGrowthEnd?: () => void;
+}) {
   const symbols = { happy: '', thinking: '···', surprised: '!', supportive: '♥', celebrating: '✦' };
   return (
     <span className={'buddy buddy--' + mood + (compact ? ' buddy--compact' : '')} aria-hidden="true">
-      <img src={buddy} alt="" draggable="false" />
-      <span className="buddy__lid buddy__lid--left" />
-      <span className="buddy__lid buddy__lid--right" />
+      <img
+        key={growthStage}
+        src={growthStage ? buddyImages[growthStage] : buddy}
+        alt=""
+        draggable="false"
+        data-growth-stage={growthStage}
+        className={onGrowthEnd ? 'buddy__growth' : undefined}
+        onAnimationEnd={onGrowthEnd}
+      />
+      {!growthStage && (
+        <>
+          <span className="buddy__lid buddy__lid--left" />
+          <span className="buddy__lid buddy__lid--right" />
+        </>
+      )}
       {symbols[mood] && <span className="buddy__emotion">{symbols[mood]}</span>}
     </span>
   );

@@ -90,6 +90,17 @@ export function progressFor(workspace: Workspace) {
   return { completed, remaining: catalog.length - completed, percent: Math.round((completed / catalog.length) * 100) };
 }
 
+export type BuddyGrowthStage = 'baby' | 'young' | 'adult';
+
+export function buddyGrowthStage(profile: ProfileId, workspace: Workspace): BuddyGrowthStage {
+  const stage = profiles[profile].stageId;
+  if (stage === 'final') return 'adult';
+  if (stage === 'first' && !workspace.completed.includes('equator-meeting')) return 'baby';
+
+  const { completed, remaining } = progressFor(workspace);
+  return completed * 100 >= (completed + remaining) * 85 ? 'adult' : 'young';
+}
+
 export function toggleTask(storage: StoragePort, profile: ProfileId, taskId: string): Workspace {
   const workspace = readWorkspace(storage, profile);
   if (!tasksFor(profile).some((task) => task.id === taskId)) throw new Error('Задача недоступна.');
