@@ -211,9 +211,7 @@ svg {
   letter-spacing: -0.065em;
 }
 .sidebar__profile strong,
-.sidebar__profile small,
-.sidebar-buddy strong,
-.sidebar-buddy small {
+.sidebar__profile small {
   display: block;
 }
 .sidebar__profile strong {
@@ -267,38 +265,34 @@ svg {
   display: grid;
   gap: 13px;
 }
-.sidebar-buddy {
+.sidebar-question {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   width: 100%;
   text-align: left;
   border: 0;
   border-radius: 15px;
   background: #eaf5e5;
-  padding: 12px 9px;
+  padding: 12px 10px;
+  color: #21452b;
+  font-size: 12.5px;
+  font-weight: 710;
+  line-height: 1.35;
   transition:
     background-color var(--motion),
     transform var(--motion);
 }
-.sidebar-buddy:hover {
+.sidebar-question:hover {
   background: #def3d8;
   transform: translateY(-2px);
 }
-.sidebar-buddy .buddy {
-  width: 40px;
+.sidebar-question:active {
+  transform: scale(0.98);
 }
-.sidebar-buddy > svg {
-  margin-left: auto;
-  color: #4d6850;
-}
-.sidebar-buddy strong {
-  font-size: 12px;
-}
-.sidebar-buddy small {
-  font-size: 11px;
-  color: #46604c;
-  margin-top: 3px;
+.sidebar-question svg {
+  flex: none;
+  margin-top: 1px;
 }
 .topbar {
   height: 72px;
@@ -1280,6 +1274,10 @@ svg {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-bottom: 23px;
 }
+.people-grid--colleagues {
+  margin-top: 20px;
+}
+
 .people-grid--featured {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -1978,6 +1976,36 @@ svg {
 }
 .radio-row input {
   accent-color: #338348;
+}
+.question-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+}
+.question-form textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 112px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--background);
+  color: var(--ink);
+  resize: vertical;
+}
+.question-form textarea:focus {
+  outline: 2px solid #9af57c;
+  outline-offset: 1px;
+}
+.question-error {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: #ffebed;
+  color: #7a263b;
+  font-size: 13px;
 }
 .button-row {
   display: flex;

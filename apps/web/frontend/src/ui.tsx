@@ -1,3 +1,15 @@
+import delivery_alina from './assets/avatars/delivery-alina.webp';
+import delivery_denis from './assets/avatars/delivery-denis.webp';
+import delivery_vera from './assets/avatars/delivery-vera.webp';
+import travel_artem from './assets/avatars/travel-artem.webp';
+import travel_polina from './assets/avatars/travel-polina.webp';
+import travel_kirill from './assets/avatars/travel-kirill.webp';
+import autoteca_oleg from './assets/avatars/autoteca-oleg.webp';
+import autoteca_ksenia from './assets/avatars/autoteca-ksenia.webp';
+import autoteca_maksim from './assets/avatars/autoteca-maksim.webp';
+import help_yulia from './assets/avatars/help-yulia.webp';
+import help_nikita from './assets/avatars/help-nikita.webp';
+import help_elena from './assets/avatars/help-elena.webp';
 import { useEffect, useRef, type ReactNode } from 'react';
 import annaAvatar from './assets/avatars/avatar-7.webp';
 import alexeyAvatar from './assets/avatars/profile-alexey.webp';
@@ -18,6 +30,19 @@ import olgaAvatar from './assets/avatars/profile-olga.webp';
 import type { AvatarVariant, Tone } from './data';
 
 const avatarSources: Record<AvatarVariant, string> = {
+  'delivery-alina': delivery_alina,
+  'delivery-denis': delivery_denis,
+  'delivery-vera': delivery_vera,
+  'travel-artem': travel_artem,
+  'travel-polina': travel_polina,
+  'travel-kirill': travel_kirill,
+  'autoteca-oleg': autoteca_oleg,
+  'autoteca-ksenia': autoteca_ksenia,
+  'autoteca-maksim': autoteca_maksim,
+  'help-yulia': help_yulia,
+  'help-nikita': help_nikita,
+  'help-elena': help_elena,
+
   olga: olgaAvatar,
   alexander: alexanderAvatar,
   maria: mariaAvatar,
