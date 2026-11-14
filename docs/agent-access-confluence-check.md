@@ -8,17 +8,18 @@ Python из uv.lock. Новых зависимостей нет. Ожидаем�
 `TEST_DATABASE_URL=... JIRA_TEST_DATABASE_URL=... just check`:
 
 - Jira `go vet`, `go test -race` — успешно.
-- `just frontend-check` — формат, ESLint, TypeScript, 107 тестов трёх workspace,
+- `just frontend-check` — формат, ESLint, TypeScript, 111 тестов трёх workspace,
   сборка веба, расширения и всех корпоративных сайтов, включая Confluence — успешно.
-- `just python-check` — locked sync, Ruff, mypy, 410 pytest — успешно.
+- `just python-check` — locked sync, Ruff, mypy, 424 pytest — успешно.
 - `just go-check` — gofmt, vet, все тесты, race, coverage — успешно.
   Portal на первом полном прогоне: 84.9% statements.
 - HR consents race и repository checks — успешно.
 - `compose-check` не запущен: в среде отсутствует команда docker. Проверку
   конфигураций Compose выполняет repository job CI; контейнерная сборка локально не проверялась.
 
-После последней правки подтверждений и выбора старых заявок повторно выполнены
-`go test -race ./internal/portal ./internal/ai` с PostgreSQL. Добавлена регрессия:
+После последней правки и объединения свежего main полный `just check` повторён
+с тем же результатом (остановка только на отсутствующем Docker). Проверены
+rollback/reapply миграции без удаления профилей и регрессия:
 решение по заявке старше последних 100 записей остаётся доступным по id.
 
 ## Сквозной сценарий по TCP
@@ -27,6 +28,8 @@ Python из uv.lock. Новых зависимостей нет. Ожидаем�
 PostgreSQL со всеми миграциями и seed. Модель заменена управляемым ответчиком:
 get_access_catalog → submit_access_request. Ни ключ провайдера, ни реальная LLM
 не использовались; это проверка интеграции, не оценка качества модели.
+
+Повторный прогон после объединения main также прошёл.
 
 1. Демосессия Ольги → POST chat/messages с явным «Оформи доступ…», DWH,
    delivery.orders_mart, read, 30 дней, рабочее обоснование и цель исследования.
