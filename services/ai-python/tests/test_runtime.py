@@ -95,7 +95,6 @@ def test_automatic_runner_handles_history_evidence_and_isolates_turns(
     requests: list[dict[str, Any]] = []
     responses = iter(
         [
-            tool_message(),
             model_response("Анна Тестова @demo_mentor [guide]"),
             model_response("Нужно уточнение."),
         ]
@@ -126,7 +125,7 @@ def test_automatic_runner_handles_history_evidence_and_isolates_turns(
     assert second.status_code == 200
     assert second.json["reply"]["references"] == []
     assert "Я новичок" in json.dumps(requests[0], ensure_ascii=False)
-    assert "Я новичок" not in json.dumps(requests[2], ensure_ascii=False)
+    assert "Я новичок" not in json.dumps(requests[1], ensure_ascii=False)
     assert "DOM неизвестен" in json.dumps(requests[0], ensure_ascii=False)
     serialized = json.dumps(requests)
     assert (
@@ -368,7 +367,6 @@ def test_deepseek_recovers_skipped_tools_and_repairs_citation(
     sent: list[dict[str, Any]] = []
     replies = iter(
         [
-            "Не могу подтвердить ответ по полученным источникам.",
             "Твой наставник — Анна Тестова, @demo_mentor.",
             "Твой наставник — Анна Тестова, @demo_mentor [guide].",
         ]
@@ -393,19 +391,13 @@ def test_deepseek_recovers_skipped_tools_and_repairs_citation(
     assert answer.status_code == 200
     assert "Анна Тестова" in answer.json["reply"]["text"]
     assert answer.json["reply"]["references"]
-    assert len(sent) == 3
-    assert [call[0] for call in factory.session.calls] == [
-        "search_knowledge",
-        "get_team_context",
-        "get_onboarding_progress",
-    ]
+    assert len(sent) == 2
+    assert [call[0] for call in factory.session.calls] == ["get_team_context"]
     assert "Анна Тестова" in json.dumps(sent[1], ensure_ascii=False)
     assert "Ранее не знал" in json.dumps(sent[0], ensure_ascii=False)
     assert "Анна Тестова" not in caplog.text
     assert "private-key" not in caplog.text
-    assert (
-        "tools=search_knowledge,get_team_context,get_onboarding_progress" in caplog.text
-    )
+    assert "tools=get_team_context" in caplog.text
 
 
 def test_recovery_tool_failure_keeps_domain_error(

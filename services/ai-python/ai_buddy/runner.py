@@ -56,7 +56,7 @@ class DirectRunner:
             raise
         finally:
             self.logger.info(
-                "ai_turn request_id=%s provider=%s model=%s prompt=onboarding-v3 model_calls=%d tool_calls=%d guard_count=%d outcome=%s seconds=%.3f tools=%s guards=%s",
+                "ai_turn request_id=%s provider=%s model=%s prompt=onboarding-v4-focused model_calls=%d tool_calls=%d guard_count=%d outcome=%s seconds=%.3f tools=%s guards=%s",
                 context.request_id,
                 self.settings.llm_provider,
                 self.settings.model_name,
@@ -101,7 +101,7 @@ def present_answer(state: Trace) -> str:
             token = CITATION.sub(
                 lambda match: "" if match[1] in state.sources else match[0], token
             )
-            token = re.sub(r"[ \t]+([,.;!?])", r"\1", token)
+            token = re.sub(r"[ \t]+([,.;!?:])", r"\1", token)
             tokens[token_index] = re.sub(r"[ \t]{2,}", " ", token)
         parts[index] = "".join(tokens)
     return "".join(parts).strip() or "Подробности — в источниках ниже."
