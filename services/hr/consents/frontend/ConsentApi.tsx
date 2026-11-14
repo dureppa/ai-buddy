@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { apiFetch } from '../../../../apps/web/frontend/src/backend';
-import type { ProfileId } from '../../../../apps/web/frontend/src/data';
+import { profiles, type ProfileId } from '../../../../apps/web/frontend/src/data';
+
+import { Avatar, Icon, PageIntro } from '../../../../apps/web/frontend/src/ui';
+import { consentsService } from './meta';
 
 const consentsSchema = z.array(
   z.object({ purpose: z.string(), title: z.string(), description: z.string(), granted: z.boolean() }),
 );
-export function ConsentApi({ profileId }: { profileId: ProfileId }) {
+type ProfileProps = { profileId: ProfileId; onProfileChange: (id: ProfileId) => void };
+
+export function ConsentApi({ profileId, onProfileChange }: ProfileProps) {
   const [items, setItems] = useState<z.infer<typeof consentsSchema>>([]);
   const [pending, setPending] = useState(true);
   const [error, setError] = useState('');
@@ -48,29 +53,143 @@ export function ConsentApi({ profileId }: { profileId: ProfileId }) {
     }
   }
   return (
-    <section className="panel hr-panel">
-      <h2>Учебные согласия</h2>
-      <p>Изменения сохраняются для выбранного демопрофиля. Согласие можно отозвать.</p>
-      {pending && <p role="status">Загружаем…</p>}
-      {error && <p role="alert">{error}</p>}
-      {notice && <p role="status">{notice}</p>}
-      {items.map((item) => (
-        <div className="hr-option" key={item.purpose}>
-          <span>
-            <strong>{item.title}</strong>
-            <small>
-              {item.description} {item.granted ? 'Согласие дано.' : 'Согласие не дано.'}
-            </small>
-          </span>
-          <button
-            className="button button--white"
-            disabled={pending || Boolean(error)}
-            onClick={() => void toggle(item.purpose, !item.granted)}
-          >
-            {item.granted ? 'Отозвать' : 'Разрешить'}
-          </button>
-        </div>
-      ))}
-    </section>
+    <ConsentPageView
+      profileId={profileId}
+      onProfileChange={onProfileChange}
+      items={items}
+      pending={pending}
+      error={error}
+      notice={notice}
+      onToggle={(purpose, granted) => void toggle(purpose, granted)}
+    />
+  );
+}
+
+export function ConsentPageView({
+  profileId,
+  onProfileChange,
+  items,
+  pending,
+  error,
+  notice,
+  onToggle,
+}: ProfileProps & {
+  items: z.infer<typeof consentsSchema>;
+  pending: boolean;
+  error: string;
+  notice: string;
+  onToggle: (purpose: string, granted: boolean) => void;
+}) {
+  const profile = profiles[profileId];
+  return (
+    <main className="hr-page">
+      <PageIntro
+        title={consentsService.title}
+        text={consentsService.description}
+        tone={consentsService.tone}
+        icon={consentsService.icon}
+      />
+      <div className="hr-layout">
+        <section className="panel hr-panel">
+          <div className="section-title">
+            <h2>Доступные согласия</h2>
+          </div>
+          <p className="hr-note">Управляй дополнительными согласиями. Любое из них можно отозвать.</p>
+          {pending && <p role="status">Загружаем…</p>}
+          {error && (
+            <p className="hr-feedback hr-feedback--error" role="alert">
+              {error}
+            </p>
+          )}
+          {notice && (
+            <p className="hr-feedback" role="status">
+              <Icon name="check" size={18} />
+              {notice}
+            </p>
+          )}
+          <div className="hr-options">
+            {items.map((item) => (
+              <div className="hr-option" key={item.purpose}>
+                <span>
+                  <strong>{item.title}</strong>
+                  <small>
+                    {item.description} {item.granted ? 'Согласие дано.' : 'Согласие не дано.'}
+                  </small>
+                </span>
+                <button
+                  className="button button--white"
+                  type="button"
+                  aria-label={(item.granted ? 'Отозвать: ' : 'Разрешить: ') + item.title}
+                  disabled={pending || Boolean(error)}
+                  onClick={() => onToggle(item.purpose, !item.granted)}
+                >
+                  {item.granted ? 'Отозвать' : 'Разрешить'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+        <aside className="hr-aside" aria-label="Профиль и согласия">
+          <section className={'hr-metric tone-' + consentsService.tone}>
+            <div className="hr-metric__account">
+              <Avatar initials={profile.initials} avatar={profile.avatar} />
+              <span>
+                <strong>{profile.fullName}</strong>
+                <small>Демопрофиль</small>
+              </span>
+            </div>
+            <div className="hr-form hr-profile-switch">
+              <label>
+                Демопрофиль
+                <select
+                  value={profileId}
+                  disabled={pending}
+                  onChange={(event) => onProfileChange(event.target.value as ProfileId)}
+                >
+                  {(['olga', 'sasha', 'maria'] as const).map((id) => (
+                    <option key={id} value={id}>
+                      {profiles[id].fullName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <small>Выбери тот же профиль, что и в AI Buddy.</small>
+            </div>
+            <span className="hr-metric__value">
+              {pending || error ? '—' : items.filter((item) => item.granted).length + ' из ' + items.length}
+            </span>
+            <p>
+              {pending
+                ? 'Обновляем состояние согласий'
+                : error
+                  ? 'Состояние пока не подтверждено'
+                  : 'Дополнительных согласий дано'}
+            </p>
+          </section>
+          <section className="panel hr-panel">
+            <div className="section-title">
+              <h2>Сохранённое состояние</h2>
+            </div>
+            {pending ? (
+              <p className="hr-note">Загружаем согласия…</p>
+            ) : error ? (
+              <p className="hr-note">Не удалось получить актуальное состояние.</p>
+            ) : (
+              <ul className="hr-history">
+                {items.map((item) => (
+                  <li key={item.purpose}>
+                    <Icon name={item.granted ? 'check' : 'info'} size={16} />
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>{item.granted ? 'Согласие дано' : 'Согласие не дано'}</small>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </aside>
+      </div>
+    </main>
   );
 }
