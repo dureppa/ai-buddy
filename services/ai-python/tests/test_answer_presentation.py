@@ -45,3 +45,14 @@ def test_code_preserved_and_empty_presentation_has_readable_fallback() -> None:
         present_answer(Trace(answer="[guide]", sources={"guide": "/guide"}))
         == "Подробности — в источниках ниже."
     )
+
+
+def test_citation_removed_before_colon_does_not_leave_extra_space() -> None:
+    assert (
+        present_answer(
+            Trace(
+                answer="Следующий шаг [guide] : документы.", sources={"guide": "/guide"}
+            )
+        )
+        == "Следующий шаг: документы."
+    )
