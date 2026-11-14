@@ -9,7 +9,8 @@ import {
   type AccessDraft,
   type StoragePort,
 } from './demo';
-import { services, tasks } from './data';
+import { resourcesFor, services, tasks } from './data';
+import { products, profiles, staffAccounts } from './demo-accounts';
 
 type Memory = StoragePort & { data: Map<string, string> };
 function memory(): Memory {
@@ -75,6 +76,9 @@ describe('AI-buddy demo workspace', () => {
     expect(reply.kind).toBe('answer');
     expect(reply.lines).toHaveLength(2);
     expect(reply.lines?.[0]).toContain('Алексей');
+    const combined = answerBuddy('Кто мой лид и где почитать о продукте?', readWorkspace(storage, 'olga'), 'olga');
+    expect(combined.lines?.[0]).toContain('Алексей');
+    expect(combined.link?.to).toBe('/resources?article=product');
   });
 
   it('returns references for document and HR questions', () => {
@@ -136,5 +140,23 @@ describe('AI-buddy demo workspace', () => {
     ).toBe('submitted');
     const complete = { completed: tasks.map((task) => task.id), requests: [] };
     expect(progressFor(complete)).toEqual({ completed: tasks.length, remaining: 0, percent: 100 });
+  });
+  it.each(Object.values(products))('uses $name and its team and role in demo answers and materials', (product) => {
+    const id = product.intern;
+    const workspace = readWorkspace(memory(), id);
+    const firstSteps = answerBuddy('С чего начать?', workspace, id);
+    expect(firstSteps.text).toContain(product.name);
+    expect(firstSteps.text).toContain(product.team);
+    expect(firstSteps.text).toContain(profiles[id].position.toLowerCase());
+    expect(firstSteps.text).toContain(product.firstStep);
+
+    const contacts = answerBuddy('Кто мой наставник?', workspace, id);
+    expect(contacts.lines?.join(' ')).toContain(staffAccounts[product.mentor].name);
+    expect(contacts.lines?.join(' ')).toContain(staffAccounts[product.manager].name);
+    expect(contacts.lines).toHaveLength(2);
+    expect(resourcesFor(id).find((resource) => resource.id === 'product')?.body).toContain(product.firstStep);
+    expect(resourcesFor(id).find((resource) => resource.id === 'contacts')?.body).toContain(
+      staffAccounts[product.mentor].name,
+    );
   });
 });

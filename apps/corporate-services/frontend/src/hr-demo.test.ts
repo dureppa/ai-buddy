@@ -33,8 +33,9 @@ describe('HR demo', () => {
     const olga = makeHrDemo(saved, 'olga', today);
     const sasha = makeHrDemo(saved, 'sasha', today);
     const maria = makeHrDemo(saved, 'maria', today);
+    const timur = makeHrDemo(saved, 'timur', today);
     const start = olga.read().earliestVacation;
-    expect([olga, sasha, maria].map((demo) => demo.read().vacationLeft)).toEqual([7, 16, 24]);
+    expect([olga, sasha, timur, maria].map((demo) => demo.read().vacationLeft)).toEqual([7, 16, 10, 24]);
     expect(olga.submit({ service: 'absences', start: today, end: start }).ok).toBe(false);
     expect(olga.submit({ service: 'absences', start, end: addDays(start, 7) }).ok).toBe(false);
     expect(olga.submit({ service: 'absences', start, end: addDays(start, 1) }).ok).toBe(true);

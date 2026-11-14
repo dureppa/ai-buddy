@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { readWorkspace, toggleTask } from './demo';
+import { products } from './demo-accounts';
+import { demoSessionKey } from './demo-session';
 import {
-  accountStorageKey,
+  materialsKey,
   internOverview,
   materialsFor,
   readMaterials,
@@ -28,19 +30,22 @@ const input: MaterialInput = {
 describe('staff workspace', () => {
   it('recognizes only staff accounts and limits the roster by role', () => {
     const storage = memoryStorage();
-    storage.setItem(accountStorageKey, 'olga');
+    storage.setItem(demoSessionKey, 'olga');
     expect(readStaffId(storage)).toBeNull();
-    storage.setItem(accountStorageKey, 'mentor');
+    storage.setItem(demoSessionKey, 'mentor');
     expect(readStaffId(storage)).toBe('mentor');
-    expect(internOverview(storage, 'mentor').map((intern) => intern.profile.id)).toEqual(['olga', 'sasha']);
-    expect(internOverview(storage, 'manager').map((intern) => intern.profile.id)).toEqual(['olga', 'sasha', 'maria']);
+    for (const { intern, mentor, manager } of Object.values(products)) {
+      expect(internOverview(storage, mentor).map(({ id }) => id)).toEqual([intern]);
+      expect(internOverview(storage, manager).map(({ id }) => id)).toEqual([intern]);
+    }
   });
 
   it('reads current progress, nearest step and access request details', () => {
     const storage = memoryStorage();
     const before = readWorkspace(storage, 'olga').completed.length;
     toggleTask(storage, 'olga', 'papers');
-    const [olga, , maria] = internOverview(storage, 'manager');
+    const [olga] = internOverview(storage, 'manager');
+    const [maria] = internOverview(storage, 'help-manager');
     expect(olga.progress.completed).toBe(before + 1);
     expect(olga.next?.id).toBe('intro');
     expect(maria.requests[0]).toMatchObject({ number: 'Д-001', title: 'Grafana' });
@@ -55,9 +60,9 @@ describe('staff workspace', () => {
     expect(materialsFor(storage, 'maria')).toEqual([]);
     expect(() => saveMaterial(storage, 'manager', input, material.id)).toThrow();
     expect(() => removeMaterial(storage, 'manager', material.id)).toThrow();
-    saveMaterial(storage, 'mentor', { ...input, title: 'Обновлённый гайд', audience: ['sasha'] }, material.id);
-    expect(materialsFor(storage, 'olga')).toEqual([]);
-    expect(materialsFor(storage, 'sasha')[0].title).toBe('Обновлённый гайд');
+    saveMaterial(storage, 'mentor', { ...input, title: 'Обновлённый гайд' }, material.id);
+    expect(materialsFor(storage, 'sasha')).toEqual([]);
+    expect(materialsFor(storage, 'olga')[0].title).toBe('Обновлённый гайд');
     removeMaterial(storage, 'mentor', material.id);
     expect(readMaterials(storage)).toEqual([]);
   });
@@ -69,8 +74,15 @@ describe('staff workspace', () => {
       saveMaterial(storage, 'manager', { ...input, source: { kind: 'link', href: 'javascript:alert(1)' } }),
     ).toThrow();
     const source = { kind: 'file', name: 'guide.txt', href: 'data:text/plain;base64,dGVzdA==' } as const;
-    saveMaterial(storage, 'manager', { ...input, source, audience: ['olga', 'olga', 'maria'] });
+    saveMaterial(storage, 'help-manager', { ...input, source, audience: ['maria', 'maria'] });
     expect(materialsFor(storage, 'maria')[0].source).toEqual(source);
-    expect(readMaterials(storage)[0].audience).toEqual(['olga', 'maria']);
+    expect(readMaterials(storage)[0].audience).toEqual(['maria']);
+  });
+  it('keeps older publications visible only to the author’s current team', () => {
+    const storage = memoryStorage();
+    const legacy = { ...input, id: 'old', author: 'mentor', audience: ['olga', 'sasha'] };
+    storage.setItem(materialsKey, JSON.stringify([legacy, { ...legacy, id: 'other', audience: ['sasha'] }]));
+    expect(materialsFor(storage, 'olga')).toEqual([{ ...legacy, audience: ['olga'] }]);
+    expect(materialsFor(storage, 'sasha')).toEqual([]);
   });
 });

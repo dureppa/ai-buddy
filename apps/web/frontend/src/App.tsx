@@ -1,9 +1,11 @@
-import { StaffEntry } from './StaffWorkspace';
+import { StartScreen } from './StartScreen';
+import { StaffWorkspace } from './StaffWorkspace';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { ChatPage, ChatWindow, type ChatEntry, type DraftState } from './Chat';
-import { navigation, people, profiles, resources, services, tasks, type ProfileId } from './data';
+import { navigation, resources, resourcesFor, services, tasks } from './data';
+import { isStaffId, products, profiles, teamContacts, type ProfileId } from './demo-accounts';
 import {
   answerBuddy,
   confirmAccess,
@@ -22,7 +24,6 @@ import { CorporateDirectory } from './CorporateDirectory';
 
 const searchItems = [
   ...navigation.map((item) => ({ label: item.label, detail: 'Раздел', to: item.path })),
-  ...people.map((person) => ({ label: person.name, detail: person.role, to: '/team?person=' + person.id })),
   ...services.map((service) => ({
     label: service.title,
     detail: service.category,
@@ -40,55 +41,16 @@ const searchItems = [
 type Toast = { message: string; tone: 'success' | 'error' };
 const delay = (milliseconds: number) => new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
 
-function StartScreen({ onSelect }: { onSelect: (id: ProfileId) => void }) {
-  return (
-    <main className="start-screen">
-      <section className="start-card" aria-labelledby="start-title">
-        <div className="start-card__intro">
-          <div className="start-brand">
-            <span className="brand-mark">
-              <i />
-              <i />
-            </span>
-            <span>AI-buddy</span>
-          </div>
-          <span className="start-eyebrow">Hack&amp;Change 2026</span>
-          <h1 id="start-title">Решение хакатона от команды «Без негатива»</h1>
-          <p className="start-card__lead">
-            AI-buddy помогает стажёру освоиться в новой команде, пройти этапы адаптации и найти следующий шаг.
-          </p>
-          <div className="start-card__buddy">
-            <Buddy mood="happy" />
-          </div>
-        </div>
-        <div className="start-card__profiles">
-          <div className="start-card__heading">
-            <h2>Выберите тестового пользователя</h2>
-          </div>
-          <div className="start-profiles">
-            {Object.values(profiles).map((profile) => (
-              <button type="button" className="start-profile" key={profile.id} onClick={() => onSelect(profile.id)}>
-                <Avatar initials={profile.initials} tone="lilac" avatar={profile.avatar} />
-                <span className="start-profile__copy">
-                  <strong>{profile.fullName}</strong>
-                  <span>{profile.stage}</span>
-                  <small>{profile.stageDescription}</small>
-                </span>
-                <Icon name="arrow" size={19} />
-              </button>
-            ))}
-          </div>
-          <StaffEntry />
-          <p className="start-card__note">Все данные синтетические и предназначены для демонстрации сценариев.</p>
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function SearchDialog({ onClose }: { onClose: () => void }) {
+function SearchDialog({ profileId, onClose }: { profileId: ProfileId; onClose: () => void }) {
   const [query, setQuery] = useState('');
-  const results = searchItems
+  const results = [
+    ...searchItems,
+    ...teamContacts(profileId).map((person) => ({
+      label: person.name,
+      detail: person.role + ' · ' + person.position,
+      to: '/team?person=' + person.id,
+    })),
+  ]
     .filter((item) => (item.label + ' ' + item.detail).toLowerCase().includes(query.trim().toLowerCase()))
     .slice(0, 8);
   return (
@@ -159,6 +121,7 @@ function Survey({ onSubmit }: { onSubmit: () => void }) {
 
 function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: () => void }) {
   const profile = profiles[profileId];
+  const product = products[profile.productId];
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
@@ -272,9 +235,11 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
 
   const params = new URLSearchParams(location.search);
   const task = location.pathname === '/onboarding' && tasks.find((item) => item.id === params.get('task'));
-  const person = location.pathname === '/team' && people.find((item) => item.id === params.get('person'));
+  const person =
+    location.pathname === '/team' && teamContacts(profileId).find((item) => item.id === params.get('person'));
   const service = location.pathname === '/tools' && services.find((item) => item.id === params.get('service'));
-  const resource = location.pathname === '/resources' && resources.find((item) => item.id === params.get('article'));
+  const resource =
+    location.pathname === '/resources' && resourcesFor(profileId).find((item) => item.id === params.get('article'));
   const linkedDetail: Detail | null = task
     ? { kind: 'task', item: task }
     : person
@@ -316,7 +281,8 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   };
 
   const hasUnread =
-    !readAlerts && (profileId === 'olga' || profileId === 'maria' || (profileId === 'sasha' && !surveyDone));
+    !readAlerts &&
+    (profile.stageId === 'first' || profile.stageId === 'final' || (profile.stageId === 'midpoint' && !surveyDone));
 
   return (
     <div className="shell">
@@ -343,7 +309,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           <Avatar initials={profile.initials} tone="lilac" avatar={profile.avatar} />
           <div>
             <strong>{profile.fullName}</strong>
-            <small>{profile.role}</small>
+            <small>Стажёр · {profile.position}</small>
           </div>
         </div>
         <nav aria-label="Разделы AI-buddy">
@@ -439,13 +405,13 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           ) : (
             <div className="page-content" key={location.pathname}>
               <Routes>
-                <Route path="/home" element={<Dashboard profile={profile} {...checklist} />} />
+                <Route path="/home" element={<Dashboard profileId={profileId} {...checklist} />} />
                 <Route path="/onboarding" element={<Adaptation {...checklist} />} />
-                <Route path="/team" element={<Team onOpen={setDetail} />} />
+                <Route path="/team" element={<Team profileId={profileId} onOpen={setDetail} />} />
                 <Route path="/tools" element={<Tools workspace={workspace} onOpen={setDetail} />} />
                 <Route
                   path="/resources"
-                  element={<Resources onOpen={setDetail} directory={<CorporateDirectory />} />}
+                  element={<Resources profileId={profileId} onOpen={setDetail} directory={<CorporateDirectory />} />}
                 />
                 <Route path="/chat" element={<ChatPage {...chatProps} />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
@@ -467,10 +433,10 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           <Buddy mood={answerMutation.isPending ? 'thinking' : mood} compact />
         </button>
       )}
-      {searchOpen && <SearchDialog onClose={() => setSearchOpen(false)} />}
+      {searchOpen && <SearchDialog profileId={profileId} onClose={() => setSearchOpen(false)} />}
       {alertsOpen && (
         <Modal title="Уведомления" onClose={() => setAlertsOpen(false)}>
-          {profileId === 'sasha' && !surveyDone ? (
+          {profile.stageId === 'midpoint' && !surveyDone ? (
             <div className="alert-card tone-lilac">
               <Icon name="flag" />
               <div>
@@ -481,7 +447,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                 </button>
               </div>
             </div>
-          ) : profileId === 'olga' ? (
+          ) : profile.stageId === 'first' ? (
             <div className="alert-card tone-mint">
               <Icon name="calendar" />
               <div>
@@ -492,7 +458,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                 </Link>
               </div>
             </div>
-          ) : profileId === 'maria' ? (
+          ) : profile.stageId === 'final' ? (
             <div className="alert-card tone-blue">
               <Icon name="flag" />
               <div>
@@ -562,10 +528,18 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           {shownDetail.kind === 'person' && (
             <div className="detail-content">
               <div className="detail-person">
-                <Avatar initials={shownDetail.item.initials} tone={shownDetail.item.tone} />
+                <Avatar
+                  initials={shownDetail.item.initials}
+                  tone={shownDetail.item.tone}
+                  avatar={shownDetail.item.avatar}
+                />
                 <div>
-                  <strong>{shownDetail.item.role}</strong>
-                  <p>{profile.team}</p>
+                  <strong>
+                    {shownDetail.item.role} · {shownDetail.item.position}
+                  </strong>
+                  <p>
+                    {product.name} · {product.team}
+                  </p>
                 </div>
               </div>
               <p>{shownDetail.item.bio}</p>
@@ -645,7 +619,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
             <div className="detail-content">
               <h3>{profile.fullName}</h3>
               <p>
-                {profile.stage} · {profile.team}
+                {profile.stage} · {product.team}
               </p>
               <button type="button" className="button button--dark" onClick={onExit}>
                 Выйти из аккаунта
@@ -679,13 +653,13 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
 }
 
 export default function App() {
-  const [profile, setProfile] = useState(() => readDemoSession(localStorage));
+  const [account, setAccount] = useState(() => readDemoSession(localStorage));
   const { pathname } = useLocation();
 
   useEffect(() => {
     function syncSession(event: Event) {
       if (event instanceof StorageEvent && event.key !== demoSessionKey && event.key !== null) return;
-      setProfile(readDemoSession(localStorage));
+      setAccount(readDemoSession(localStorage));
     }
     window.addEventListener('storage', syncSession);
     window.addEventListener('pageshow', syncSession);
@@ -695,20 +669,20 @@ export default function App() {
     };
   }, []);
 
-  if (pathname === '/') {
-    if (profile) return <Navigate to="/home" replace />;
-    return <StartScreen onSelect={(id) => setProfile(startDemoSession(localStorage, id))} />;
+  function exit() {
+    endDemoSession(localStorage);
+    setAccount(null);
   }
-  if (!profile) return <Navigate to="/" replace />;
 
-  return (
-    <WorkspaceShell
-      key={profile}
-      profileId={profile}
-      onExit={() => {
-        endDemoSession(localStorage);
-        setProfile(null);
-      }}
-    />
-  );
+  if (!account) {
+    if (pathname !== '/') return <Navigate to="/" replace />;
+    return <StartScreen onSelect={(id) => setAccount(startDemoSession(localStorage, id))} />;
+  }
+  if (isStaffId(account)) {
+    if (pathname !== '/staff') return <Navigate to="/staff" replace />;
+    return <StaffWorkspace key={account} id={account} onExit={exit} />;
+  }
+  if (pathname === '/' || pathname === '/staff') return <Navigate to="/home" replace />;
+
+  return <WorkspaceShell key={account} profileId={account} onExit={exit} />;
 }

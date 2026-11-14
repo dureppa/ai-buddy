@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { people, resources, services, tasks, type ProfileId, type Service } from './data';
+import { resources, services, tasks, type Service } from './data';
+import { products, profiles, teamContacts, type ProfileId } from './demo-accounts';
 
 const requestSchema = z.object({
   id: z.string(),
@@ -37,13 +38,13 @@ export function readWorkspace(storage: StoragePort, profile: ProfileId): Workspa
   } catch {
     // Fall back to the initial demo when saved browser data cannot be read.
   }
-  const completedByProfile: Record<ProfileId, string[]> = {
-    olga: ['welcome', 'account', 'chat-join'],
-    sasha: tasks.slice(0, 10).map((task) => task.id),
-    maria: tasks.map((task) => task.id),
+  const completedByStage: Record<(typeof profiles)[ProfileId]['stageId'], string[]> = {
+    first: ['welcome', 'account', 'chat-join'],
+    midpoint: tasks.slice(0, 10).map((task) => task.id),
+    final: tasks.map((task) => task.id),
   };
   return {
-    completed: completedByProfile[profile],
+    completed: completedByStage[profiles[profile].stageId],
     requests:
       profile === 'maria' ? [{ id: 'maria-grafana', number: 'Д-001', serviceId: 'grafana', status: 'submitted' }] : [],
   };
@@ -154,14 +155,25 @@ export function answerBuddy(
       text: resources.find((resource) => resource.id === 'timeoff')!.body,
       link: { label: 'Открыть памятку', to: '/resources?article=timeoff' },
     };
-  if (/наставник|лид|команд|коллег/.test(question))
+  const intern = profiles[profile];
+  const product = products[intern.productId];
+  const context =
+    product.name +
+    ' · команда «' +
+    product.team +
+    '». Твоя должность — ' +
+    intern.position.toLocaleLowerCase('ru') +
+    '.';
+  if (/наставник|бадди|руководител|лид|команд|коллег/.test(question))
     return {
       kind: 'answer',
-      text: 'Ты в команде «Дизайн продукта». Вот к кому можно обратиться:',
-      lines: people
-        .slice(0, 2)
-        .map((person) => person.name + ' — ' + person.group.toLowerCase() + ' · ' + person.contact),
-      link: { label: 'Познакомиться с командой', to: '/team' },
+      text: context + ' ' + product.teamDescription,
+      lines: teamContacts(profile).map(
+        (person) => person.name + ' — ' + person.role.toLocaleLowerCase('ru') + ' · ' + person.contact,
+      ),
+      link: /продукт/.test(question)
+        ? { label: 'Открыть путеводитель по продукту', to: '/resources?article=product' }
+        : { label: 'Познакомиться с командой', to: '/team' },
     };
   if (/документ|подпис/.test(question))
     return {
@@ -169,10 +181,10 @@ export function answerBuddy(
       text: 'Начни с раздела «Документы и инструкции». В нём есть памятка об оформлении и следующий шаг.',
       link: { label: 'Открыть документы', to: '/resources?article=documents' },
     };
-  if (/продукт|професси|проект/.test(question))
+  if (/продукт|професси|проект|должност|моя роль/.test(question))
     return {
       kind: 'answer',
-      text: 'Команда улучшает сценарии поиска и знакомства с предложениями. На первых неделях изучи путь пользователя, задачи команды и библиотеку компонентов.',
+      text: context + ' ' + product.teamDescription + ' ' + product.firstStep,
       link: { label: 'Открыть путеводитель по продукту', to: '/resources?article=product' },
     };
   if (service)
@@ -185,7 +197,13 @@ export function answerBuddy(
     const pending = tasks.filter((task) => !workspace.completed.includes(task.id));
     return {
       kind: 'answer',
-      text: pending.length ? 'Вот с чего можно начать:' : 'Все шаги адаптации уже выполнены. Отличная работа!',
+      text:
+        context +
+        ' ' +
+        (pending.length
+          ? product.firstStep + ' В плане адаптации ещё есть эти задачи:'
+          : 'Все шаги адаптации уже выполнены. Если нужно освежить контекст проекта, начни с этого: ' +
+            product.firstStep),
       lines: pending.slice(0, 4).map((task) => task.title + ' · ' + task.due),
       link: { label: 'Посмотреть план адаптации', to: '/onboarding' },
     };

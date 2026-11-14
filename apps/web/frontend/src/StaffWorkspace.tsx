@@ -1,8 +1,7 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { profiles, type ProfileId } from './data';
+import { useEffect, useState, type FormEvent } from 'react';
+import { isProfileId, products, profiles, staffAccounts, type ProfileId, type StaffId } from './demo-accounts';
+import { readDemoSession } from './demo-session';
 import {
-  accountStorageKey,
   internOverview,
   materialsFor,
   materialsKey,
@@ -11,83 +10,11 @@ import {
   readStaffId,
   removeMaterial,
   saveMaterial,
-  staffAccounts,
   type MaterialInput,
-  type StaffId,
   type StaffMaterial,
 } from './staff-data';
 import { Avatar, Icon, Modal } from './ui';
 import './staff.css';
-
-const staffIds = Object.keys(staffAccounts) as StaffId[];
-
-export function StaffEntry() {
-  return (
-    <section className="start-staff" aria-labelledby="start-staff-heading">
-      <h2 id="start-staff-heading">Наставникам и руководителям</h2>
-      <div className="start-profiles">
-        {staffIds.map((id) => {
-          const account = staffAccounts[id];
-          return (
-            <button
-              type="button"
-              className="start-profile"
-              key={id}
-              onClick={() => {
-                localStorage.setItem(accountStorageKey, id);
-                window.dispatchEvent(new Event('ai-buddy-account'));
-              }}
-            >
-              <Avatar initials={account.initials} tone={id === 'mentor' ? 'mint' : 'blue'} />
-              <span className="start-profile__copy">
-                <strong>{account.name}</strong>
-                <span>{account.role}</span>
-              </span>
-              <Icon name="arrow" size={19} />
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-export function StaffGate({ children }: { children: ReactNode }) {
-  const [staff, setStaff] = useState(() => readStaffId(localStorage));
-  const { pathname } = useLocation();
-  useEffect(() => {
-    function sync() {
-      setStaff(readStaffId(localStorage));
-    }
-    window.addEventListener('storage', sync);
-    window.addEventListener('ai-buddy-account', sync);
-    window.addEventListener('pageshow', sync);
-    return () => {
-      window.removeEventListener('storage', sync);
-      window.removeEventListener('ai-buddy-account', sync);
-      window.removeEventListener('pageshow', sync);
-    };
-  }, []);
-
-  if (staff) {
-    if (pathname !== '/staff') return <Navigate to="/staff" replace />;
-    return (
-      <StaffWorkspace
-        key={staff}
-        id={staff}
-        onExit={() => {
-          localStorage.removeItem(accountStorageKey);
-          setStaff(null);
-        }}
-      />
-    );
-  }
-  if (pathname === '/staff') {
-    const profile = localStorage.getItem(accountStorageKey);
-    return <Navigate to={profile && Object.hasOwn(profiles, profile) ? '/home' : '/'} replace />;
-  }
-  return children;
-}
 
 function fileSource(file: File): Promise<StaffMaterial['source']> {
   const types = {
@@ -119,6 +46,7 @@ function fileSource(file: File): Promise<StaffMaterial['source']> {
 }
 
 function MaterialForm({ staff, edit, onSaved }: { staff: StaffId; edit?: StaffMaterial; onSaved: () => void }) {
+  const internId = products[staffAccounts[staff].productId].intern;
   const [kind, setKind] = useState<'link' | 'file'>(edit?.source.kind ?? 'link');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -199,12 +127,10 @@ function MaterialForm({ staff, edit, onSaved }: { staff: StaffId; edit?: StaffMa
       )}
       <fieldset>
         <legend>Кому показать</legend>
-        {staffAccounts[staff].interns.map((id) => (
-          <label className="staff-check" key={id}>
-            <input type="checkbox" name="audience" value={id} defaultChecked={edit?.audience.includes(id) ?? true} />
-            {profiles[id].fullName}
-          </label>
-        ))}
+        <label className="staff-check">
+          <input type="checkbox" name="audience" value={internId} defaultChecked />
+          {profiles[internId].fullName}
+        </label>
       </fieldset>
       {error && (
         <p className="staff-error" role="alert">
@@ -232,9 +158,9 @@ function MaterialLink({ material }: { material: StaffMaterial }) {
 }
 
 export function InternMaterials() {
-  const profile = localStorage.getItem(accountStorageKey);
-  if (!profile || !Object.hasOwn(profiles, profile)) return null;
-  return <ProfileMaterials key={profile} profileId={profile as ProfileId} />;
+  const profile = readDemoSession(localStorage);
+  if (!profile || !isProfileId(profile)) return null;
+  return <ProfileMaterials key={profile} profileId={profile} />;
 }
 
 function ProfileMaterials({ profileId }: { profileId: ProfileId }) {
@@ -268,8 +194,10 @@ function ProfileMaterials({ profileId }: { profileId: ProfileId }) {
   );
 }
 
-function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void }) {
+export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void }) {
   const account = staffAccounts[id];
+  const product = products[account.productId];
+  const isMentor = account.role === 'Наставник';
   const [section, setSection] = useState<'interns' | 'materials'>('interns');
   const [interns, setInterns] = useState(() => internOverview(localStorage, id));
   const [selected, setSelected] = useState<ProfileId>();
@@ -289,7 +217,7 @@ function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void }) {
     return () => window.removeEventListener('storage', refresh);
   }, [id]);
 
-  const current = interns.find((intern) => intern.profile.id === selected);
+  const current = interns.find((intern) => intern.id === selected);
   const visibleMaterials = materials.filter((material) => material.author === id);
 
   function deleteMaterial() {
@@ -316,10 +244,12 @@ function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void }) {
           AI-buddy
         </span>
         <div className="staff-account">
-          <Avatar initials={account.initials} tone={id === 'mentor' ? 'mint' : 'blue'} />
+          <Avatar initials={account.initials} tone={account.tone} avatar={account.avatar} />
           <span>
             <strong>{account.name}</strong>
-            <small>{account.role}</small>
+            <small>
+              {account.role} · {account.position}
+            </small>
           </span>
           <button type="button" className="button button--white" onClick={onExit}>
             Выйти из аккаунта
@@ -327,10 +257,12 @@ function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void }) {
         </div>
       </header>
       <main className="staff-main">
-        <header className={'page-intro tone-' + (id === 'mentor' ? 'lilac' : 'blue')}>
+        <header className={'page-intro tone-' + (isMentor ? 'lilac' : 'blue')}>
           <div>
-            <h1>{id === 'mentor' ? 'Кабинет наставника' : 'Кабинет руководителя'}</h1>
-            <p>Команда «Дизайн продукта»</p>
+            <h1>{isMentor ? 'Кабинет наставника' : 'Кабинет руководителя'}</h1>
+            <p>
+              {product.name} · Команда «{product.team}»
+            </p>
           </div>
           <span className="page-intro__icon">
             <Icon name="users" size={44} />
@@ -356,18 +288,15 @@ function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void }) {
         </nav>
         {section === 'interns' ? (
           <div className="staff-grid">
-            {interns.map(({ profile, progress, next, requests }) => (
-              <button
-                key={profile.id}
-                type="button"
-                className="panel staff-intern"
-                onClick={() => setSelected(profile.id)}
-              >
+            {interns.map(({ id: internId, profile, progress, next, requests }) => (
+              <button key={internId} type="button" className="panel staff-intern" onClick={() => setSelected(internId)}>
                 <span className="staff-person">
                   <Avatar initials={profile.initials} avatar={profile.avatar} />
                   <span>
                     <strong>{profile.fullName}</strong>
-                    <small>{profile.stage}</small>
+                    <small>
+                      {profile.position} · {profile.stage}
+                    </small>
                   </span>
                   <Icon name="arrow" />
                 </span>
