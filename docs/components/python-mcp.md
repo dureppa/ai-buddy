@@ -4,6 +4,8 @@
 
 ## Запуск
 
+В [Docker Compose](docker-compose.md) MCP запускается в режиме demo и использует синтетический корпус.
+
 Из `services/ai-python`, после `uv sync --locked`:
 
 ```bash

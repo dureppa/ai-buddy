@@ -8,6 +8,8 @@ Flask умеет выполнять реальный прямой цикл че�
 
 ## Локальный запуск
 
+[Docker Compose](docker-compose.md) поднимает Flask вместе с Ollama и Python MCP в деморежиме.
+
 Из services/ai-python:
 
 ```bash

@@ -1,0 +1,300 @@
+name: ai-buddy
+
+x-database-env: &database-env
+  PGHOST: db
+  PGPORT: "5432"
+  PGUSER: aibuddy
+  PGPASSWORD: ${COMPOSE_DB_PASSWORD:-local-aibuddy-secret}
+  PGDATABASE: aibuddy
+
+x-python: &python
+  image: ai-buddy-python:local
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.python
+  # Use the loopback-only addresses required by the existing Python runtime.
+  network_mode: service:ollama
+
+x-ollama-image: &ollama-image ollama/ollama:${OLLAMA_IMAGE_TAG:-0.40.16}
+
+x-hr: &hr
+  profiles: [hr]
+  healthcheck:
+    test:
+      - CMD-SHELL
+      - wget -S -O /dev/null "http://127.0.0.1$$HTTP_ADDR$$HR_HEALTH_PATH" 2>&1 | grep -q 'HTTP/1.1 401'
+    interval: 3s
+    timeout: 3s
+    retries: 20
+  depends_on:
+    db:
+      condition: service_healthy
+
+x-hr-env: &hr-env
+  <<: *database-env
+  PGADMIN_USER: aibuddy
+  PGADMIN_PASSWORD: ${COMPOSE_DB_PASSWORD:-local-aibuddy-secret}
+  SESSION_SECRET: ${COMPOSE_SESSION_SECRET:-local-demo-session-change-for-shared-host}
+  TZ: Europe/Moscow
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: aibuddy
+      POSTGRES_PASSWORD: ${COMPOSE_DB_PASSWORD:-local-aibuddy-secret}
+      POSTGRES_DB: aibuddy
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U aibuddy -d aibuddy"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    image: postgres:17-alpine
+    environment: *database-env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./docker/migrate.sh:/migrate.sh:ro
+      - ./services/backend-go/migrations:/migrations:ro
+      - ./services/backend-go/seeds:/seeds:ro
+    entrypoint: ["sh", "/migrate.sh"]
+
+  go:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go
+    environment:
+      <<: *database-env
+      DEMO_MODE: "true"
+      SESSION_SECRET: ${COMPOSE_SESSION_SECRET:-local-demo-session-change-for-shared-host}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -S -O /dev/null http://127.0.0.1:8080/api/v1/onboarding 2>&1 | grep -q 'HTTP/1.1 401'
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  ollama:
+    image: *ollama-image
+    environment:
+      OLLAMA_HOST: 127.0.0.1:11434
+      OLLAMA_NO_CLOUD: "1"
+      OLLAMA_NUM_PARALLEL: "1"
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  model:
+    image: *ollama-image
+    network_mode: service:ollama
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: 127.0.0.1:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b-q4_K_M}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        ollama show "$$OLLAMA_MODEL" >/dev/null 2>&1 || ollama pull "$$OLLAMA_MODEL"
+
+  mcp:
+    <<: *python
+    command: ["python", "-m", "ai_buddy.mcp_server"]
+    environment:
+      MCP_BACKEND: demo
+      MCP_DEMO_ENABLED: "true"
+      MCP_DEMO_PROFILE: ${COMPOSE_MCP_PROFILE:-alex}
+      MCP_DEMO_TOKEN: ${COMPOSE_MCP_TOKEN:-local-demo-mcp-token}
+    depends_on:
+      ollama:
+        condition: service_healthy
+        restart: true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health/live', timeout=2)"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  agent:
+    <<: *python
+    command: ["flask", "--app", "ai_buddy:create_app", "run", "--host", "127.0.0.1", "--port", "8001"]
+    environment:
+      AI_AGENT_ENABLED: "true"
+      AI_SERVICE_TOKEN: ${COMPOSE_AI_TOKEN:-local-demo-flask-token}
+      MCP_URL: http://127.0.0.1:8002/mcp
+      OLLAMA_URL: http://127.0.0.1:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b-q4_K_M}
+      MCP_DEMO_TOKEN: ${COMPOSE_MCP_TOKEN:-local-demo-mcp-token}
+      AI_TURN_TIMEOUT: "25"
+      AI_MODEL_TIMEOUT: "25"
+    depends_on:
+      mcp:
+        condition: service_healthy
+        restart: true
+      model:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/ready', timeout=2)"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+      target: web
+    depends_on:
+      go:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${AI_BUDDY_WEB_PORT:-5173}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  hr-web:
+    profiles: [hr]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+      target: hr-web
+      args:
+        AI_BUDDY_WEB_PORT: ${AI_BUDDY_WEB_PORT:-5173}
+    ports:
+      - "127.0.0.1:5181-5186:5181-5186"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5181/"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+
+  hr-absences:
+    <<: *hr
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go
+      args:
+        MODULE: services/hr/absences
+        ENTRY: .
+    environment:
+      <<: *hr-env
+      HTTP_ADDR: ":8181"
+      HR_HEALTH_PATH: /api/v1/me/absence-summary
+      PGUSER: hr_absences
+      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGDATABASE: hr_absences
+    ports:
+      - "127.0.0.1:8181:8181"
+
+  hr-trips:
+    <<: *hr
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go
+      args:
+        MODULE: services/hr/trips
+        ENTRY: .
+    environment:
+      <<: *hr-env
+      HTTP_ADDR: ":8182"
+      HR_HEALTH_PATH: /api/v1/me/travel-summary
+      PGUSER: hr_trips
+      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGDATABASE: hr_trips
+    ports:
+      - "127.0.0.1:8182:8182"
+
+  hr-hiring:
+    <<: *hr
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go
+      args:
+        MODULE: services/hr/hiring
+        ENTRY: .
+    environment:
+      <<: *hr-env
+      HTTP_ADDR: ":8183"
+      HR_HEALTH_PATH: /api/v1/me/referral-summary
+      PGUSER: hr_hiring
+      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGDATABASE: hr_hiring
+    ports:
+      - "127.0.0.1:8183:8183"
+
+  hr-offboarding:
+    <<: *hr
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go
+      args:
+        MODULE: services/hr/offboarding
+        ENTRY: .
+    environment:
+      <<: *hr-env
+      HTTP_ADDR: ":8184"
+      HR_HEALTH_PATH: /api/v1/me/offboarding
+      PGUSER: hr_offboarding
+      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGDATABASE: hr_offboarding
+    ports:
+      - "127.0.0.1:8184:8184"
+
+  hr-consents:
+    <<: *hr
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go
+      args:
+        MODULE: services/hr/consents
+        ENTRY: .
+    environment:
+      <<: *hr-env
+      HTTP_ADDR: ":8185"
+      HR_HEALTH_PATH: /api/v1/me/consents
+      PGUSER: hr_consents
+      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGDATABASE: hr_consents
+    ports:
+      - "127.0.0.1:8185:8185"
+
+  hr-benefits:
+    <<: *hr
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go
+      args:
+        MODULE: services/hr/benefits
+        ENTRY: .
+    environment:
+      <<: *hr-env
+      HTTP_ADDR: ":8186"
+      HR_HEALTH_PATH: /api/v1/me/benefit-summary
+      PGUSER: hr_benefits
+      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGDATABASE: hr_benefits
+    ports:
+      - "127.0.0.1:8186:8186"
+
+volumes:
+  postgres:
+  ollama:
