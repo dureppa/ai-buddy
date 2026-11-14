@@ -20,9 +20,6 @@ function Page() {
   if (service.id !== 'consents' || !backendEnabled) return <HrPage service={service} profileId="maria" />;
   return (
     <main className="hr-page">
-      <a className="text-link" href={import.meta.env.VITE_AI_BUDDY_URL || 'http://localhost:5173/resources'}>
-        Вернуться в AI Buddy
-      </a>
       <h1>Согласия</h1>
       <label>
         Демопрофиль{' '}

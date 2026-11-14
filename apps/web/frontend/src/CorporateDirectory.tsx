@@ -9,7 +9,13 @@ export function CorporateDirectory() {
       </div>
       <div className="tile-grid">
         {corporateLinks.map((service) => (
-          <a className={'resource-card tone-' + service.tone} key={service.id} href={service.url}>
+          <a
+            className={'resource-card tone-' + service.tone}
+            key={service.id}
+            href={service.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <span className="tile-top">
               <span className="icon-tile">
                 <Icon name={service.icon} size={23} />

@@ -50,7 +50,7 @@ consent-news и получить сохранённое состояние; Staf
 
 Раздел «Корпоративные сервисы» и глобальный поиск содержат ссылки на шесть [внешних корпоративных демосайтов](corporate-services.md). Их адреса задаются в `frontend/.env`.
 
-- `frontend/src/CorporateDirectory.tsx` выводит внешние ссылки из `corporate-links.ts`.
+- `frontend/src/CorporateDirectory.tsx` выводит внешние ссылки из `corporate-links.ts`; карточки открывают сервисы в новой вкладке.
 
 После объединения product-демовхода с AI-интеграцией серверный Go baseline
 по-прежнему содержит olga/sasha/maria. Новый timur и новые product staff-аккаунты
