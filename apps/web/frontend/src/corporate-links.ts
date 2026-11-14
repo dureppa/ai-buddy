@@ -13,19 +13,7 @@ const configuredUrls: Record<string, string | undefined> = {
   events: import.meta.env.VITE_EVENTS_URL,
 };
 
-export const jiraService = {
-  id: 'jira',
-  title: 'Jira',
-  description: 'Доски команды и ваши задачи.',
-  icon: 'grid',
-  tone: 'blue',
-  url: import.meta.env.VITE_JIRA_URL || 'http://localhost:5189/',
-} as const;
-
-export const corporateLinks = [
-  ...[...hrServices, ...guideServices].map((service) => ({
-    ...service,
-    url: configuredUrls[service.id] || 'http://localhost:' + ports[service.id] + '/',
-  })),
-  jiraService,
-];
+export const corporateLinks = [...hrServices, ...guideServices].map((service) => ({
+  ...service,
+  url: configuredUrls[service.id] || 'http://localhost:' + ports[service.id] + '/',
+}));

@@ -27,8 +27,9 @@ import { demoSessionKey, endDemoSession, readDemoSession, startDemoSession } fro
 import { AccessBadge, Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
 import { Avatar, Buddy, EmptyState, Icon, Modal, type Mood } from './ui';
 
-import { corporateLinks, jiraService } from './corporate-links';
-import { CorporateDirectory, jiraProfileUrl } from './CorporateDirectory';
+import { corporateLinks } from './corporate-links';
+import { jiraService, jiraProfileUrl } from './tool-links';
+import { CorporateDirectory } from './CorporateDirectory';
 import { ProductGuide } from './ProductGuide';
 
 const searchItems = [
@@ -37,7 +38,7 @@ const searchItems = [
   ...services.map((service) => ({
     label: service.title,
     detail: service.category,
-    to: '/tools?service=' + service.id,
+    to: service.id === 'jira' ? jiraService.url : '/tools?service=' + service.id,
   })),
   ...corporateLinks.map((service) => ({ label: service.title, detail: 'Внешний сервис', to: service.url })),
 ];
@@ -532,11 +533,11 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                   }
                 />
                 <Route path="/team" element={<Team profileId={profileId} onOpen={setDetail} />} />
-                <Route path="/tools" element={<Tools workspace={workspace} onOpen={setDetail} />} />
                 <Route
-                  path="/resources"
-                  element={<Resources directory={<CorporateDirectory profileId={profileId} />} />}
+                  path="/tools"
+                  element={<Tools profileId={profileId} workspace={workspace} onOpen={setDetail} />}
                 />
+                <Route path="/resources" element={<Resources directory={<CorporateDirectory />} />} />
                 <Route path="/chat" element={<ChatPage {...chatProps} />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
               </Routes>
