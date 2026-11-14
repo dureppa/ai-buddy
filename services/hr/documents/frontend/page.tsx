@@ -1,3 +1,4 @@
+import type { ProfileId } from '../../../../apps/web/frontend/src/data';
 import { useState } from 'react';
 import { backendEnabled } from '../../../../apps/web/frontend/src/backend';
 import { Icon, PageIntro } from '../../../../apps/web/frontend/src/ui';
@@ -6,8 +7,8 @@ import type { GuideItem } from '../../../../apps/corporate-services/frontend/src
 import { DocumentsApi } from './api';
 import { documentsService } from './meta';
 
-export function DocumentsPage() {
-  if (backendEnabled) return <DocumentsApi />;
+export function DocumentsPage({ profileId }: { profileId: ProfileId }) {
+  if (backendEnabled) return <DocumentsApi profileId={profileId} />;
   return <DocumentsLocal />;
 }
 
