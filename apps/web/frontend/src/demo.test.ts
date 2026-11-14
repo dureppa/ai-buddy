@@ -108,7 +108,7 @@ describe('AI-buddy demo workspace', () => {
     expect(reply.lines?.[0]).toContain('Алексей');
     const combined = answerBuddy('Кто мой лид и где почитать о продукте?', readWorkspace(storage, 'olga'), 'olga');
     expect(combined.lines?.[0]).toContain('Алексей');
-    expect(combined.link?.to).toBe('/resources?article=product');
+    expect(combined.link?.to).toBe('/product-guide');
   });
 
   it('returns references for document and HR questions', () => {
