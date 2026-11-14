@@ -35,3 +35,6 @@ node_modules/
 *.test
 /services/backend-go/bin/
 /services/backend-go/coverage.out
+
+# Server-only credentials and nginx authentication
+/.deploy/

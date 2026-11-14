@@ -135,6 +135,7 @@ func TestChatBridgeAndTransport(t *testing.T) {
 }
 func TestDelegationIsolationAndReadRoutes(t *testing.T) {
 	b, _ := newBridge(t, "http://127.0.0.1:8001")
+	b.PublicConsentURL = "http://demo.example:5185/"
 	mux := http.NewServeMux()
 	b.Register(mux)
 	request, conversation := "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"
@@ -151,6 +152,7 @@ func TestDelegationIsolationAndReadRoutes(t *testing.T) {
 	for _, entry := range []struct{ method, path, body string }{{"GET", "/internal/v1/ai/team-context", ""}, {"GET", "/internal/v1/ai/onboarding/progress", ""}, {"POST", "/internal/v1/ai/knowledge/search", `{"query":"test","limit":3}`}, {"POST", "/internal/v1/ai/onboarding/task-context", `{"task_id":"consent-news"}`}} {
 		require.Equal(t, 200, call(mux, entry.method, entry.path, resource, entry.body).Code)
 	}
+	require.Contains(t, call(mux, "POST", "/internal/v1/ai/onboarding/task-context", resource, `{"task_id":"consent-news"}`).Body.String(), b.PublicConsentURL)
 	require.Equal(t, 401, call(mux, "GET", "/internal/v1/ai/team-context", delegation, "").Code)
 	wrong, _ := b.token("olga", "other", conversation, "mcp-resource")
 	require.Equal(t, 403, call(mux, "GET", "/internal/v1/ai/team-context", wrong, "").Code)

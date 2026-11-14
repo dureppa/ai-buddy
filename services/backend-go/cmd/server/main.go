@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -69,6 +70,13 @@ func runContext(ctx context.Context) error {
 		}
 		if bridge.Secret == cfg.SessionSecret {
 			return fmt.Errorf("AI delegation and session secrets must differ")
+		}
+		if publicURL := os.Getenv("HR_CONSENTS_PUBLIC_URL"); publicURL != "" {
+			u, e := url.Parse(publicURL)
+			if e != nil || u.Hostname() == "" || u.User != nil || (u.Scheme != "http" && u.Scheme != "https") {
+				return fmt.Errorf("invalid public consents URL")
+			}
+			bridge.PublicConsentURL = publicURL
 		}
 		bridge.HRSecret = cfg.SessionSecret
 		bridge.DemoMode = cfg.DemoMode

@@ -73,6 +73,7 @@ services:
       MCP_ADAPTER_SERVICE_TOKEN: ${COMPOSE_MCP_ADAPTER_TOKEN:-local-demo-adapter-token}
       AI_DELEGATION_SECRET: ${COMPOSE_DELEGATION_SECRET:-local-demo-delegation-change-for-shared-host}
       HR_CONSENTS_URL: http://hr-consents:8185
+      HR_CONSENTS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5185/
       SESSION_SECRET: ${COMPOSE_SESSION_SECRET:-local-demo-session-change-for-shared-host}
     depends_on:
       migrate:
@@ -127,6 +128,8 @@ services:
       context: .
       dockerfile: docker/Dockerfile.web
       target: web
+      args:
+        PUBLIC_HR_ORIGIN: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}
     depends_on:
       go:
         condition: service_healthy
@@ -145,7 +148,7 @@ services:
       dockerfile: docker/Dockerfile.web
       target: hr-web
       args:
-        AI_BUDDY_WEB_PORT: ${AI_BUDDY_WEB_PORT:-5173}
+        PUBLIC_WEB_ORIGIN: ${PUBLIC_WEB_ORIGIN:-http://127.0.0.1:${AI_BUDDY_WEB_PORT:-5173}}
     ports:
       - "127.0.0.1:5181-5186:5181-5186"
     healthcheck:

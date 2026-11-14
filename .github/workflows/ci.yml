@@ -109,6 +109,6 @@ jobs:
       - run: git diff --check HEAD^ HEAD
       - run: test -f README.md && test -f AGENTS.md && test -f justfile
       - run: test -f .github/pull_request_template.md && test -f .github/CODEOWNERS
-      - run: docker compose config --quiet && docker compose --profile hr config --quiet
+      - run: docker compose config --quiet && docker compose --profile hr config --quiet && docker compose -f docker-compose.yml -f docker-compose.server.yml --profile hr config --quiet
       - run: test -z "$(git ls-files | rg '(^|/)dist/|(^|/)\.venv/' || true)"
       - run: node -e "const fs=require('fs'); for (const p of ['package.json','package-lock.json','apps/web/package.json','apps/extension/package.json','services/ai-python/pyproject.toml','services/backend-go/go.mod']) { if (!fs.existsSync(p)) throw new Error('Missing '+p) }"

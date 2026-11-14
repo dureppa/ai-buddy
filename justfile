@@ -28,6 +28,7 @@ go-check:
 compose-check:
 	docker compose config --quiet
 	docker compose --profile hr config --quiet
+	docker compose -f docker-compose.yml -f docker-compose.server.yml --profile hr config --quiet
 
 repository-check:
 	git diff --check
