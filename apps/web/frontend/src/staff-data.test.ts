@@ -87,8 +87,14 @@ describe('staff workspace', () => {
   });
   it('keeps older publications visible only to the author’s current team', () => {
     const storage = memoryStorage();
-    const { group: _group, ...withoutGroup } = input;
-    const legacy = { ...withoutGroup, id: 'old', author: 'mentor' as const, audience: ['olga', 'sasha'] };
+    const legacy = {
+      id: 'old',
+      author: 'mentor' as const,
+      title: input.title,
+      description: input.description,
+      audience: ['olga', 'sasha'],
+      source: input.source,
+    };
     storage.setItem(materialsKey, JSON.stringify([legacy, { ...legacy, id: 'other', audience: ['sasha'] }]));
     expect(materialsFor(storage, 'olga')).toEqual([{ ...legacy, audience: ['olga'], group: 'Общее' }]);
     expect(materialsFor(storage, 'sasha')).toEqual([]);
