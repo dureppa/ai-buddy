@@ -1,0 +1,38 @@
+{
+  "olga": {
+    "vacationDays": 7,
+    "vacationNoticeDays": 30,
+    "travelEnabled": false,
+    "travelBudget": 0,
+    "referralSlots": 1,
+    "exitNoticeDays": 14,
+    "exitChecklist": [],
+    "consents": ["news"],
+    "benefitBudget": 6000,
+    "benefits": ["learning"]
+  },
+  "sasha": {
+    "vacationDays": 16,
+    "vacationNoticeDays": 14,
+    "travelEnabled": true,
+    "travelBudget": 35000,
+    "referralSlots": 2,
+    "exitNoticeDays": 14,
+    "exitChecklist": ["handover"],
+    "consents": ["photos"],
+    "benefitBudget": 12000,
+    "benefits": ["learning", "sport"]
+  },
+  "maria": {
+    "vacationDays": 24,
+    "vacationNoticeDays": 7,
+    "travelEnabled": true,
+    "travelBudget": 65000,
+    "referralSlots": 3,
+    "exitNoticeDays": 7,
+    "exitChecklist": ["handover", "equipment"],
+    "consents": ["news", "photos"],
+    "benefitBudget": 24000,
+    "benefits": ["learning", "sport", "wellbeing"]
+  }
+}

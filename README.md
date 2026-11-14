@@ -24,8 +24,12 @@ npm run dev --workspace=@ai-buddy/web
 
 Полный локальный набор проверок запускается командой `just check`. Отдельные проверки frontend, Python и Go доступны через `just frontend-check`, `just python-check` и `just go-check`.
 
-Python-сервис: Flask → прямой агент → локальная Ollama и MCP, с контролем источников и таймаутами. [Запуск и границы](docs/components/ai-python.md). Добавлен [контракт оценки знаний](docs/integrations/knowledge-assessment.md) с обязательным решением наставника; локальная модель пока не прошла оценочные примеры. Go → Python и Go HTTP backend для Python MCP ещё не подключены; сквозной онбординг не завершён.
+## Корпоративные демосайты
 
-[Golden dataset агента — 20 development / 10 candidate holdout](services/ai-python/evals/agent-v1/README.md): разметка и fixtures подготовлены, development выполнен на 18 доступных кейсах с отдельным assisted-review. Holdout и человеческая приёмка не выполнены. [План контроля качества](docs/ai/quality-control.md).
+В разделе «Корпоративные сервисы» и поиске есть ссылки на шесть внешних демосайтов. Запусти внешние сайты во втором терминале.
 
-Доступен [Python MCP-сервер](docs/components/python-mcp.md) с двумя инструментами: demo с учебными данными либо Go HTTP-адаптер. Адаптер реализован и проверен на моках; живая интеграция с Go ещё не подтверждена.
+```bash
+npm run dev --workspace=@ai-buddy/corporate-services
+```
+
+Сайты открываются на портах `5181–5186`. Каждый показывает синтетический демопрофиль. Для других адресов скопируй `apps/web/frontend/.env.example` и `apps/corporate-services/frontend/.env.example` в `.env` рядом с примерами. Команда `npm run build --workspace=@ai-buddy/corporate-services` создаёт отдельную сборку для каждого сайта в `apps/corporate-services/dist/`. [Карта адресов и запуск одного сайта](docs/components/corporate-services.md)

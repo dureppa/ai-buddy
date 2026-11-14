@@ -10,6 +10,8 @@
 | Веб | React 19, TypeScript 6.0.3, Vite 8 и Node.js 24.22.2 LTS. React Router 7 для страниц, TanStack Query 5 для серверных данных, Zod 4 для проверки входных данных. Сейчас экраны используют локальный demo-adapter. Zustand подключаем для общего клиентского состояния, когда появляется такая потребность. | [package.json веба](../apps/web/package.json), [общие инструменты](../package.json), [package-lock.json](../package-lock.json) |
 | Расширение | Chromium Manifest V3 для прототипа, React и TypeScript для интерфейса, типы Chrome API. Сейчас контекст страницы сопоставляется локальным adapter-ом. Будущий API-клиент будет подключён по OpenAPI. | [package.json расширения](../apps/extension/package.json), [package-lock.json](../package-lock.json) |
 
+Корпоративные демосайты используют те же React, TypeScript и Vite. Они собираются в отдельные статические сайты из [одного workspace](components/corporate-services.md).
+
 ### Контракты и интеграции
 
 - Описывай публичное HTTP API Go в OpenAPI. Проверяй права, данные и подтверждение операции в Go перед вызовом имитации корпоративного API. PostgreSQL хранит результат операции и статус. Python получает контекст от Go, вызывает LLM и MCP-инструменты и возвращает результат. [AvitoTech Playbook](https://github.com/avito-tech/playbook/blob/master/development-principles.md), [пример backend-задания](https://github.com/avito-tech/tech-internship/blob/main/Tech%20Internships/Backend/Backend-trainee-assignment-autumn-2026/Backend-trainee-assignment-autumn-2026.md)

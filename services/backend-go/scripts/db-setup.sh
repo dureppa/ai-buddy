@@ -34,11 +34,11 @@ sudo -u postgres psql -q -d postgres -v ON_ERROR_STOP=1 \
   -v testdatabase="$TEST_PGDATABASE" \
   -f migrations/00_bootstrap.sql
 
-apply_schema() {
+apply_all() {
   db=$1
   echo "==> $db"
   if [ "$(PGDATABASE="$db" psql -tAc "SELECT to_regclass('public.profiles') IS NOT NULL")" = "t" ]; then
-    echo "    схема уже применена, миграции пропускаются"
+    echo "    схема уже применена, миграции пропускаю"
   else
     for f in migrations/*.up.sql; do
       PGDATABASE="$db" psql -q -v ON_ERROR_STOP=1 -1 -f "$f"
@@ -47,9 +47,9 @@ apply_schema() {
   PGDATABASE="$db" psql -q -v ON_ERROR_STOP=1 -f seeds/demo.sql
 }
 
-apply_schema "$PGDATABASE"
+apply_all "$PGDATABASE"
 if [ -n "$TEST_PGDATABASE" ]; then
-  apply_schema "$TEST_PGDATABASE"
+  apply_all "$TEST_PGDATABASE"
 fi
 
 echo "==> готово: $PGUSER@$PGHOST:$PGPORT/$PGDATABASE"
