@@ -8,7 +8,7 @@ from ai_buddy.answer_policy import CITATION, MARKDOWN_LINK, URL
 from ai_buddy.config import Settings
 from ai_buddy.errors import ServiceError
 from ai_buddy.mcp_client import Gateway
-from ai_buddy.ollama import ollama_session
+from ai_buddy.provider import model_session
 from ai_buddy.schemas import Reference, Reply, TurnRequest
 
 default_logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class DirectRunner:
         started = time.monotonic()
         outcome = "ERROR"
         try:
-            async with ollama_session(self.settings) as chat:
+            async with model_session(self.settings) as chat:
                 state.raw_answer = await direct_loop(
                     gateway,
                     context.message,
@@ -51,9 +51,10 @@ class DirectRunner:
             raise
         finally:
             self.logger.info(
-                "ai_turn request_id=%s provider=ollama model=%s prompt=onboarding-v2 model_calls=%d tool_calls=%d guard_count=%d outcome=%s seconds=%.3f",
+                "ai_turn request_id=%s provider=%s model=%s prompt=onboarding-v2 model_calls=%d tool_calls=%d guard_count=%d outcome=%s seconds=%.3f",
                 context.request_id,
-                self.settings.ollama_model,
+                self.settings.llm_provider,
+                self.settings.model_name,
                 state.model_calls,
                 len(state.calls),
                 len(state.guard_events),

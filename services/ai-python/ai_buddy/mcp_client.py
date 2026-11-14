@@ -14,9 +14,13 @@ from ai_buddy.config import Settings
 from ai_buddy.errors import ErrorCode, ServiceError
 from ai_buddy.schemas import (
     EmptyArguments,
+    EvidenceEnvelope,
     FailureEnvelope,
+    ProgressEnvelope,
     SearchArguments,
     SearchEnvelope,
+    TaskArguments,
+    TaskEnvelope,
     TeamEnvelope,
     TurnRequest,
 )
@@ -39,6 +43,9 @@ class Contract:
 
 
 CONTRACTS = {
+    "get_onboarding_progress": Contract(EmptyArguments, ProgressEnvelope),
+    "get_task_context": Contract(TaskArguments, TaskEnvelope),
+    "get_task_evidence": Contract(TaskArguments, EvidenceEnvelope),
     "search_knowledge": Contract(SearchArguments, SearchEnvelope),
     "get_team_context": Contract(EmptyArguments, TeamEnvelope),
 }

@@ -15,9 +15,11 @@ type querier interface {
 }
 
 type Store struct {
-	q querier
+	q         querier
+	pool      *pgxpool.Pool
+	chatSlots chan struct{}
 }
 
 func New(pool *pgxpool.Pool) *Store {
-	return &Store{q: pool}
+	return &Store{q: pool, pool: pool, chatSlots: make(chan struct{}, max(1, min(8, int(pool.Config().MaxConns)-2)))}
 }

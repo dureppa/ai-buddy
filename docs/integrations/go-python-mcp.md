@@ -1,5 +1,17 @@
 # Go HTTP API для Python-агента и Python MCP-сервера
 
+## Реализованный следующий срез
+
+Go/Flask/MCP теперь соединены кодом. Включение: AI_SERVICE_URL и отдельные
+AI_SERVICE_TOKEN/MCP_ADAPTER_SERVICE_TOKEN/AI_DELEGATION_SECRET в Go;
+MCP_BACKEND=go_http и GO_API_URL в MCP. Добавлены progress/task-context/task-evidence
+из [SDD 004](../specs/004-agent-service-integration.md). Три новых tools доступны
+только в go_http. Старый demo-корпус не выдаёт личные данные Go.
+Делегация и resource JWT имеют разные audience и одинаковый срок действия;
+Go проверяет X-Request-ID и профиль при чтениях. Ниже — исходный подробный
+контракт двух чтений; заявления о несуществующем Go-вызове заменены этим разделом.
+
+
 Обновлено 14.11.2026. **MCP-сервер и HTTP-адаптер реализованы на Python; Go-разработчик реализует HTTP API и бизнес-логику.** Эта инструкция заменяет прежнее задание поднять `/mcp` на Go. MCP SDK, JSON-RPC, `tools/list` и `tools/call` в Go не нужны.
 
 Статус: Flask chat/assessment, Python MCP-клиент, сервер с локальными данными и Go HTTP-адаптер реализованы. **Адаптер проверен на HTTP-моках; доступности и совместимости настоящих Go endpoints это не подтверждает.** [Запуск demo/go_http](../components/python-mcp.md). Поля новых HTTP API — договорённость команды, не схемы корпоративных сервисов Авито. Требуется согласование с Go-разработчиком и живая интеграционная проверка.

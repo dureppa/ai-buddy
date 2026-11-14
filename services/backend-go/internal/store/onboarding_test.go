@@ -16,7 +16,7 @@ func TestOnboardingTasksOlga(t *testing.T) {
 
 	tasks, err := st.OnboardingTasks(ctx, "olga")
 	require.NoError(t, err)
-	require.Equal(t, 12, len(tasks))
+	require.Equal(t, 13, len(tasks))
 	require.Equal(t, "papers", tasks[0].ID)
 	require.False(t, tasks[0].Completed)
 

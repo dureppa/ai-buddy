@@ -1,6 +1,8 @@
 # Документация AI Buddy
 
-- [OpenSpec: Python-агент и MCP](../openspec/README.md) содержит предложенные спецификации, внутренние контракты, план реализации и проверки; подключён прямой локальный Flask/LLM/MCP runner, но сквозной Go/UI-онбординг ещё не реализован.
+- [DeepSeek и живые сервисы](specs/004-agent-service-integration.md): чат, MCP-прогресс и учебный маршрут согласий с review.
+
+- [OpenSpec: Python-агент и MCP](../openspec/README.md) содержит предложенные спецификации, внутренние контракты, план реализации и проверки; подключён Flask/LLM/MCP runner и учебный Go/HR маршрут согласий; глобальный онбординг ещё не завершён.
 - [Инструкция Go → Python и MCP](integrations/go-python-mcp.md) содержит текущие HTTP/MCP-контракты, JSON-примеры, ошибки, сроки ожидания и порядок приёмки.
 - [Оценка знаний: контракт для Go](integrations/knowledge-assessment.md), [размеченные примеры](../services/ai-python/evals/README.md) и [фактическое качество локальной модели](../services/ai-python/experiments/assessment-quality.md).
 - [Development harness и результаты](../services/ai-python/evals/HARNESS.md): реальные локальные LLM/MCP прогоны и раздельный разбор фактов.

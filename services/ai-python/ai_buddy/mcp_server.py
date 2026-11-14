@@ -268,7 +268,8 @@ def create_mcp_app(
                     )
                     return
                 principal = Principal(
-                    subject=subject, allowed_tools=frozenset(CONTRACTS)
+                    subject=subject,
+                    allowed_tools=frozenset({"search_knowledge", "get_team_context"}),
                 )
             handle = PRINCIPAL.set(principal)
             try:

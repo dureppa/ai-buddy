@@ -851,3 +851,75 @@ def test_sdk_auth_failure_sanitizes_resolve_and_never_reads() -> None:
         assert all(r.url.path.endswith("/context/resolve") for r in calls)
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize(
+    "tool,method,path,args,data",
+    [
+        (
+            "get_onboarding_progress",
+            "GET",
+            "/internal/v1/ai/onboarding/progress",
+            {},
+            {"tasks": [], "next_task_id": None, "references": []},
+        ),
+        (
+            "get_task_context",
+            "POST",
+            "/internal/v1/ai/onboarding/task-context",
+            {"task_id": "consent-news"},
+            {
+                "task_id": "consent-news",
+                "title": "Согласия",
+                "guidance": "Учебное действие",
+                "action_url": "http://localhost:5185/",
+                "references": [],
+            },
+        ),
+        (
+            "get_task_evidence",
+            "POST",
+            "/internal/v1/ai/onboarding/task-evidence",
+            {"task_id": "consent-news"},
+            {
+                "task_id": "consent-news",
+                "items": [
+                    {
+                        "kind": "consent",
+                        "confirmed": True,
+                        "version": "demo-1",
+                        "summary": "Учебное согласие дано",
+                    }
+                ],
+                "references": [],
+            },
+        ),
+    ],
+)
+def test_onboarding_tools_over_sdk(
+    tool: str, method: str, path: str, args: dict[str, Any], data: dict[str, Any]
+) -> None:
+    mock = GoMock()
+
+    def read(request: httpx.Request) -> httpx.Response:
+        assert request.method == method and request.url.path == path
+        if method == "POST":
+            assert json.loads(request.content) == args
+        return httpx.Response(200, json={"ok": True, "data": data})
+
+    mock.read_response = read
+    go = backend(mock)
+    app = create_mcp_app(go, authenticator=go, mode="go_http")
+    req = context(
+        request_id=REQUEST_ID,
+        conversation_id=CONVERSATION_ID,
+        delegation_token="delegate-alex",
+    )
+
+    async def run() -> None:
+        async with app.router.lifespan_context(app), sdk(app, req) as session:
+            gateway = Gateway(session, req, settings())
+            await gateway.discover()
+            assert await gateway.call(tool, args) == data
+
+    asyncio.run(run())

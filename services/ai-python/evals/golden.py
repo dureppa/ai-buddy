@@ -193,7 +193,9 @@ def validate_case(case: Case, requirements: set[str]) -> None:
     for fixture in case.fixtures:
         if fixture.tool not in allowed:
             raise ValueError("unimplemented or forbidden tool")
-        if fixture.tool in CONTRACTS:
+        if fixture.tool in CONTRACTS and (
+            case.readiness == "python_ready" or fixture.tool not in PROPOSED_TOOLS
+        ):
             contract = CONTRACTS[fixture.tool]
             contract.arguments.model_validate_json(json.dumps(fixture.arguments))
             if fixture.result is not None:
@@ -332,6 +334,9 @@ def tool_schema_hash() -> str:
             "result": c.result.model_json_schema(),
         }
         for n, c in CONTRACTS.items()
+        # agent-v1 freezes the original read-only slice. Its four integration
+        # cases remain blocked until their richer proposed stage contract is reviewed.
+        if n in {"search_knowledge", "get_team_context"}
     }
     return hashlib.sha256(
         json.dumps(schemas, sort_keys=True, separators=(",", ":")).encode()

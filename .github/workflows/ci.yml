@@ -57,12 +57,32 @@ jobs:
   go:
     name: go
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: integration-only
+          POSTGRES_DB: aibuddy_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://postgres:integration-only@127.0.0.1:5432/aibuddy_test?sslmode=disable
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: services/backend-go/go.mod
           cache-dependency-path: services/backend-go/go.sum
+      - run: |
+          for migration in services/backend-go/migrations/*.up.sql; do
+            psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"
+          done
+          psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f services/backend-go/seeds/demo.sql
+      - working-directory: services/hr/consents
+        run: go test -race ./...
       - working-directory: services/backend-go
         run: |
           if rg --files . -g '*.go' | rg -q .; then

@@ -13,7 +13,7 @@ from pydantic import Field, ValidationError, field_validator, model_validator
 from ai_buddy.answer_policy import suspicious
 from ai_buddy.config import Settings
 from ai_buddy.errors import ErrorCode, ServiceError
-from ai_buddy.ollama import ollama_session
+from ai_buddy.provider import model_session
 from ai_buddy.schemas import ClosedModel, Identifier
 
 Verdict = Literal["pass", "fail", "unclear"]
@@ -289,7 +289,7 @@ class AssessmentRunner:
                 result = build_result(
                     request,
                     criteria,
-                    self.settings.ollama_model or "unconfigured",
+                    self.settings.model_name or "unconfigured",
                     guard,
                 )
             else:
@@ -318,7 +318,7 @@ class AssessmentRunner:
                 schema["properties"]["judgments"].update(
                     minItems=len(request.criteria), maxItems=len(request.criteria)
                 )
-                async with ollama_session(
+                async with model_session(
                     self.settings,
                     response_schema=schema,
                     max_output_tokens=768,
@@ -358,7 +358,7 @@ class AssessmentRunner:
                                 }
                             )
                 result = build_result(
-                    request, criteria, self.settings.ollama_model or "unconfigured"
+                    request, criteria, self.settings.model_name or "unconfigured"
                 )
             outcome = result.recommendation
             return result
@@ -371,7 +371,7 @@ class AssessmentRunner:
                 request.request_id,
                 request.evaluation_id,
                 PROMPT_VERSION,
-                self.settings.ollama_model,
+                self.settings.model_name,
                 calls,
                 outcome,
                 time.monotonic() - start,

@@ -162,6 +162,126 @@ paths:
                   $ref: '#/components/schemas/Notification'
         '401':
           $ref: '#/components/responses/Unauthenticated'
+
+  /api/v1/chat/conversations/{conversation_id}:
+    get:
+      summary: Read the authenticated owner's saved conversation
+      parameters:
+        - in: path
+          name: conversation_id
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Saved conversation
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conversation_id, messages]
+                properties:
+                  conversation_id: {type: string, format: uuid}
+                  messages:
+                    type: array
+                    items:
+                      type: object
+                      required: [role, content]
+                      properties:
+                        role: {type: string, enum: [user, assistant]}
+                        content: {type: string}
+        '404': {description: Missing conversation or different owner}
+  /api/v1/onboarding/consent-review:
+    get:
+      summary: Read the current intern's consent practice assessment
+      responses:
+        '200':
+          description: Saved assessment and review state
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TaskReview'}
+        '404': {description: No assessment yet}
+    post:
+      summary: Assess an answer using server-owned rubric and HR evidence
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [answer]
+              properties:
+                answer: {type: string, minLength: 1, maxLength: 4000}
+      responses:
+        '200':
+          description: Assessment saved; mentor review is required
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TaskReview'}
+        '400': {description: Invalid answer or missing HR evidence}
+        '503': {description: Assessment or HR service unavailable}
+  /api/v1/demo/staff-sessions:
+    post:
+      summary: Issue a separate staff-review token in DEMO_MODE only
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [staff_id]
+              properties:
+                staff_id: {type: string, enum: [mentor, lead]}
+      responses:
+        '201':
+          description: Staff token, never an intern session token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [access_token]
+                properties:
+                  access_token: {type: string}
+        '403': {description: Demo disabled}
+  /api/v1/staff/reviews/{profile_id}:
+    parameters:
+      - in: path
+        name: profile_id
+        required: true
+        schema: {type: string}
+    get:
+      summary: Read a review for an assigned intern using a staff-review token
+      responses:
+        '200':
+          description: Latest assessment and answer
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TaskReview'}
+        '403': {description: Intern not assigned to this staff account}
+    post:
+      summary: Apply mentor decision to the latest assessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [evaluation_id, approve, note]
+              properties:
+                evaluation_id: {type: string, format: uuid}
+                approve: {type: boolean}
+                note: {type: string, maxLength: 1000}
+      responses:
+        '200':
+          description: Review saved; approval also atomically completes consent-news
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TaskReview'}
+        '409': {description: Stale assessment or changed HR evidence}
+
 components:
   securitySchemes:
     sessionToken:
@@ -342,3 +462,19 @@ components:
           type: string
         action:
           $ref: '#/components/schemas/Reference'
+
+    TaskReview:
+      type: object
+      required: [profile_id, task_id, evaluation_id, answer, evidence_version, state, assessment, reviewed_by, review_note]
+      properties:
+        profile_id: {type: string}
+        task_id: {type: string, const: consent-news}
+        evaluation_id: {type: string, format: uuid}
+        answer: {type: string}
+        evidence_version: {type: string}
+        state: {type: string, enum: [evaluating, awaiting_review, needs_revision, completed]}
+        assessment:
+          type: [object, 'null']
+          description: Version-bound result of the private Python assessment contract
+        reviewed_by: {type: [string, 'null']}
+        review_note: {type: string}

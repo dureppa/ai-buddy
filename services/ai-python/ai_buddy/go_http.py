@@ -56,7 +56,7 @@ class GoHTTPSettings(ClosedModel):
             or (parts.port is not None and not 1 <= parts.port <= 65535)
             or (
                 parts.scheme == "http"
-                and parts.hostname not in {"localhost", "127.0.0.1", "::1"}
+                and parts.hostname not in {"localhost", "127.0.0.1", "::1", "go"}
             )
         ):
             raise ValueError("Go API requires a fixed HTTPS origin or loopback HTTP")
@@ -77,7 +77,7 @@ class ActiveContext(ClosedModel):
     subject_id: Identifier
     request_id: UUID
     conversation_id: UUID
-    allowed_tools: Annotated[list[str], Field(max_length=2)]
+    allowed_tools: Annotated[list[str], Field(max_length=5)]
     expires_at: datetime
     api_token: SecretStr
 
@@ -242,17 +242,23 @@ class GoHTTPBackend:
         except ValidationError:
             raise ServiceError(ErrorCode.INVALID_ARGUMENTS) from None
         search = tool == "search_knowledge"
+        routes = {
+            "search_knowledge": ("POST", "/internal/v1/ai/knowledge/search"),
+            "get_team_context": ("GET", "/internal/v1/ai/team-context"),
+            "get_onboarding_progress": ("GET", "/internal/v1/ai/onboarding/progress"),
+            "get_task_context": ("POST", "/internal/v1/ai/onboarding/task-context"),
+            "get_task_evidence": ("POST", "/internal/v1/ai/onboarding/task-evidence"),
+        }
+        method, path = routes[tool]
         try:
             status, body = await self.request(
-                "POST" if search else "GET",
-                "/internal/v1/ai/knowledge/search"
-                if search
-                else "/internal/v1/ai/team-context",
+                method,
+                path,
                 token=principal.api_token,
                 request_id=principal.request_id,
                 timeout=min(self.settings.read_timeout, remaining),
                 max_bytes=MAX_RESULT_BYTES,
-                payload=args if search else None,
+                payload=args if method == "POST" else None,
             )
         except ServiceError as error:
             if principal.expires_at <= datetime.now(UTC):

@@ -72,6 +72,11 @@ services:
     environment:
       <<: *database-env
       DEMO_MODE: "true"
+      AI_SERVICE_URL: http://ollama:8001
+      AI_SERVICE_TOKEN: ${COMPOSE_AI_TOKEN:-local-demo-flask-token}
+      MCP_ADAPTER_SERVICE_TOKEN: ${COMPOSE_MCP_ADAPTER_TOKEN:-local-demo-adapter-token}
+      AI_DELEGATION_SECRET: ${COMPOSE_DELEGATION_SECRET:-local-demo-delegation-change-for-shared-host}
+      HR_CONSENTS_URL: http://hr-consents:8185
       SESSION_SECRET: ${COMPOSE_SESSION_SECRET:-local-demo-session-change-for-shared-host}
     depends_on:
       migrate:
@@ -107,16 +112,20 @@ services:
     environment:
       OLLAMA_HOST: 127.0.0.1:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b-q4_K_M}
+      AI_LLM_PROVIDER: ${AI_LLM_PROVIDER:-ollama}
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |
+        if [ "$$AI_LLM_PROVIDER" = deepseek ]; then exit 0; fi
         ollama show "$$OLLAMA_MODEL" >/dev/null 2>&1 || ollama pull "$$OLLAMA_MODEL"
 
   mcp:
     <<: *python
     command: ["python", "-m", "ai_buddy.mcp_server"]
     environment:
-      MCP_BACKEND: demo
+      MCP_BACKEND: go_http
+      GO_API_URL: http://go:8080
+      MCP_ADAPTER_SERVICE_TOKEN: ${COMPOSE_MCP_ADAPTER_TOKEN:-local-demo-adapter-token}
       MCP_DEMO_ENABLED: "true"
       MCP_DEMO_PROFILE: ${COMPOSE_MCP_PROFILE:-alex}
       MCP_DEMO_TOKEN: ${COMPOSE_MCP_TOKEN:-local-demo-mcp-token}
@@ -132,9 +141,13 @@ services:
 
   agent:
     <<: *python
-    command: ["flask", "--app", "ai_buddy:create_app", "run", "--host", "127.0.0.1", "--port", "8001"]
+    command: ["flask", "--app", "ai_buddy:create_app", "run", "--host", "0.0.0.0", "--port", "8001"]
     environment:
       AI_AGENT_ENABLED: "true"
+      AI_LLM_PROVIDER: ${AI_LLM_PROVIDER:-ollama}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       AI_SERVICE_TOKEN: ${COMPOSE_AI_TOKEN:-local-demo-flask-token}
       MCP_URL: http://127.0.0.1:8002/mcp
       OLLAMA_URL: http://127.0.0.1:11434

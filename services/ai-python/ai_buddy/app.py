@@ -33,7 +33,7 @@ def create_app(
     settings = settings or Settings.from_env()
     app = Flask(__name__)
     app.logger.setLevel(logging.INFO)
-    if runner is None and settings.agent_enabled and settings.ollama_model is not None:
+    if runner is None and settings.agent_enabled and settings.model_configured:
         runner = DirectRunner(settings, logger=app.logger)
     app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
     factory = session_factory or (lambda context: sdk_session(settings, context))
@@ -60,7 +60,7 @@ def create_app(
         ok = (
             settings.service_token is not None
             and settings.agent_enabled
-            and settings.ollama_model is not None
+            and settings.model_configured
         )
         return jsonify(ready=ok), 200 if ok else 503
 
@@ -78,7 +78,7 @@ def create_app(
             return error_response(ErrorCode.INVALID_REQUEST, 400)
         if not settings.agent_enabled:
             return error_response(ErrorCode.AI_UNAVAILABLE, 503)
-        if settings.ollama_model is None:
+        if not settings.model_configured:
             return error_response(ErrorCode.NOT_READY, 503)
 
         async def execute_assessment() -> AssessmentResult:

@@ -2,7 +2,9 @@ package buddy
 
 import (
 	"context"
+	"net/url"
 	"strings"
+	"unicode/utf8"
 )
 
 type ChatMessage struct {
@@ -12,14 +14,14 @@ type ChatMessage struct {
 }
 
 type assistant interface {
-	Ask(ctx context.Context, msg ChatMessage) error
+	Ask(ctx context.Context, profileID string, msg ChatMessage) (ChatReply, error)
 }
 
 // UnavailableAssistant — заглушка до подключения Python-сервиса.
 type UnavailableAssistant struct{}
 
-func (UnavailableAssistant) Ask(context.Context, ChatMessage) error {
-	return ErrUnavailable
+func (UnavailableAssistant) Ask(context.Context, string, ChatMessage) (ChatReply, error) {
+	return ChatReply{}, ErrUnavailable
 }
 
 type Chat struct {
@@ -30,14 +32,63 @@ func NewChat(a assistant) *Chat {
 	return &Chat{assistant: a}
 }
 
-func (s *Chat) Ask(ctx context.Context, profileID string, msg ChatMessage) error {
-	if strings.TrimSpace(msg.Text) == "" {
-		return ErrInvalidInput
+func (s *Chat) Ask(ctx context.Context, profileID string, msg ChatMessage) (ChatReply, error) {
+	if strings.TrimSpace(msg.Text) == "" || utf8.RuneCountInString(msg.Text) > 4000 {
+		return ChatReply{}, ErrInvalidInput
 	}
-	if msg.PageURL != "" &&
-		!strings.HasPrefix(msg.PageURL, "http://") &&
-		!strings.HasPrefix(msg.PageURL, "https://") {
-		return ErrInvalidInput
+	if msg.PageURL != "" {
+		u, err := url.Parse(msg.PageURL)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.User != nil || strings.ContainsAny(msg.PageURL, "\\\r\n") {
+			return ChatReply{}, ErrInvalidInput
+		}
+		u.RawQuery, u.Fragment, u.RawFragment = "", "", ""
+		u.ForceQuery = false
+		msg.PageURL = u.String()
 	}
-	return s.assistant.Ask(ctx, msg)
+	return s.assistant.Ask(ctx, profileID, msg)
+}
+
+type Reference struct {
+	Title string `json:"title"`
+	URL   string `json:"url"`
+}
+type ChatReply struct {
+	ConversationID string      `json:"conversation_id"`
+	Kind           string      `json:"kind"`
+	Text           string      `json:"text"`
+	References     []Reference `json:"references"`
+}
+type HistoryMessage struct {
+	References []Reference `json:"references,omitempty"`
+	Role       string      `json:"role"`
+	Content    string      `json:"content"`
+}
+
+func (s *Chat) Conversation(ctx context.Context, profile, id string) ([]HistoryMessage, error) {
+	reader, ok := s.assistant.(interface {
+		Conversation(context.Context, string, string) ([]HistoryMessage, error)
+	})
+	if !ok {
+		return nil, ErrUnavailable
+	}
+	return reader.Conversation(ctx, profile, id)
+}
+
+func (s *Chat) Review(ctx context.Context, profile string) (TaskReview, error) {
+	a, ok := s.assistant.(interface {
+		Review(context.Context, string) (TaskReview, error)
+	})
+	if !ok {
+		return TaskReview{}, ErrUnavailable
+	}
+	return a.Review(ctx, profile)
+}
+func (s *Chat) SubmitReview(ctx context.Context, profile, answer string) (TaskReview, error) {
+	a, ok := s.assistant.(interface {
+		SubmitReview(context.Context, string, string) (TaskReview, error)
+	})
+	if !ok {
+		return TaskReview{}, ErrUnavailable
+	}
+	return a.SubmitReview(ctx, profile, answer)
 }

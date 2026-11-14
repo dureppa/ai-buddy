@@ -89,7 +89,7 @@ func main() {
 func handleList(pool *pgxpool.Pool) func(http.ResponseWriter, *http.Request, string) {
 	return func(w http.ResponseWriter, r *http.Request, profile string) {
 		rows, err := pool.Query(r.Context(), `
-			SELECT p.id, p.title, p.description, coalesce(c.granted, false)
+			SELECT p.id, p.title, p.description, coalesce(c.granted, false),c.updated_at
 			FROM consent_purposes p
 			LEFT JOIN consents c ON c.purpose = p.id AND c.profile_id = $1
 			ORDER BY p.sort_order`, profile)
@@ -103,13 +103,18 @@ func handleList(pool *pgxpool.Pool) func(http.ResponseWriter, *http.Request, str
 		for rows.Next() {
 			var id, title, description string
 			var granted bool
-			if err := rows.Scan(&id, &title, &description, &granted); err != nil {
+			var updatedAt *time.Time
+			if err := rows.Scan(&id, &title, &description, &granted, &updatedAt); err != nil {
 				fail(w, http.StatusInternalServerError, "internal", "ошибка чтения")
 				return
 			}
 			out = append(out, map[string]any{
-				"purpose": id, "title": title, "description": description, "granted": granted,
+				"updated_at": updatedAt, "purpose": id, "title": title, "description": description, "granted": granted,
 			})
+		}
+		if rows.Err() != nil {
+			fail(w, 500, "internal", "ошибка чтения")
+			return
 		}
 		writeJSON(w, http.StatusOK, out)
 	}
@@ -118,9 +123,9 @@ func handleList(pool *pgxpool.Pool) func(http.ResponseWriter, *http.Request, str
 func handleSet(pool *pgxpool.Pool) func(http.ResponseWriter, *http.Request, string) {
 	return func(w http.ResponseWriter, r *http.Request, profile string) {
 		var body struct {
-			Granted bool `json:"granted"`
+			Granted *bool `json:"granted"`
 		}
-		if err := readBody(w, r, &body); err != nil {
+		if err := readBody(w, r, &body); err != nil || body.Granted == nil {
 			fail(w, http.StatusBadRequest, "invalid_input", "нужно поле granted")
 			return
 		}
@@ -141,8 +146,8 @@ func handleSet(pool *pgxpool.Pool) func(http.ResponseWriter, *http.Request, stri
 		_, err = pool.Exec(r.Context(), `
 			INSERT INTO consents (profile_id, purpose, granted) VALUES ($1, $2, $3)
 			ON CONFLICT (profile_id, purpose)
-			DO UPDATE SET granted = EXCLUDED.granted, updated_at = now()`,
-			profile, purpose, body.Granted)
+			DO UPDATE SET granted = EXCLUDED.granted, updated_at = now() WHERE consents.granted IS DISTINCT FROM EXCLUDED.granted`,
+			profile, purpose, *body.Granted)
 		if err != nil {
 			fail(w, http.StatusInternalServerError, "internal", "ошибка записи")
 			return

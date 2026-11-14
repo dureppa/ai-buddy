@@ -1,5 +1,33 @@
 # Go-бэкенд
 
+## Живая AI-интеграция (14.11.2026)
+
+При AI_SERVICE_URL включается Go → Flask → Python MCP → Go. Обязательны отдельные
+AI_SERVICE_TOKEN, MCP_ADAPTER_SERVICE_TOKEN и AI_DELEGATION_SECRET (32+ символа).
+HR_CONSENTS_URL задаёт API согласий. Локальные адреса HTTP и фиксированные DNS
+`ollama`/`hr-consents` поддержаны для Compose; другие origins требуют HTTPS.
+При отсутствии AI_SERVICE_URL сохраняется прежний отказ unavailable.
+
+`internal/ai` отвечает за Flask HTTP, короткие JWT с разными audience,
+MCP resolve/read и учебный assessment/review. `internal/store/chat.go` сохраняет
+диалоги, проверяет владельца и сериализует генерации блокировкой строки.
+`internal/store/ai.go` читает знания/команду/прогресс, `review.go` сохраняет оценки
+и применяет решение наставника транзакционно. Новые миграции 06/07 обязательны.
+WriteTimeout увеличен до 35 с. История читается владельцем через
+GET /api/v1/chat/conversations/{conversation_id}.
+
+Для consent-news: GET/POST /api/v1/onboarding/consent-review. POST принимает
+только answer. DEMO_MODE открывает POST /api/v1/demo/staff-sessions с
+staff_id=mentor|lead; GET/POST /api/v1/staff/reviews/{profile_id} проверяют
+отдельный staff JWT и закреплённых стажёров. POST решения принимает
+evaluation_id, approve, note. Одобрение проверяет актуальные evidence/version,
+сохраняет решение и completion вместе. Обход через обычный completion запрещён.
+Это переход учебного задания, не глобальная модель этапов стажировки.
+
+[SDD 004](../specs/004-agent-service-integration.md) заменяет прежние утверждения
+ниже о заглушке чата. Остальные baseline API сохраняются.
+
+
 ## Статус
 
 В компоненте реализованы **схема PostgreSQL, демонстрационные данные и HTTP API**.
@@ -10,9 +38,9 @@
 - Чек-лист адаптации с идемпотентной отметкой шагов.
 - Заявки на доступ с полной таблицей приёмки SDD 001 и моком корпоративного сервиса.
 - Системные уведомления.
-- Граница чата с Buddy (валидация и возврат `503` до подключения Python).
+- Чат Buddy: Flask, история, источники и безопасные ошибки; без конфигурации AI — `503`.
 
-MCP-инструменты и полная интеграция с AI-сервисом не реализованы. Схема и API подготовлены под [черновик OpenAPI](../../contracts/openapi.yaml) и сценарии [заявки на доступ](../specs/001-access-request.md) и [онбординга](../specs/002-onboarding-and-context.md). Контракт не менялся.
+Реализованы пять MCP-чтений через Python MCP и учебный assessment/review согласий; остальные HR-интеграции не подключены. Схема и API подготовлены под [черновик OpenAPI](../../contracts/openapi.yaml) и сценарии [заявки на доступ](../specs/001-access-request.md) и [онбординга](../specs/002-onboarding-and-context.md). Дополнения контракта описаны в SDD 004.
 
 ## Назначение
 
@@ -213,7 +241,7 @@ TOKEN=$(curl -s localhost:8080/api/v1/demo/sessions \
 # Получить уведомления (у sasha есть карточка экватора)
 curl -s localhost:8080/api/v1/notifications -H "Authorization: Bearer $TOKEN" | jq
 
-# Чат (вернёт 503, так как AI ещё не подключен, но валидация работает)
+# Чат (нужны AI_SERVICE_URL и работающие Flask/MCP/LLM)
 curl -s -X POST localhost:8080/api/v1/chat/messages \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"text":"Как оформить отгул?"}' | jq
@@ -231,7 +259,7 @@ grafana — maria t, olga t, sasha f; прогресс — maria 12, olga 3, sas
 
 ## Ограничения и открытые вопросы
 
-- **MCP и AI не реализованы.** Инструмент `prepare_access_request` и полная генерация ответов в `POST /chat/messages` будут добавлены отдельными задачами. Пока чат возвращает `503`.
+- **Legacy write-tool не подключён.** `prepare_access_request` ещё не реализован; чат с read-tools и учебный review работают отдельно от этого legacy-сценария.
 - **Нет версионирования миграций.** Порядок применения соблюдается вручную через скрипт `scripts/db-setup.sh`.
 - **Каталог сервисов минимален** (`id`, `name`, `description`). Атрибуты `state`, `aliases`, `owner`, `instruction` остаются в `data.ts` веба и переедут в бэкенд или AI-сервис вместе с чат-сценарием.
 - **Презентация шагов остаётся на фронте.** API отдаёт `id`, `title`, `guidance`, `status`, `action_url`; поля `summary`, `due`, `owner`, `stage`, `icon`, `tone` — оформление из `data.ts`.

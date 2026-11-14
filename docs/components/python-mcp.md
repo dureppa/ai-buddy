@@ -1,5 +1,18 @@
 # Python MCP: demo и Go HTTP
 
+## Дополнение: живой Go и личный прогресс
+
+Go реализует resolve и пять чтений из [SDD 004](../specs/004-agent-service-integration.md).
+Go HTTP backend дополнен get_onboarding_progress, get_task_context(task_id),
+get_task_evidence(task_id); последняя функция читает актуальные согласия из HR API.
+GET /internal/v1/ai/onboarding/progress, POST task-context/task-evidence находятся
+под /internal/v1/ai/onboarding/. Все результаты содержат references.
+Модель не получает профиль или токены как аргументы tools.
+ActiveContext допускает пять grants. В локальном demo выдаются только два исходных
+инструмента; новые данные не подменяются фикстурами. Для Compose GO_API_URL может
+быть http://go:8080 — это единственное дополнение к прежним HTTP loopback origins.
+
+
 Реализован отдельный сервер с двумя инструментами search_knowledge/get_team_context. SDK 1.30.0, stateless Streamable HTTP, JSON-ответы; Flask остаётся отдельным HTTP-входом агента. Доступны явные backend-режимы demo и go_http. Python HTTP-адаптер проверен на моках; настоящие Go endpoints и сквозной Go/UI-маршрут здесь не проверены. Шесть бизнес-интеграций не добавлены этими двумя чтениями. [Инструкция для Go](../integrations/go-python-mcp.md).
 
 ## Запуск
