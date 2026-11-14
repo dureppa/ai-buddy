@@ -430,8 +430,7 @@ export function Team({ profileId, onOpen }: { profileId: ProfileId; onOpen: Open
           <PersonCard key={person.id} person={person} onOpen={onOpen} />
         ))}
       </div>
-      <SectionTitle title="Коллеги по команде" />
-      <div className="people-grid">
+      <div className="people-grid people-grid--colleagues">
         {teamColleagues(profileId).map((person) => (
           <PersonCard key={person.id} person={person} onOpen={onOpen} />
         ))}
