@@ -462,10 +462,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                 <Route path="/onboarding" element={<Adaptation profileId={profileId} {...checklist} />} />
                 <Route path="/team" element={<Team profileId={profileId} onOpen={setDetail} />} />
                 <Route path="/tools" element={<Tools workspace={workspace} onOpen={setDetail} />} />
-                <Route
-                  path="/resources"
-                  element={<Resources directory={<CorporateDirectory />} />}
-                />
+                <Route path="/resources" element={<Resources directory={<CorporateDirectory />} />} />
                 <Route path="/chat" element={<ChatPage {...chatProps} />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
               </Routes>
