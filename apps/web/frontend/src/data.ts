@@ -1,4 +1,4 @@
-import { products, profiles, staffAccounts, type ProfileId } from './demo-accounts';
+import { profiles, type ProfileId } from './demo-accounts';
 export type { AvatarVariant, Person, ProfileId } from './demo-accounts';
 export { profiles } from './demo-accounts';
 
@@ -152,72 +152,6 @@ export const services = [
   },
 ] as const;
 
-export const resources = [
-  {
-    id: 'documents',
-    title: 'Документы и инструкции',
-    category: 'Документы',
-    icon: 'file',
-    tone: 'blue',
-    summary: 'Оформление, памятки и правила первого дня.',
-    body: 'Сверь комплект документов с куратором. После согласования он подскажет, где подписать документы и как проверить статус.',
-  },
-  {
-    id: 'product',
-    title: 'Путеводитель по продукту',
-    category: 'Документы',
-    icon: 'map',
-    tone: 'mint',
-    summary: 'Что делает команда и кому помогает продукт.',
-    body: 'Начни с задач команды и обсуди первые шаги с наставником.',
-  },
-  {
-    id: 'learning',
-    title: 'Учебный портал',
-    category: 'Обучение',
-    icon: 'book',
-    tone: 'lilac',
-    summary: 'Вводные курсы и материалы для развития.',
-    body: 'Начни с вводного курса, охраны труда и пожарной безопасности. В плане адаптации укажи, когда закончишь обучение.',
-  },
-  {
-    id: 'timeoff',
-    title: 'Отпуска и выходные',
-    category: 'Кадровые вопросы',
-    icon: 'calendar',
-    tone: 'pink',
-    summary: 'Демонстрационная памятка об отгуле.',
-    body: 'В этом учебном сценарии сначала согласуй дату с лидом и уточни дальнейшие шаги у HR. Для рабочего запроса используй актуальные инструкции своей компании.',
-  },
-  {
-    id: 'equipment',
-    title: 'Рабочее место и IT',
-    category: 'Сервисы',
-    icon: 'monitor',
-    tone: 'mint',
-    summary: 'Настройка техники, почты и видеосвязи.',
-    body: 'Проверь вход в почту, камеру и микрофон. Если подключение не работает, запиши устройство и симптом и передай их IT-поддержке.',
-  },
-  {
-    id: 'contacts',
-    title: 'Полезные контакты',
-    category: 'Контакты',
-    icon: 'users',
-    tone: 'blue',
-    summary: 'К кому обратиться с вопросами о работе.',
-    body: 'По задачам пиши руководителю команды. По первым шагам обратись к наставнику. По оформлению и обучению поможет куратор стажировки.',
-  },
-  {
-    id: 'meetups',
-    title: 'Корпоративные мероприятия',
-    category: 'События',
-    icon: 'sparkles',
-    tone: 'lilac',
-    summary: 'Встречи, обучение и важные даты.',
-    body: 'В календаре адаптации отмечены знакомство с командой, обучение и встреча по первым результатам. Ближайшие события видны на главной.',
-  },
-] as const;
-
 export const suggestions = [
   'С чего начать сегодня?',
   'Кто мой наставник?',
@@ -227,26 +161,3 @@ export const suggestions = [
 ];
 
 export type Service = (typeof services)[number];
-export type Resource = Omit<(typeof resources)[number], 'body'> & { body: string };
-
-export function resourcesFor(profileId: ProfileId): Resource[] {
-  const product = products[profiles[profileId].productId];
-  return resources.map((resource) => {
-    if (resource.id === 'product')
-      return {
-        ...resource,
-        body: product.name + ' · «' + product.team + '». ' + product.teamDescription + ' ' + product.firstStep,
-      };
-    if (resource.id === 'contacts')
-      return {
-        ...resource,
-        body:
-          'По задачам пиши руководителю (' +
-          staffAccounts[product.manager].name +
-          '). По первым шагам обратись к наставнику (' +
-          staffAccounts[product.mentor].name +
-          '). По оформлению и обучению поможет куратор стажировки.',
-      };
-    return resource;
-  });
-}

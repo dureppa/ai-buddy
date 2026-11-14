@@ -11,7 +11,7 @@ import {
   type StoragePort,
 } from './demo';
 import { tasksFor } from './checklist';
-import { resourcesFor, services } from './data';
+import { services } from './data';
 import { products, profiles, staffAccounts } from './demo-accounts';
 
 type Memory = StoragePort & { data: Map<string, string> };
@@ -115,8 +115,8 @@ describe('AI-buddy demo workspace', () => {
     const storage = memory();
     const documentReply = answerBuddy('Где подписать документы?', readWorkspace(storage, 'olga'), 'olga');
     const timeOffReply = answerBuddy('Как оформить отгул?', readWorkspace(storage, 'olga'), 'olga');
-    expect(documentReply.link?.to).toBe('/resources?article=documents');
-    expect(timeOffReply.link?.to).toBe('/resources?article=timeoff');
+    expect(documentReply.link?.to).toBe('http://localhost:5187/');
+    expect(timeOffReply.link?.to).toBe('http://localhost:5181/');
   });
 
   it('returns a clarification for an unknown question', () => {
@@ -196,9 +196,5 @@ describe('AI-buddy demo workspace', () => {
     expect(contacts.lines?.join(' ')).toContain(staffAccounts[product.mentor].name);
     expect(contacts.lines?.join(' ')).toContain(staffAccounts[product.manager].name);
     expect(contacts.lines).toHaveLength(2);
-    expect(resourcesFor(id).find((resource) => resource.id === 'product')?.body).toContain(product.firstStep);
-    expect(resourcesFor(id).find((resource) => resource.id === 'contacts')?.body).toContain(
-      staffAccounts[product.mentor].name,
-    );
   });
 });

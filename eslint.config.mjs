@@ -9,7 +9,7 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['apps/**/frontend/**/*.{ts,tsx}'],
+    files: ['apps/**/frontend/**/*.{ts,tsx}', 'services/hr/**/frontend/**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {
         ecmaFeatures: { jsx: true },

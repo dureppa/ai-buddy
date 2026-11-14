@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { tasksFor } from './checklist';
-import { resources, services, type Service } from './data';
+import { corporateLinks } from './corporate-links';
+import { services, type Service } from './data';
 import { products, profiles, teamContacts, type ProfileId } from './demo-accounts';
 
 const requestSchema = z.object({
@@ -14,6 +15,10 @@ const workspaceSchema = z.object({ completed: z.array(z.string()), requests: z.a
 export type AccessRequest = z.infer<typeof requestSchema>;
 export type Workspace = z.infer<typeof workspaceSchema>;
 export type StoragePort = Pick<Storage, 'getItem' | 'setItem'>;
+function serviceUrl(id: string) {
+  return corporateLinks.find((service) => service.id === id)?.url ?? '/resources';
+}
+
 export type AccessDraft = {
   id: string;
   profileId: ProfileId;
@@ -193,8 +198,8 @@ export function answerBuddy(
   if (/отгул|отпуск|выходн/.test(question))
     return {
       kind: 'answer',
-      text: resources.find((resource) => resource.id === 'timeoff')!.body,
-      link: { label: 'Открыть памятку', to: '/resources?article=timeoff' },
+      text: 'В этом учебном сценарии сначала согласуй дату с лидом и уточни дальнейшие шаги в сервисе отсутствий.',
+      link: { label: 'Открыть отсутствия', to: serviceUrl('absences') },
     };
   const intern = profiles[profile];
   const product = products[intern.productId];
@@ -219,8 +224,8 @@ export function answerBuddy(
   if (/документ|подпис/.test(question))
     return {
       kind: 'answer',
-      text: 'Начни с раздела «Документы и инструкции». В нём есть памятка об оформлении и следующий шаг.',
-      link: { label: 'Открыть документы', to: '/resources?article=documents' },
+      text: 'Начни с сервиса «Документы и инструкции». В нём есть памятка об оформлении и следующий шаг.',
+      link: { label: 'Открыть документы', to: serviceUrl('documents') },
     };
   if (/продукт|професси|проект|должност|моя роль/.test(question))
     return {

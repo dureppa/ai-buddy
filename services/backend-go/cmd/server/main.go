@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -68,15 +69,31 @@ func runContext(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		if err = ai.OriginOK(os.Getenv("HR_DOCUMENTS_URL")); err != nil {
+			return err
+		}
+		if err = ai.OriginOK(os.Getenv("HR_EVENTS_URL")); err != nil {
+			return err
+		}
+		bridge.DocumentsURL = strings.TrimRight(os.Getenv("HR_DOCUMENTS_URL"), "/")
+		bridge.EventsURL = strings.TrimRight(os.Getenv("HR_EVENTS_URL"), "/")
 		if bridge.Secret == cfg.SessionSecret {
 			return fmt.Errorf("AI delegation and session secrets must differ")
 		}
 		if publicURL := os.Getenv("HR_CONSENTS_PUBLIC_URL"); publicURL != "" {
-			u, e := url.Parse(publicURL)
-			if e != nil || u.Hostname() == "" || u.User != nil || (u.Scheme != "http" && u.Scheme != "https") {
-				return fmt.Errorf("invalid public consents URL")
+			if err = setPublicURL(&bridge.PublicConsentURL, publicURL); err != nil {
+				return err
 			}
-			bridge.PublicConsentURL = publicURL
+		}
+		if publicURL := os.Getenv("HR_DOCUMENTS_PUBLIC_URL"); publicURL != "" {
+			if err = setPublicURL(&bridge.PublicDocumentsURL, publicURL); err != nil {
+				return err
+			}
+		}
+		if publicURL := os.Getenv("HR_EVENTS_PUBLIC_URL"); publicURL != "" {
+			if err = setPublicURL(&bridge.PublicEventsURL, publicURL); err != nil {
+				return err
+			}
 		}
 		bridge.HRSecret = cfg.SessionSecret
 		bridge.DemoMode = cfg.DemoMode
@@ -124,5 +141,14 @@ func runContext(ctx context.Context) error {
 	if err := <-errCh; !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
+	return nil
+}
+
+func setPublicURL(target *string, publicURL string) error {
+	u, err := url.Parse(publicURL)
+	if err != nil || u.Hostname() == "" || u.User != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		return fmt.Errorf("invalid public service URL")
+	}
+	*target = strings.TrimRight(publicURL, "/") + "/"
 	return nil
 }

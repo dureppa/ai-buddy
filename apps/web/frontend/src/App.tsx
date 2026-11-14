@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { ChatPage, ChatWindow, type ChatEntry, type DraftState } from './Chat';
 import { tasksFor } from './checklist';
-import { navigation, resources, resourcesFor, services } from './data';
+import { navigation, services } from './data';
 import { isStaffId, products, profiles, teamColleagues, teamContacts, type ProfileId } from './demo-accounts';
 import {
   answerBuddy,
@@ -37,13 +37,6 @@ const searchItems = [
     to: '/tools?service=' + service.id,
   })),
   ...corporateLinks.map((service) => ({ label: service.title, detail: 'Внешний сервис', to: service.url })),
-  ...resources
-    .filter((resource) => resource.id !== 'product')
-    .map((resource) => ({
-      label: resource.title,
-      detail: resource.category,
-      to: '/resources?article=' + resource.id,
-    })),
 ];
 
 type Toast = { message: string; tone: 'success' | 'error' };
@@ -289,17 +282,13 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     location.pathname === '/team' &&
     [...teamContacts(profileId), ...teamColleagues(profileId)].find((item) => item.id === params.get('person'));
   const service = location.pathname === '/tools' && services.find((item) => item.id === params.get('service'));
-  const resource =
-    location.pathname === '/resources' && resourcesFor(profileId).find((item) => item.id === params.get('article'));
   const linkedDetail: Detail | null = task
     ? { kind: 'task', item: task }
     : person
       ? { kind: 'person', item: person }
       : service
         ? { kind: 'service', item: service }
-        : resource
-          ? { kind: 'resource', item: resource }
-          : null;
+        : null;
   const shownDetail = detail ?? linkedDetail;
   function closeDetail() {
     setDetail(null);
@@ -475,7 +464,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                 <Route path="/tools" element={<Tools workspace={workspace} onOpen={setDetail} />} />
                 <Route
                   path="/resources"
-                  element={<Resources profileId={profileId} onOpen={setDetail} directory={<CorporateDirectory />} />}
+                  element={<Resources directory={<CorporateDirectory />} />}
                 />
                 <Route path="/chat" element={<ChatPage {...chatProps} />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
@@ -651,14 +640,6 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                     Заявка <strong>{request.number}</strong>
                   </p>
                 ))}
-            </div>
-          )}
-          {shownDetail.kind === 'resource' && (
-            <div className="detail-content">
-              <span className={'icon-tile tone-' + shownDetail.item.tone}>
-                <Icon name={shownDetail.item.icon} />
-              </span>
-              <p>{shownDetail.item.body}</p>
             </div>
           )}
           {shownDetail.kind === 'event' && (

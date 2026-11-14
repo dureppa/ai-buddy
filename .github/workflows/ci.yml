@@ -24,8 +24,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm exec -- prettier --check apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs eslint.config.mjs prettier.config.mjs
-      - run: npm exec -- eslint apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs
+      - run: npm exec -- prettier --check apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend eslint.config.mjs prettier.config.mjs
+      - run: npm exec -- eslint apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend
       - run: npm run typecheck --workspaces
       - run: npm test --workspaces
       - run: npm run build --workspaces
@@ -82,6 +82,10 @@ jobs:
           done
           psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f services/backend-go/seeds/demo.sql
       - working-directory: services/hr/consents
+        run: go test -race ./...
+      - working-directory: services/hr/documents
+        run: go test -race ./...
+      - working-directory: services/hr/events
         run: go test -race ./...
       - working-directory: services/backend-go
         run: |

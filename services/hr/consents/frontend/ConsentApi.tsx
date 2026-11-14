@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
-import { apiFetch } from '../../../web/frontend/src/backend';
-import type { ProfileId } from '../../../web/frontend/src/data';
+import { apiFetch } from '../../../../apps/web/frontend/src/backend';
+import type { ProfileId } from '../../../../apps/web/frontend/src/data';
 
 const consentsSchema = z.array(
   z.object({ purpose: z.string(), title: z.string(), description: z.string(), granted: z.boolean() }),

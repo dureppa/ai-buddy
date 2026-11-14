@@ -1,4 +1,4 @@
 {
   "extends": "../../web/frontend/tsconfig.json",
-  "include": ["src"]
+  "include": ["src", "../../../services/hr/*/frontend/**/*.ts", "../../../services/hr/*/frontend/**/*.tsx"]
 }

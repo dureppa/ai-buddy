@@ -2,15 +2,15 @@
 
 ## Согласия через настоящий API
 
-При VITE_API_ENABLED=true страница согласий использует ConsentApi.tsx и Go HR API,
+При VITE_API_ENABLED=true страница согласий использует `services/hr/consents/frontend/ConsentApi.tsx` и Go HR API,
 а не localStorage. Выберите тот же демопрофиль, что и в Buddy. /api проксируется
-в Go для демосессии; /hr-api — в сервис согласий. Ошибка не подменяется локальными
+в Go для демосессии; /hr-api на каждом из этих сайтов идёт в API именно этого сервиса. Ошибка не подменяется локальными
 данными. Повтор установки того же значения не меняет updated_at; поле становится
 версией подтверждения для проверки знаний и review. Другие пять сайтов пока
 сохраняют baseline demo-adapter. Настройки/маршрут: [SDD 004](../specs/004-agent-service-integration.md).
 
 
-AI Buddy открывает шесть самостоятельных сайтов по карточкам и результатам поиска. Общие React-компоненты, оформление и демоадаптер находятся в npm workspace `apps/corporate-services`.
+AI Buddy открывает восемь самостоятельных сайтов по карточкам и результатам поиска. Документы и мероприятия хранят отметки в своих базах `hr_documents` и `hr_events`. При включённом API страница пишет только в свой Go-сервис. Без API остаётся прежнее сохранение в `localStorage` этого сайта. Экран и данные каждого сайта лежат в `services/hr/<сервис>/frontend`, рядом с Go-кодом этого сервиса. Общие стили, демоадаптер и сборка восьми сайтов остаются в npm workspace `apps/corporate-services`.
 
 | Сайт | Адрес по умолчанию | Переменная в `apps/web/frontend/.env` | Сборка в `apps/corporate-services/dist/` |
 | --- | --- | --- | --- |
@@ -20,6 +20,8 @@ AI Buddy открывает шесть самостоятельных сайто
 | Увольнения | http://localhost:5184/ | `VITE_OFFBOARDING_URL` | `offboarding/` |
 | Согласия | http://localhost:5185/ | `VITE_CONSENTS_URL` | `consents/` |
 | Бенефиты | http://localhost:5186/ | `VITE_BENEFITS_URL` | `benefits/` |
+| Документы и инструкции | http://localhost:5187/ | `VITE_DOCUMENTS_URL` | `documents/` |
+| Корпоративные мероприятия | http://localhost:5188/ | `VITE_EVENTS_URL` | `events/` |
 
 Запуск всех сайтов из корня репозитория после `npm ci`
 
@@ -30,7 +32,7 @@ npm run dev --workspace=@ai-buddy/corporate-services
 Для одного сайта передай его идентификатор, например `npm run dev --workspace=@ai-buddy/corporate-services -- absences`. Сборка всех сайтов выполняется командой `npm run build --workspace=@ai-buddy/corporate-services`. Каждый каталог сборки можно опубликовать отдельно. Сайты не содержат ссылки возврата в AI Buddy.
 
 - `sites.mjs` запускает и собирает сайты по карте `frontend/service-ports.json`.
-- `frontend/src/main.tsx` выбирает страницу для конкретной сборки, `HrPages.tsx` содержит интерфейсы.
+- `frontend/src/main.tsx` выбирает страницу для конкретной сборки. Сами экраны лежат в `services/hr/<сервис>/frontend`, общая оболочка HR-страниц — в `HrPages.tsx`.
 - `hr-demo.ts` проверяет действия и хранит демозаписи в `localStorage` текущего сайта. `hr-profiles.json` содержит синтетические начальные настройки.
 - `npm test --workspace=@ai-buddy/corporate-services` запускает проверки правил, истории и профилей. CI выполняет их в общей job `frontend`.
 

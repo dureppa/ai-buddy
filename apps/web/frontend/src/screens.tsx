@@ -3,13 +3,11 @@ import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   eventsFor,
-  resourcesFor,
   services,
   stages,
   type Event,
   type Person,
   type ProfileId,
-  type Resource,
   type Service,
   type Task,
   profiles,
@@ -23,7 +21,6 @@ export type Detail =
   | { kind: 'task'; item: Task }
   | { kind: 'person'; item: Person }
   | { kind: 'service'; item: Service }
-  | { kind: 'resource'; item: Resource }
   | { kind: 'event'; item: Event }
   | { kind: 'settings' }
   | { kind: 'survey' };
@@ -480,80 +477,17 @@ export function Tools({ workspace, onOpen }: { workspace: Workspace; onOpen: Ope
   );
 }
 
-export function Resources({
-  profileId,
-  onOpen,
-  directory,
-}: {
-  profileId: ProfileId;
-  onOpen: OpenDetail;
-  directory: ReactNode;
-}) {
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('Все');
-  const resources = resourcesFor(profileId);
-  const categories = ['Все', ...new Set(resources.map((resource) => resource.category))];
-  const visible = resources.filter(
-    (resource) =>
-      (category === 'Все' || resource.category === category) &&
-      (resource.title + ' ' + resource.summary).toLowerCase().includes(query.trim().toLowerCase()),
-  );
+export function Resources({ directory }: { directory: ReactNode }) {
   return (
     <>
       <PageIntro
         title="Корпоративные сервисы"
-        text="Открывай HR-сервисы, инструкции и полезные материалы."
+        text="Открывай сервисы, инструкции и полезные материалы."
         tone="pink"
         icon="layers"
       />
       {directory}
-      <div className="section-title">
-        <h2>Памятки и инструкции</h2>
-      </div>
-      <label className="search-field resource-search">
-        <Icon name="search" size={20} />
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Найти документ или инструкцию"
-        />
-      </label>
-      <div className="filter-row" aria-label="Категория материалов">
-        {categories.map((item) => (
-          <button
-            type="button"
-            className="filter"
-            key={item}
-            aria-pressed={category === item}
-            onClick={() => setCategory(item)}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
-      <div className="tile-grid">
-        {visible.map((resource) => (
-          <button
-            type="button"
-            className={'resource-card tone-' + resource.tone}
-            key={resource.id}
-            onClick={() => onOpen({ kind: 'resource', item: resource })}
-          >
-            <span className="tile-top">
-              <span className="icon-tile">
-                <Icon name={resource.icon} size={23} />
-              </span>
-              <Icon name="diagonal" size={19} />
-            </span>
-            <strong>{resource.title}</strong>
-            <span className="tile-description">{resource.summary}</span>
-          </button>
-        ))}
-      </div>
       <InternMaterials />
-      {!visible.length && (
-        <EmptyState title="Материалы не найдены" text="Измени поисковый запрос или выбери другую категорию." />
-      )}
     </>
   );
 }

@@ -74,6 +74,10 @@ services:
       AI_DELEGATION_SECRET: ${COMPOSE_DELEGATION_SECRET:-local-demo-delegation-change-for-shared-host}
       HR_CONSENTS_URL: http://hr-consents:8185
       HR_CONSENTS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5185/
+      HR_DOCUMENTS_URL: http://hr-documents:8187
+      HR_DOCUMENTS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5187/
+      HR_EVENTS_URL: http://hr-events:8188
+      HR_EVENTS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5188/
       SESSION_SECRET: ${COMPOSE_SESSION_SECRET:-local-demo-session-change-for-shared-host}
     depends_on:
       migrate:
@@ -150,7 +154,7 @@ services:
       args:
         PUBLIC_WEB_ORIGIN: ${PUBLIC_WEB_ORIGIN:-http://127.0.0.1:${AI_BUDDY_WEB_PORT:-5173}}
     ports:
-      - "127.0.0.1:5181-5186:5181-5186"
+      - "127.0.0.1:5181-5188:5181-5188"
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5181/"]
       interval: 3s
@@ -265,6 +269,42 @@ services:
       PGDATABASE: hr_benefits
     ports:
       - "127.0.0.1:8186:8186"
+
+  hr-documents:
+    <<: *hr
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go
+      args:
+        MODULE: services/hr/documents
+        ENTRY: .
+    environment:
+      <<: *hr-env
+      HTTP_ADDR: ":8187"
+      HR_HEALTH_PATH: /api/v1/me/documents
+      PGUSER: hr_documents
+      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGDATABASE: hr_documents
+    ports:
+      - "127.0.0.1:8187:8187"
+
+  hr-events:
+    <<: *hr
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go
+      args:
+        MODULE: services/hr/events
+        ENTRY: .
+    environment:
+      <<: *hr-env
+      HTTP_ADDR: ":8188"
+      HR_HEALTH_PATH: /api/v1/me/events
+      PGUSER: hr_events
+      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGDATABASE: hr_events
+    ports:
+      - "127.0.0.1:8188:8188"
 
 volumes:
   postgres:

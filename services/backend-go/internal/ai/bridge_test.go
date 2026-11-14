@@ -36,8 +36,12 @@ func (f *fakeRepo) ChatTurn(_ context.Context, profile string, msg buddy.ChatMes
 	return r, e
 }
 func (f *fakeRepo) ReadAI(_ context.Context, _ string, tool string, args map[string]any) (map[string]any, error) {
-	if tool == "get_task_context" && args["task_id"] != "consent-news" {
-		return nil, buddy.ErrNotFound
+	if tool == "get_task_context" {
+		switch args["task_id"] {
+		case "consent-news", "documents", "events":
+		default:
+			return nil, buddy.ErrNotFound
+		}
 	}
 	return map[string]any{"references": []any{}}, nil
 }
@@ -247,4 +251,37 @@ func TestEvidenceRevocationBlocksReview(t *testing.T) {
 	require.Equal(t, 400, call(mux, "POST", "/internal/v1/ai/onboarding/task-context", resource, `bad`).Code)
 	b.HRURL = ""
 	require.Equal(t, 503, call(mux, "POST", "/internal/v1/ai/onboarding/task-evidence", resource, `{"task_id":"consent-news"}`).Code)
+}
+
+func TestGuideEvidence(t *testing.T) {
+	hr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/me/documents":
+			write(w, 200, []map[string]any{{"id": "papers", "title": "Оформление", "text": "Памятка", "done": true, "updated_at": "2026-11-14T12:00:00Z"}})
+		case "/api/v1/me/events":
+			write(w, 200, []map[string]any{{"id": "intro", "title": "Знакомство", "text": "Встреча", "registered": false, "updated_at": nil}})
+		default:
+			write(w, 404, map[string]any{})
+		}
+	}))
+	defer hr.Close()
+	b, _ := newBridge(t, "http://127.0.0.1:18001")
+	b.DocumentsURL = hr.URL
+	b.EventsURL = hr.URL
+	b.HRSecret = strings.Repeat("s", 32)
+	mux := http.NewServeMux()
+	b.Register(mux)
+	resource, err := b.token("olga", "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "mcp-resource")
+	require.NoError(t, err)
+	documents := call(mux, "POST", "/internal/v1/ai/onboarding/task-evidence", resource, `{"task_id":"documents"}`)
+	require.Equal(t, 200, documents.Code)
+	require.Contains(t, documents.Body.String(), `"kind":"document"`)
+	require.Contains(t, documents.Body.String(), `"confirmed":true`)
+	require.Contains(t, documents.Body.String(), b.PublicDocumentsURL)
+	events := call(mux, "POST", "/internal/v1/ai/onboarding/task-evidence", resource, `{"task_id":"events"}`)
+	require.Equal(t, 200, events.Code)
+	require.Contains(t, events.Body.String(), `"kind":"event"`)
+	require.Contains(t, events.Body.String(), `"confirmed":false`)
+	b.DocumentsURL = ""
+	require.Equal(t, 503, call(mux, "POST", "/internal/v1/ai/onboarding/task-evidence", resource, `{"task_id":"documents"}`).Code)
 }

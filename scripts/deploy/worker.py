@@ -28,6 +28,8 @@ SERVICES = (
     "hr-offboarding",
     "hr-consents",
     "hr-benefits",
+    "hr-documents",
+    "hr-events",
 )
 COMPOSE = [
     "docker",
