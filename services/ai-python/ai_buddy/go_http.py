@@ -1,4 +1,4 @@
-"""Bounded, read-only Go HTTP adapter. No retries, implicit demo or token passthrough."""
+"""Bounded Go HTTP adapter with explicitly delegated request submission. No retries, implicit demo or token passthrough."""
 
 import asyncio
 import hmac
@@ -77,7 +77,7 @@ class ActiveContext(ClosedModel):
     subject_id: Identifier
     request_id: UUID
     conversation_id: UUID
-    allowed_tools: Annotated[list[str], Field(max_length=5)]
+    allowed_tools: Annotated[list[str], Field(max_length=9)]
     expires_at: datetime
     api_token: SecretStr
 
@@ -243,6 +243,10 @@ class GoHTTPBackend:
             raise ServiceError(ErrorCode.INVALID_ARGUMENTS) from None
         search = tool == "search_knowledge"
         routes = {
+            "get_access_catalog": ("GET", "/internal/v1/ai/access/catalog"),
+            "submit_access_request": ("POST", "/internal/v1/ai/access/requests"),
+            "get_access_requests": ("GET", "/internal/v1/ai/access/requests"),
+            "get_knowledge_page": ("POST", "/internal/v1/ai/knowledge/page"),
             "search_knowledge": ("POST", "/internal/v1/ai/knowledge/search"),
             "get_team_context": ("GET", "/internal/v1/ai/team-context"),
             "get_onboarding_progress": ("GET", "/internal/v1/ai/onboarding/progress"),

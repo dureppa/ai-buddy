@@ -1,0 +1,154 @@
+{
+  'openapi': '3.0.3',
+  'info':
+    {
+      'title': 'AI Buddy Confluence',
+      'version': '1.0.0',
+      'description': 'Read-only synthetic knowledge. Product-scoped pages and common role/guides. No arbitrary HTML. Same authenticated profile as access portal.',
+    },
+  'servers': [{ 'url': '/api/v1' }],
+  'security': [{ 'bearerAuth': [] }],
+  'paths':
+    {
+      '/confluence/pages':
+        {
+          'get':
+            {
+              'summary': 'List accessible page metadata (maximum 100)',
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Success',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { 'type': 'array', 'items': { '$ref': '#/components/schemas/Page' } } },
+                        },
+                    },
+                  '400':
+                    {
+                      'description': 'Invalid input',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '401':
+                    {
+                      'description': 'Invalid or expired session',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '403':
+                    {
+                      'description': 'Role or product policy denied',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '404':
+                    {
+                      'description': 'Missing or inaccessible object',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '409':
+                    {
+                      'description': 'Stale decision or idempotency conflict',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '503':
+                    {
+                      'description': 'Storage unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                },
+              'parameters':
+                [
+                  {
+                    'name': 'query',
+                    'in': 'query',
+                    'schema': { 'type': 'string', 'maxLength': 500 },
+                    'description': 'Substring search in title and body',
+                  },
+                ],
+            },
+        },
+      '/confluence/pages/{id}':
+        {
+          'get':
+            {
+              'summary': 'Read an accessible page; foreign product returns 404',
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Success',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Page' } } },
+                    },
+                  '400':
+                    {
+                      'description': 'Invalid input',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '401':
+                    {
+                      'description': 'Invalid or expired session',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '403':
+                    {
+                      'description': 'Role or product policy denied',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '404':
+                    {
+                      'description': 'Missing or inaccessible object',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '409':
+                    {
+                      'description': 'Stale decision or idempotency conflict',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                  '503':
+                    {
+                      'description': 'Storage unavailable',
+                      'content': { 'application/json': { 'schema': { '$ref': '#/components/schemas/Error' } } },
+                    },
+                },
+              'parameters': [{ 'name': 'id', 'in': 'path', 'required': true, 'schema': { 'type': 'string' } }],
+            },
+        },
+    },
+  'components':
+    {
+      'securitySchemes': { 'bearerAuth': { 'type': 'http', 'scheme': 'bearer' } },
+      'schemas':
+        {
+          'Page':
+            {
+              'type': 'object',
+              'required': ['id', 'product_id', 'parent_id', 'kind', 'title', 'body', 'version', 'updated_at'],
+              'properties':
+                {
+                  'id': { 'type': 'string' },
+                  'product_id': { 'type': 'string', 'nullable': true },
+                  'parent_id': { 'type': 'string', 'nullable': true },
+                  'kind': { 'type': 'string', 'enum': ['product', 'team', 'role', 'guide'] },
+                  'title': { 'type': 'string' },
+                  'body': { 'type': 'string', 'description': 'Plain text with ## headings; empty in list response' },
+                  'version': { 'type': 'integer', 'minimum': 1 },
+                  'updated_at': { 'type': 'string', 'format': 'date-time' },
+                },
+            },
+          'Error':
+            {
+              'type': 'object',
+              'required': ['code'],
+              'properties':
+                {
+                  'code':
+                    {
+                      'type': 'string',
+                      'enum': ['invalid_input', 'unauthenticated', 'forbidden', 'not_found', 'conflict', 'unavailable'],
+                    },
+                },
+            },
+        },
+    },
+}

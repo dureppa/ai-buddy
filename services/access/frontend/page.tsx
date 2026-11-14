@@ -1,20 +1,16 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { profiles, products, isProfileId, type AccountId } from '../../../apps/web/frontend/src/demo-accounts';
 import { Icon } from '../../../apps/web/frontend/src/ui';
-import { catalogVersion, permissions, recommendedTemplates, templates, type AccessTemplate } from './catalog';
+import { catalogVersion, permissions, templates, type AccessTemplate } from './catalog';
 import {
   accountContext,
-  changeRequest,
-  createRequest,
   readAccessAccount,
   parseInput,
-  readRequests,
-  saveRequests,
   statusLabels,
-  visibleRequests,
   type AccessRequest,
   type RequestInput,
 } from './model';
+import { accessClient, type LiveTemplate } from './api';
 import './style.css';
 
 function Dialog({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
@@ -47,8 +43,8 @@ export function AccessForm({
   onSubmit,
   onClose,
 }: {
-  template: AccessTemplate;
-  onSubmit: (input: RequestInput) => void;
+  template: AccessTemplate & { resources?: LiveTemplate['resources'] };
+  onSubmit: (input: RequestInput) => void | Promise<void>;
   onClose: () => void;
 }) {
   const [input, setInput] = useState<RequestInput>({
@@ -61,25 +57,29 @@ export function AccessForm({
     duration_days: 30,
     fields: {},
   });
+  const [pending, setPending] = useState(false);
   const [review, setReview] = useState(false);
   const [error, setError] = useState('');
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setPending(true);
     try {
       const parsed = parseInput(input);
       if (!review) {
         setInput(parsed);
         setReview(true);
-      } else onSubmit(parsed);
+      } else await onSubmit(parsed);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось сохранить заявку.');
+    } finally {
+      setPending(false);
     }
   }
   return (
     <Dialog title={review ? 'Проверьте заявку' : template.title} onClose={onClose}>
       <p className="access-muted">Согласование: {template.owner} и руководитель команды.</p>
-      <form onSubmit={submit}>
+      <form onSubmit={(event) => void submit(event)}>
         {review ? (
           <RequestSummary input={input} />
         ) : (
@@ -95,13 +95,29 @@ export function AccessForm({
             </label>
             <label>
               Ключ ресурса
-              <input
-                required
-                maxLength={160}
-                placeholder={template.keyHint}
-                value={input.resource_key}
-                onChange={(e) => setInput({ ...input, resource_key: e.target.value })}
-              />
+              {template.resources ? (
+                <select
+                  required
+                  value={input.resource_key}
+                  onChange={(e) => {
+                    const resource = template.resources?.find((item) => item.resource_key === e.target.value);
+                    setInput({ ...input, resource_key: e.target.value, fields: { ...resource?.fields } });
+                  }}
+                >
+                  <option value="">Выберите ресурс вашей команды</option>
+                  {template.resources.map((item) => (
+                    <option key={item.resource_key}>{item.resource_key}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  required
+                  maxLength={160}
+                  placeholder={template.keyHint}
+                  value={input.resource_key}
+                  onChange={(e) => setInput({ ...input, resource_key: e.target.value })}
+                />
+              )}
               <small>Точное имя проекта, доски, схемы или набора данных.</small>
             </label>
             <div className="access-field-row">
@@ -182,8 +198,8 @@ export function AccessForm({
           <button type="button" onClick={() => (review ? setReview(false) : onClose())}>
             {review ? 'Изменить поля' : 'Отмена'}
           </button>
-          <button className="access-primary" type="submit">
-            {review ? 'Отправить на согласование' : 'Продолжить'}
+          <button className="access-primary" type="submit" disabled={pending}>
+            {pending ? 'Отправляем…' : review ? 'Отправить на согласование' : 'Продолжить'}
           </button>
         </div>
       </form>
@@ -216,23 +232,28 @@ export function RequestSummary({ input }: { input: RequestInput }) {
 function RequestDetails({
   request,
   account,
+  canReview,
   onAction,
   onClose,
 }: {
   request: AccessRequest;
   account: AccountId;
-  onAction: (id: string, action: 'approved' | 'rejected' | 'cancelled', note: string) => void;
+  canReview: boolean;
+  onAction: (id: string, action: 'approved' | 'rejected' | 'cancelled', note: string) => Promise<void>;
   onClose: () => void;
 }) {
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
-  const context = accountContext(account);
-  function act(action: 'approved' | 'rejected' | 'cancelled') {
+  const [pending, setPending] = useState(false);
+  async function act(action: 'approved' | 'rejected' | 'cancelled') {
+    setPending(true);
     try {
-      onAction(request.id, action, note);
+      await onAction(request.id, action, note);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось сохранить решение.');
+    } finally {
+      setPending(false);
     }
   }
   return (
@@ -248,7 +269,7 @@ function RequestDetails({
       {request.status === 'approved' && (
         <p className="access-notice">Заявка согласована в деморежиме. Реальные права не выдавались.</p>
       )}
-      {request.status === 'submitted' && context.canReview && (
+      {request.status === 'submitted' && canReview && (
         <>
           <label className="access-comment">
             Комментарий к решению
@@ -261,8 +282,10 @@ function RequestDetails({
             />
           </label>
           <div className="access-actions">
-            <button onClick={() => act('rejected')}>Отклонить</button>
-            <button className="access-primary" onClick={() => act('approved')}>
+            <button disabled={pending} onClick={() => void act('rejected')}>
+              Отклонить
+            </button>
+            <button className="access-primary" disabled={pending} onClick={() => void act('approved')}>
               Согласовать
             </button>
           </div>
@@ -270,7 +293,9 @@ function RequestDetails({
       )}
       {request.status === 'submitted' && request.profile_id === account && (
         <div className="access-actions">
-          <button onClick={() => act('cancelled')}>Отменить заявку</button>
+          <button disabled={pending} onClick={() => void act('cancelled')}>
+            Отменить заявку
+          </button>
         </div>
       )}
       {error && (
@@ -305,51 +330,80 @@ export function AccessPortal() {
   return <Portal key={account} account={account} />;
 }
 function Portal({ account }: { account: AccountId }) {
-  const context = accountContext(account);
+  const api = useMemo(() => accessClient(account), [account]);
+  const fallback = accountContext(account);
+  const [serverContext, setServerContext] = useState<typeof fallback>();
+  const context = serverContext || fallback;
   const product = products[context.productId];
-  const [tab, setTab] = useState<'catalog' | 'requests'>(context.canReview ? 'requests' : 'catalog');
+  const [tab, setTab] = useState<'catalog' | 'requests'>(fallback.canReview ? 'requests' : 'catalog');
   const [query, setQuery] = useState('');
   const [recommended, setRecommended] = useState(true);
   const [requests, setRequests] = useState<AccessRequest[]>([]);
+  const [liveTemplates, setLiveTemplates] = useState<LiveTemplate[]>([]);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [template, setTemplate] = useState<AccessTemplate>();
-  const [selected, setSelected] = useState<string>();
+  const [pending, setPending] = useState(true);
+  const [template, setTemplate] = useState<LiveTemplate>();
+  const [selected, setSelected] = useState<string | undefined>(
+    () => new URLSearchParams(window.location.search).get('request') || undefined,
+  );
   const [status, setStatus] = useState('all');
-  function load() {
-    try {
-      setRequests(readRequests(localStorage));
-      setError('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Хранилище недоступно.');
-    }
-  }
+  const operationKey = useRef(crypto.randomUUID());
+  const [revision, setRevision] = useState(0);
   useEffect(() => {
-    load();
-    const sync = () => load();
-    window.addEventListener('storage', sync);
-    return () => window.removeEventListener('storage', sync);
-  }, []);
-  function commit(next: AccessRequest[]) {
-    saveRequests(localStorage, next);
-    setRequests(next);
+    let active = true;
+    setPending(true);
     setError('');
-  }
-  function submit(input: RequestInput) {
-    if (!isProfileId(account)) throw new Error('Выберите демопрофиль стажёра.');
-    commit(createRequest(readRequests(localStorage), input, account, crypto.randomUUID(), new Date().toISOString()));
+    Promise.all([api.catalog(), api.list()])
+      .then(([catalog, records]) => {
+        if (!active) return;
+        setServerContext({
+          name: catalog.context.name,
+          productId: catalog.context.product_id,
+          role: catalog.context.job_role === 'staff' ? null : catalog.context.job_role,
+          canReview: catalog.context.can_review,
+        });
+        setLiveTemplates(catalog.templates as LiveTemplate[]);
+        setRequests(records);
+      })
+      .catch((e: unknown) => {
+        if (active) setError(e instanceof Error ? e.message : 'Не удалось прочитать серверные заявки.');
+      })
+      .finally(() => {
+        if (active) setPending(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [api, revision]);
+  useEffect(() => {
+    const update = () => setRevision((value) => value + 1);
+    window.addEventListener('focus', update);
+    const timer = window.setInterval(update, 15000);
+    return () => {
+      window.removeEventListener('focus', update);
+      window.clearInterval(timer);
+    };
+  }, []);
+  async function submit(input: RequestInput) {
+    await api.submit(input, operationKey.current);
+    operationKey.current = crypto.randomUUID();
     setTemplate(undefined);
     setTab('requests');
     setStatus('all');
-    setNotice('Заявка отправлена на согласование.');
+    setNotice('Заявка сохранена на сервере и отправлена на согласование.');
+    setRevision((value) => value + 1);
   }
-  function action(id: string, action: 'approved' | 'rejected' | 'cancelled', note: string) {
-    commit(changeRequest(readRequests(localStorage), id, account, action, note, new Date().toISOString()));
-    setNotice('Изменения сохранены.');
+  async function action(id: string, action: 'approved' | 'rejected' | 'cancelled', note: string) {
+    await api.decide(id, action, note);
+    setNotice('Решение сохранено на сервере.');
+    setRevision((value) => value + 1);
   }
-  const mine = visibleRequests(requests, account);
-  const catalog = (recommended && context.role ? recommendedTemplates(context.role) : templates).filter((item) =>
-    (item.title + ' ' + item.description + ' ' + item.system).toLowerCase().includes(query.trim().toLowerCase()),
+  const mine = requests;
+  const catalog = liveTemplates.filter(
+    (item) =>
+      (!recommended || !context.role || item.roles.length === 0 || item.roles.includes(context.role)) &&
+      (item.title + ' ' + item.description + ' ' + item.system).toLowerCase().includes(query.trim().toLowerCase()),
   );
   const selectedRequest = requests.find((item) => item.id === selected);
   return (
@@ -395,12 +449,17 @@ function Portal({ account }: { account: AccountId }) {
         <div className="access-demo-note">
           <Icon name="info" size={17} />
           <span>
-            Демонстрационный сервис: заявки сохраняются в этом браузере. Согласование не выдаёт реальные права.
+            Учебный сервис: заявки сохраняются на сервере и доступны Buddy. Согласование не выдаёт реальные права.
           </span>
         </div>
+        {pending && (
+          <p role="status" className="access-muted">
+            Обновляем данные сервера…
+          </p>
+        )}
         {error && (
           <div role="alert" className="access-error">
-            {error} <button onClick={load}>Повторить</button>
+            {error} <button onClick={() => setRevision((value) => value + 1)}>Повторить</button>
           </div>
         )}
         {notice && (
@@ -441,8 +500,9 @@ function Portal({ account }: { account: AccountId }) {
                 <button
                   className="access-card"
                   key={item.id}
-                  disabled={!isProfileId(account)}
+                  disabled={!isProfileId(account) || pending}
                   onClick={() => {
+                    operationKey.current = crypto.randomUUID();
                     setTemplate(item);
                     setNotice('');
                   }}
@@ -524,6 +584,7 @@ function Portal({ account }: { account: AccountId }) {
         <RequestDetails
           request={selectedRequest}
           account={account}
+          canReview={context.canReview}
           onAction={action}
           onClose={() => setSelected(undefined)}
         />

@@ -7,6 +7,8 @@
     "../../../services/jira/frontend/**/*.ts",
     "../../../services/jira/frontend/**/*.tsx",
     "../../../services/access/frontend/**/*.ts",
-    "../../../services/access/frontend/**/*.tsx"
+    "../../../services/access/frontend/**/*.tsx",
+    "../../../services/confluence/frontend/**/*.ts",
+    "../../../services/confluence/frontend/**/*.tsx"
   ]
 }

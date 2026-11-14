@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/buddy"
+	"github.com/dureppa/ai-buddy/services/backend-go/internal/portal"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -29,11 +30,13 @@ type Repository interface {
 	ReadAI(context.Context, string, string, map[string]any) (map[string]any, error)
 }
 type Claims struct {
+	AccessIntent   bool   `json:"access_intent,omitempty"`
 	RequestID      string `json:"request_id"`
 	ConversationID string `json:"conversation_id"`
 	jwt.RegisteredClaims
 }
 type Bridge struct {
+	Portal                                                   *portal.Service
 	PublicConsentURL, PublicDocumentsURL, PublicEventsURL    string
 	DemoMode                                                 bool
 	Store                                                    Repository
@@ -95,9 +98,9 @@ func uuid() string {
 	b[8] = (b[8] & 63) | 128
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
-func (b *Bridge) token(subject, request, conversation, audience string) (string, error) {
+func (b *Bridge) token(subject, request, conversation, audience string, access ...bool) (string, error) {
 	now := time.Now()
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{request, conversation, jwt.RegisteredClaims{Subject: subject, Audience: jwt.ClaimStrings{audience}, IssuedAt: jwt.NewNumericDate(now), ExpiresAt: jwt.NewNumericDate(now.Add(time.Minute))}}).SignedString([]byte(b.Secret))
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{AccessIntent: len(access) > 0 && access[0], RequestID: request, ConversationID: conversation, RegisteredClaims: jwt.RegisteredClaims{Subject: subject, Audience: jwt.ClaimStrings{audience}, IssuedAt: jwt.NewNumericDate(now), ExpiresAt: jwt.NewNumericDate(now.Add(time.Minute))}}).SignedString([]byte(b.Secret))
 }
 func (b *Bridge) claims(raw, audience string) (*Claims, error) {
 	c := &Claims{}
@@ -112,7 +115,7 @@ func (b *Bridge) Ask(ctx context.Context, profile string, msg buddy.ChatMessage)
 	defer cancel()
 	return b.Store.ChatTurn(ctx, profile, msg, func(conversation string, history []buddy.HistoryMessage) (buddy.ChatReply, error) {
 		request := uuid()
-		delegation, err := b.token(profile, request, conversation, "mcp-delegation")
+		delegation, err := b.token(profile, request, conversation, "mcp-delegation", AccessIntent(msg.Text, history))
 		if err != nil {
 			return buddy.ChatReply{}, err
 		}
@@ -203,7 +206,7 @@ func bearer(r *http.Request) string {
 func (b *Bridge) Register(mux *http.ServeMux) {
 	b.registerReview(mux)
 	mux.HandleFunc("POST /internal/v1/ai/context/resolve", b.resolve)
-	for path, tool := range map[string]string{"POST /internal/v1/ai/knowledge/search": "search_knowledge", "GET /internal/v1/ai/team-context": "get_team_context", "GET /internal/v1/ai/onboarding/progress": "get_onboarding_progress", "POST /internal/v1/ai/onboarding/task-context": "get_task_context", "POST /internal/v1/ai/onboarding/task-evidence": "get_task_evidence"} {
+	for path, tool := range map[string]string{"POST /internal/v1/ai/knowledge/search": "search_knowledge", "GET /internal/v1/ai/team-context": "get_team_context", "GET /internal/v1/ai/onboarding/progress": "get_onboarding_progress", "POST /internal/v1/ai/onboarding/task-context": "get_task_context", "POST /internal/v1/ai/onboarding/task-evidence": "get_task_evidence", "GET /internal/v1/ai/access/catalog": "get_access_catalog", "POST /internal/v1/ai/access/requests": "submit_access_request", "GET /internal/v1/ai/access/requests": "get_access_requests", "POST /internal/v1/ai/knowledge/page": "get_knowledge_page"} {
 		mux.HandleFunc(path, b.read(tool))
 	}
 }
@@ -246,7 +249,14 @@ func (b *Bridge) resolve(w http.ResponseWriter, r *http.Request) {
 		failure(w, 503, "TEMPORARILY_UNAVAILABLE")
 		return
 	}
-	write(w, 200, map[string]any{"active": true, "subject_id": c.Subject, "request_id": c.RequestID, "conversation_id": c.ConversationID, "expires_at": c.ExpiresAt.Time.UTC().Format(time.RFC3339), "api_token": resource, "allowed_tools": []string{"search_knowledge", "get_team_context", "get_onboarding_progress", "get_task_context", "get_task_evidence"}})
+	allowed := []string{"search_knowledge", "get_team_context", "get_onboarding_progress", "get_task_context", "get_task_evidence"}
+	if b.Portal != nil {
+		allowed = append(allowed, "get_access_catalog", "get_access_requests", "get_knowledge_page")
+		if c.AccessIntent {
+			allowed = append(allowed, "submit_access_request")
+		}
+	}
+	write(w, 200, map[string]any{"active": true, "subject_id": c.Subject, "request_id": c.RequestID, "conversation_id": c.ConversationID, "expires_at": c.ExpiresAt.Time.UTC().Format(time.RFC3339), "api_token": resource, "allowed_tools": allowed})
 }
 func (b *Bridge) read(tool string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -269,7 +279,21 @@ func (b *Bridge) read(tool string) http.HandlerFunc {
 			return
 		}
 		var data map[string]any
-		if tool == "get_task_evidence" {
+		if tool == "submit_access_request" && !c.AccessIntent {
+			failure(w, 403, "FORBIDDEN")
+			return
+		}
+		if b.Portal != nil && (tool == "get_access_catalog" || tool == "submit_access_request" || tool == "get_access_requests" || tool == "get_knowledge_page") {
+			data, err = b.Portal.Tool(r.Context(), c.Subject, tool, args, c.RequestID)
+		} else if b.Portal != nil && tool == "search_knowledge" {
+			query, qok := args["query"].(string)
+			limit, lok := args["limit"].(float64)
+			if !qok || !lok || len(args) != 2 || limit != float64(int(limit)) {
+				failure(w, 400, "INVALID_ARGUMENTS")
+				return
+			}
+			data, err = b.Portal.Search(r.Context(), c.Subject, query, int(limit))
+		} else if tool == "get_task_evidence" {
 			data, err = b.evidence(r.Context(), c.Subject, args)
 		} else {
 			data, err = b.Store.ReadAI(r.Context(), c.Subject, tool, args)
@@ -277,7 +301,9 @@ func (b *Bridge) read(tool string) http.HandlerFunc {
 		if err != nil {
 			if err == buddy.ErrNotFound {
 				failure(w, 404, "NOT_FOUND")
-			} else if err == buddy.ErrInvalidInput {
+			} else if err == buddy.ErrForbidden {
+				failure(w, 403, "FORBIDDEN")
+			} else if err == buddy.ErrInvalidInput || err == portal.ErrConflict {
 				failure(w, 400, "INVALID_ARGUMENTS")
 			} else {
 				failure(w, 503, "TEMPORARILY_UNAVAILABLE")

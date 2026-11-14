@@ -1,12 +1,15 @@
 package httpapi
 
 import (
+	"github.com/dureppa/ai-buddy/services/backend-go/internal/portal"
 	"net/http"
+	"strings"
 
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/buddy"
 )
 
 type API struct {
+	portal         *portal.Service
 	sessions       *buddy.Sessions
 	onboarding     *buddy.Onboarding
 	access         *buddy.Access
@@ -49,6 +52,16 @@ func (a *API) Routes() http.Handler {
 		mux.HandleFunc("POST /api/v1/product-guide/team", a.requireAuth(a.handleTeamGuide))
 		mux.HandleFunc("GET /api/v1/product-guide/team", a.requireAuth(a.handleTeamGuide))
 	}
+	if a.portal != nil {
+		a.portal.Register(mux, func(r *http.Request) (string, error) {
+			header := r.Header.Get("Authorization")
+			if !strings.HasPrefix(header, "Bearer ") {
+				return "", buddy.ErrUnauthenticated
+			}
+			p, err := a.sessions.Authenticate(r.Context(), strings.TrimPrefix(header, "Bearer "))
+			return p.ID, err
+		})
+	}
 	if a.internalRoutes != nil {
 		a.internalRoutes(mux)
 	}
@@ -59,3 +72,5 @@ func (a *API) WithInternalRoutes(register func(*http.ServeMux)) *API {
 	a.internalRoutes = register
 	return a
 }
+
+func (a *API) WithPortal(service *portal.Service) *API { a.portal = service; return a }

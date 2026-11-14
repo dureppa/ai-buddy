@@ -9,8 +9,15 @@ export const jiraService = {
   url: import.meta.env.VITE_JIRA_URL || 'http://localhost:5189/',
 } as const;
 
-export function jiraProfileUrl(base: string, profile: ProfileId) {
+export function toolProfileUrl(base: string, profile: ProfileId) {
   const url = new URL(base);
   url.searchParams.set('profile', profile);
   return url.toString();
 }
+
+export const confluenceService = {
+  id: 'confluence',
+  title: 'Confluence',
+  description: 'Продукты, команды, специальности и гайды.',
+  url: import.meta.env.VITE_CONFLUENCE_URL || 'http://localhost:5191/',
+} as const;
