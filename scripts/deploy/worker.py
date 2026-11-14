@@ -87,6 +87,12 @@ def unpack(archive: Path, destination: Path) -> None:
                 with source, target.open("wb") as output:
                     shutil.copyfileobj(source, output)
                 target.chmod(0o755 if member.mode & 0o111 else 0o644)
+    # Docker COPY preserves directory modes. Runtime Python uses a non-root UID,
+    # so source directories must remain traversable even with the worker's umask 077.
+    for directory in destination.rglob("*"):
+        if directory.is_dir():
+            directory.chmod(0o755)
+    destination.chmod(0o755)
     for name in (
         "docker-compose.yml",
         "docker-compose.server.yml",
