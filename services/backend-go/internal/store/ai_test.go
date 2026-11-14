@@ -74,3 +74,33 @@ func TestVersionedReviewTransition(t *testing.T) {
 	require.ErrorIs(t, st.StartReview(ctx, "olga", evaluation, "Новый ответ", "e1"), buddy.ErrInvalidInput)
 	require.ErrorIs(t, st.DecideReview(ctx, "olga", evaluation, "mentor", "", "e1", true), buddy.ErrInvalidInput)
 }
+
+func TestAIKnowledgeSearchNaturalQuestions(t *testing.T) {
+	st := New(testPool(t))
+	ctx := context.Background()
+	for _, tc := range []struct {
+		query   string
+		firstID string
+	}{
+		{"Как оформить отпуск?", "timeoff"},
+		{"ОТПУСКОМ", "timeoff"},
+		{"  отпуск!!!  ", "timeoff"},
+		{"Как проверить микрофон?", "equipment"},
+		{"квантоваяфантазия", ""},
+		{"как и что", ""},
+		{"%%%", ""},
+	} {
+		t.Run(tc.query, func(t *testing.T) {
+			data, err := st.ReadAI(ctx, "olga", "search_knowledge", map[string]any{"query": tc.query, "limit": float64(3)})
+			require.NoError(t, err)
+			docs := data["documents"].([]any)
+			if tc.firstID == "" {
+				require.Empty(t, docs)
+				return
+			}
+			require.NotEmpty(t, docs)
+			require.LessOrEqual(t, len(docs), 3)
+			require.Equal(t, tc.firstID, docs[0].(map[string]any)["source"].(map[string]any)["id"])
+		})
+	}
+}

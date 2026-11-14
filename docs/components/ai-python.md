@@ -130,3 +130,9 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 [Harness](../../services/ai-python/evals/HARNESS.md) выполняет реальные Flask/Ollama/SDK MCP пути на сценарных fixtures, без Go и без holdout. [Отчёты](../../services/ai-python/evals/reports/README.md) разделяют структурные проверки, Codex-assisted review и человеческую приёмку. Assessment-v4 выбирает готовые ID фрагментов ответа; public HTTP-результат и правило наставника сохраняются.
 
 Внутренний маршрут `POST /internal/v1/team-guide` принимает бриф команды с токеном сервиса и возвращает три карточки, используя настроенного поставщика модели. [Спецификация путеводителя](../specs/product-guide.md).
+
+Runtime DirectRunner включает однократное восстановление MCP-контекста, если
+модель пропускает инструменты на содержательном вопросе. До финального ответа
+читаются доступные search/team/progress в прежнем бюджете. Приветствия не
+запускают восстановление. Коды фильтрации и имена tools пишутся в безопасный
+журнал onboarding-v3; содержимое диалогов и секреты не логируются.

@@ -244,3 +244,7 @@ Go сохраняет пользовательское сообщение до �
 - [HTTP/данные Python](../../services/ai-python/ai_buddy/schemas.py), [MCP-клиент](../../services/ai-python/ai_buddy/mcp_client.py), [Flask](../../services/ai-python/ai_buddy/app.py), [настройки](../../services/ai-python/ai_buddy/config.py).
 - [JSON-примеры и схемы](go-python-mcp.examples.json), [assessment](knowledge-assessment.md), [готовность сценария](../../openspec/changes/implement-python-agent/scenario-status.md).
 - [Широкий будущий каталог MCP](../../openspec/changes/implement-python-agent/mcp-contracts.md) задаёт будущие возможности, а не список уже подключённых tools; прежние указания о размещении `/mcp` на Go этой инструкцией заменены для нового адаптера.
+
+Go-поиск учитывает русские словоформы и отдельные значимые слова вопроса
+через PostgreSQL text search; результаты ранжируются по заголовку/содержимому.
+Пустой запрос по-прежнему ошибка, запрос только со стоп-словами даёт пустую выдачу.
