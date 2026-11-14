@@ -51,5 +51,5 @@ func (b *Bridge) evidence(ctx context.Context, profile string, args map[string]a
 			return nil, buddy.ErrUnavailable
 		}
 	}
-	return map[string]any{"task_id": task, "items": items, "references": []any{map[string]any{"id": "evidence:" + task, "title": "Подтверждения задания", "url": "http://localhost:5185/", "version": "live-demo-v1", "is_demo": true}}}, nil
+	return map[string]any{"task_id": task, "items": items, "references": []any{map[string]any{"id": "evidence:" + task, "title": "Подтверждения задания", "url": b.PublicConsentURL, "version": "live-demo-v1", "is_demo": true}}}, nil
 }

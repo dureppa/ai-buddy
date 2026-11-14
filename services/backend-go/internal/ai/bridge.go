@@ -34,6 +34,7 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 type Bridge struct {
+	PublicConsentURL                                         string
 	DemoMode                                                 bool
 	Store                                                    Repository
 	URL, ServiceToken, AdapterToken, Secret, HRURL, HRSecret string
@@ -53,7 +54,7 @@ func New(st Repository, endpoint, service, adapter, secret, hr string) (*Bridge,
 	if endpoint == "" || len(service) < 16 || len(adapter) < 16 || len(secret) < 32 || service == adapter || secret == service || secret == adapter {
 		return nil, fmt.Errorf("separate AI secrets required")
 	}
-	return &Bridge{Store: st, URL: strings.TrimRight(endpoint, "/"), ServiceToken: service, AdapterToken: adapter, Secret: secret, HRURL: strings.TrimRight(hr, "/"), Client: &http.Client{Timeout: 26 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
+	return &Bridge{PublicConsentURL: "http://localhost:5185/", Store: st, URL: strings.TrimRight(endpoint, "/"), ServiceToken: service, AdapterToken: adapter, Secret: secret, HRURL: strings.TrimRight(hr, "/"), Client: &http.Client{Timeout: 26 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
 func uuid() string {
 	var b [16]byte
@@ -249,6 +250,20 @@ func (b *Bridge) read(tool string) http.HandlerFunc {
 				failure(w, 503, "TEMPORARILY_UNAVAILABLE")
 			}
 			return
+		}
+		if tool == "get_task_context" && args["task_id"] == "consent-news" {
+			data["action_url"] = b.PublicConsentURL
+		}
+		if tool == "search_knowledge" {
+			if documents, ok := data["documents"].([]any); ok {
+				for _, raw := range documents {
+					if document, ok := raw.(map[string]any); ok {
+						if source, ok := document["source"].(map[string]any); ok && source["id"] == "consents" {
+							source["url"] = b.PublicConsentURL
+						}
+					}
+				}
+			}
 		}
 		write(w, 200, map[string]any{"ok": true, "data": data})
 	}

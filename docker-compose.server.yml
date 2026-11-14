@@ -1,0 +1,41 @@
+services:
+  web:
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t", "-q"]
+    ports: !override
+      - "0.0.0.0:80:80"
+    volumes:
+      - ./.deploy/web.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./.deploy/auth-map.conf:/etc/nginx/conf.d/00-auth-map.conf:ro
+      - ./.deploy/auth.conf:/etc/nginx/buddy-auth.conf:ro
+      - ./.deploy/htpasswd:/etc/nginx/buddy.htpasswd:ro
+  hr-web:
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t", "-q"]
+    ports: !override
+      - "0.0.0.0:5181-5186:5181-5186"
+    volumes:
+      - ./.deploy/hr-web.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./.deploy/auth-map.conf:/etc/nginx/conf.d/00-auth-map.conf:ro
+      - ./.deploy/auth.conf:/etc/nginx/buddy-auth.conf:ro
+      - ./.deploy/htpasswd:/etc/nginx/buddy.htpasswd:ro
+  go:
+    restart: unless-stopped
+  agent:
+    restart: unless-stopped
+  mcp:
+    restart: unless-stopped
+  hr-absences:
+    restart: unless-stopped
+  hr-trips:
+    restart: unless-stopped
+  hr-hiring:
+    restart: unless-stopped
+  hr-offboarding:
+    restart: unless-stopped
+  hr-consents:
+    restart: unless-stopped
+  hr-benefits:
+    restart: unless-stopped

@@ -58,3 +58,7 @@ CI запускает эти проверки отдельными jobs `fronten
 Go job CI запускает временную PostgreSQL 17, применяет все миграции и сиды,
 поэтому store-тесты и HR-регрессии больше не пропускаются из-за отсутствия БД.
 Для локального повторения задайте TEST_DATABASE_URL отдельной тестовой базы.
+
+Python CI/just проверяют также stdlib-скрипты scripts/deploy (Ruff, mypy и
+coverage). Тесты CD находятся в services/ai-python/tests/test_cd.py и проверяют
+archive validation, секреты, backup, идемпотентность и rollback без сервера.

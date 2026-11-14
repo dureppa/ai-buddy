@@ -1,5 +1,9 @@
 # AI Buddy
 
+[Continuous delivery](docs/components/continuous-delivery.md).
+
+[Серверное развёртывание с паролем](docs/components/server-deployment.md).
+
 Живая AI-интеграция и настройки DeepSeek: [SDD 004](docs/specs/004-agent-service-integration.md), [запуск Compose](docs/components/docker-compose.md).
 
 Прототип помощника для стажёров Авито. В веб-сервисе стажёр сможет следить за онбордингом, общаться с Buddy и получать напоминания. Браузерное расширение даст быстрый доступ к Buddy и позволит задать вопрос о текущей странице.

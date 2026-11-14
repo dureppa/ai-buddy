@@ -13,3 +13,9 @@
 **/.ruff_cache
 services/ai-python/evals
 services/ai-python/experiments
+# Server-only credentials, generated auth files and database backups
+.deploy
+backups
+source.tar
+
+/current
