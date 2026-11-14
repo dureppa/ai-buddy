@@ -72,6 +72,8 @@ services:
       AI_SERVICE_TOKEN: ${COMPOSE_AI_TOKEN:-local-demo-flask-token}
       MCP_ADAPTER_SERVICE_TOKEN: ${COMPOSE_MCP_ADAPTER_TOKEN:-local-demo-adapter-token}
       AI_DELEGATION_SECRET: ${COMPOSE_DELEGATION_SECRET:-local-demo-delegation-change-for-shared-host}
+      ACCESS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5190/
+      CONFLUENCE_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5191/
       HR_ABSENCES_URL: http://hr-absences:8181
       HR_TRIPS_URL: http://hr-trips:8182
       HR_CONSENTS_URL: http://hr-consents:8185
@@ -156,7 +158,7 @@ services:
       args:
         PUBLIC_WEB_ORIGIN: ${PUBLIC_WEB_ORIGIN:-http://127.0.0.1:${AI_BUDDY_WEB_PORT:-5173}}
     ports:
-      - "127.0.0.1:5181-5190:5181-5190"
+      - "127.0.0.1:5181-5191:5181-5191"
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5181/"]
       interval: 3s

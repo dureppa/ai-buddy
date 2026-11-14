@@ -13,17 +13,23 @@ import { HrPage } from './HrPages';
 import { hrServices } from './hr-catalog';
 import './hr.css';
 import { AccessPortal } from '../../../../services/access/frontend/page';
+import { ConfluencePage } from '../../../../services/confluence/frontend/page';
 import { JiraPage } from '../../../../services/jira/frontend/page';
 
 declare const __CORPORATE_SERVICE__: string;
 
 const service = [...hrServices, ...guideServices].find((item) => item.id === __CORPORATE_SERVICE__);
 const root = document.getElementById('root');
-if (!root || (!service && !['jira', 'access'].includes(__CORPORATE_SERVICE__)))
+if (!root || (!service && !['jira', 'access', 'confluence'].includes(__CORPORATE_SERVICE__)))
   throw new Error('Не удалось открыть корпоративный сервис.');
 
 document.title =
-  (service?.title || (__CORPORATE_SERVICE__ === 'access' ? 'Управление доступами' : 'Jira')) + ' · Демосервис';
+  (service?.title ||
+    (__CORPORATE_SERVICE__ === 'access'
+      ? 'Управление доступами'
+      : __CORPORATE_SERVICE__ === 'confluence'
+        ? 'Confluence'
+        : 'Jira')) + ' · Демосервис';
 
 function isGuideService(value: { id: string }): value is GuideService {
   return guideServices.some((item) => item.id === value.id);
@@ -46,7 +52,13 @@ createRoot(root).render(
     ) : (
       <ServiceSession>
         {(profileId) =>
-          __CORPORATE_SERVICE__ === 'jira' ? <JiraPage profile={profileId} /> : <Page profileId={profileId} />
+          __CORPORATE_SERVICE__ === 'confluence' ? (
+            <ConfluencePage profile={profileId} />
+          ) : __CORPORATE_SERVICE__ === 'jira' ? (
+            <JiraPage profile={profileId} />
+          ) : (
+            <Page profileId={profileId} />
+          )
         }
       </ServiceSession>
     )}

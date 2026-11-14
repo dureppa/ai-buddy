@@ -130,3 +130,25 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 [Harness](../../services/ai-python/evals/HARNESS.md) выполняет реальные Flask/Ollama/SDK MCP пути на сценарных fixtures, без Go и без holdout. [Отчёты](../../services/ai-python/evals/reports/README.md) разделяют структурные проверки, Codex-assisted review и человеческую приёмку. Assessment-v4 выбирает готовые ID фрагментов ответа; public HTTP-результат и правило наставника сохраняются.
 
 Внутренний маршрут `POST /internal/v1/team-guide` принимает бриф команды с токеном сервиса и возвращает три карточки, используя настроенного поставщика модели. [Спецификация путеводителя](../specs/product-guide.md).
+
+## Серверные доступы и Confluence (следующий реализованный срез)
+
+[SDD 007](../specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
+get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
+Максимум — девять tools, запись объявляется только при AccessIntent текущего turn.
+Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
+POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
+X-Request-ID, TTL и ACL. local_demo остаётся с двумя read tools.
+Поиск включает сохранённые Confluence-страницы продукта и общие гайды; заявки
+портала/чата общие в PostgreSQL. Повторы идемпотентны; receipt из БД, approved
+не является granted. Исторические ограничения выше относятся к предыдущим срезам.
+
+Runtime DirectRunner включает однократное восстановление MCP-контекста, если
+модель пропускает инструменты на содержательном вопросе. До финального ответа
+читаются доступные search/team/progress в прежнем бюджете. Приветствия не
+запускают восстановление. Коды фильтрации и имена tools пишутся в безопасный
+журнал onboarding-v3; содержимое диалогов и секреты не логируются.
+
+После проверки источников runner.present_answer убирает зарегистрированные
+citation id и аннотации известных task_id из пользовательского текста. Список
+references вычисляется до оформления; фильтры и исходный trace не изменяются.

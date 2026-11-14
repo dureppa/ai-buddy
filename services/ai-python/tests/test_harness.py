@@ -217,3 +217,29 @@ def test_cli_keeps_complete_and_interrupted_reports_separate(
     assert data["complete"] is (not interrupt)
     assert data["holdout_executed"] is False
     assert len(data["runs"]) == (1 if interrupt else 20)
+
+
+def test_presented_references_require_observed_tool_results() -> None:
+    case = load_split().cases[0]
+    fixture = case.fixtures[0].result
+    assert fixture is not None
+    source = fixture["data"]["documents"][0]["source"]
+    response: dict[str, Any] = {
+        "reply": {
+            "text": "Ответ без технических меток.",
+            "references": [{"url": source["url"], "title": source["title"]}],
+        }
+    }
+    calls = [
+        {
+            "name": "search_knowledge",
+            "arguments": {"query": "оформить отсутствие", "limit": 3},
+            "result": fixture,
+        }
+    ]
+    checks = structural_checks(case, 200, response, calls)
+    assert checks["citations"] and checks["reference_urls"]
+    assert not structural_checks(case, 200, response, [])["citations"]
+    response["reply"]["references"][0]["url"] = "https://unknown.example/"
+    checks = structural_checks(case, 200, response, calls)
+    assert not checks["reference_urls"] and not checks["citations"]

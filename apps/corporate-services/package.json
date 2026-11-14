@@ -11,6 +11,6 @@
     "dev": "node sites.mjs dev",
     "build": "tsc -p frontend/tsconfig.json && node sites.mjs build",
     "typecheck": "tsc -p frontend/tsconfig.json",
-    "test": "vitest run --root ../.. apps/corporate-services/frontend services/jira/frontend services/access/frontend"
+    "test": "vitest run --root ../.. apps/corporate-services/frontend services/jira/frontend services/access/frontend services/confluence/frontend"
   }
 }

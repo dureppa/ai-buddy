@@ -8,6 +8,7 @@ from typing import Any
 
 import httpx
 import pytest
+from mcp import types
 
 from ai_buddy import create_app
 from ai_buddy.config import Settings
@@ -43,6 +44,21 @@ def tool_message(name: str = "get_team_context") -> dict[str, Any]:
     )
 
 
+class RuntimeSession(FakeSession):
+    async def call_tool(
+        self, name: str, arguments: dict[str, Any], *, meta: dict[str, Any]
+    ) -> types.CallToolResult:
+        await super().call_tool(name, arguments, meta=meta)
+        data = payload(name, "mentor")
+        if name == "get_onboarding_progress":
+            data = {
+                "tasks": [],
+                "next_task_id": None,
+                "references": [payload("get_team_context", "mentor")["references"][0]],
+            }
+        return result({"ok": True, "data": data})
+
+
 def runtime_client(
     monkeypatch: pytest.MonkeyPatch,
     handler: Callable[[httpx.Request], httpx.Response]
@@ -52,7 +68,7 @@ def runtime_client(
     monkeypatch.setattr(
         httpx, "AsyncHTTPTransport", lambda **kwargs: httpx.MockTransport(handler)
     )
-    session = FakeSession()
+    session = RuntimeSession()
     session.response = result(
         {"ok": True, "data": payload("get_team_context", "mentor")}
     )
@@ -103,10 +119,10 @@ def test_automatic_runner_handles_history_evidence_and_isolates_turns(
     )
     assert first.status_code == 200
     assert first.json["reply"] == {
-        "text": "Анна Тестова @demo_mentor [guide]",
+        "text": "Анна Тестова @demo_mentor",
         "references": [{"title": "Демо-памятка", "url": "https://demo.example/guide"}],
     }
-    second = post(client, message="Что?", delegation_token="second-delegation")
+    second = post(client, message="Привет", delegation_token="second-delegation")
     assert second.status_code == 200
     assert second.json["reply"]["references"] == []
     assert "Я новичок" in json.dumps(requests[0], ensure_ascii=False)
@@ -338,4 +354,69 @@ def test_large_provider_input_is_rejected_without_sending_it(
     response = post(client, history=[{"role": "user", "content": "x" * 3150}] * 20)
     assert response.json["error"]["code"] == "INVALID_REQUEST"
     assert not calls
+    assert factory.active == factory.closed
+
+
+def test_deepseek_recovers_skipped_tools_and_repairs_citation(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from pydantic import SecretStr
+
+    from tests.test_deepseek import response as deepseek_response
+
+    sent: list[dict[str, Any]] = []
+    replies = iter(
+        [
+            "Не могу подтвердить ответ по полученным источникам.",
+            "Твой наставник — Анна Тестова, @demo_mentor.",
+            "Твой наставник — Анна Тестова, @demo_mentor [guide].",
+        ]
+    )
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        sent.append(json.loads(request.content))
+        return httpx.Response(200, json=deepseek_response(next(replies)))
+
+    client, factory = runtime_client(
+        monkeypatch,
+        handle,
+        llm_provider="deepseek",
+        deepseek_api_key=SecretStr("private-key"),
+    )
+    with caplog.at_level("INFO"):
+        answer = post(
+            client,
+            message="Кто мой наставник?",
+            history=[{"role": "assistant", "content": "Ранее не знал."}],
+        )
+    assert answer.status_code == 200
+    assert "Анна Тестова" in answer.json["reply"]["text"]
+    assert answer.json["reply"]["references"]
+    assert len(sent) == 3
+    assert [call[0] for call in factory.session.calls] == [
+        "search_knowledge",
+        "get_team_context",
+        "get_onboarding_progress",
+    ]
+    assert "Анна Тестова" in json.dumps(sent[1], ensure_ascii=False)
+    assert "Ранее не знал" in json.dumps(sent[0], ensure_ascii=False)
+    assert "Анна Тестова" not in caplog.text
+    assert "private-key" not in caplog.text
+    assert (
+        "tools=search_knowledge,get_team_context,get_onboarding_progress" in caplog.text
+    )
+
+
+def test_recovery_tool_failure_keeps_domain_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client, factory = runtime_client(
+        monkeypatch,
+        lambda r: httpx.Response(200, json=model_response("Нет информации.")),
+    )
+    factory.session.failure = TimeoutError("private-mcp-body")
+    response = post(client)
+    assert response.status_code == 503
+    assert response.json["error"]["code"] == "MCP_TIMEOUT"
     assert factory.active == factory.closed

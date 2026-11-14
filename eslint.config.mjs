@@ -14,6 +14,7 @@ export default tseslint.config(
       'services/hr/**/frontend/**/*.{ts,tsx}',
       'services/jira/frontend/**/*.{ts,tsx}',
       'services/access/frontend/**/*.{ts,tsx}',
+      'services/confluence/frontend/**/*.{ts,tsx}',
     ],
     languageOptions: {
       parserOptions: {

@@ -1626,7 +1626,13 @@ svg {
   padding: 6px 7px;
   min-height: 32px;
 }
-.typing > span {
+.chat-entry.typing {
+  align-items: center;
+}
+.typing > .buddy {
+  margin-top: 0;
+}
+.typing-dots {
   display: flex;
   gap: 5px;
   align-items: center;
@@ -2380,65 +2386,76 @@ svg {
   }
 }
 
-.learning-task {
-  padding: 26px;
-  margin-bottom: 20px;
+.agent-answer__text {
   display: grid;
-  gap: 16px;
+  gap: 10px;
 }
-.learning-task h2 {
-  font-size: 22px;
-  letter-spacing: -0.04em;
+.agent-answer__text p {
+  margin: 0;
 }
-.learning-task p {
-  color: var(--muted);
-  line-height: 1.55;
-  font-size: 14px;
+.agent-answer__text ul,
+.agent-answer__text ol {
+  margin: 0;
+  padding-left: 22px;
 }
-.learning-task__form {
-  display: grid;
-  gap: 16px;
+.agent-answer__text li + li {
+  margin-top: 5px;
 }
-.learning-task__form label {
-  display: grid;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
+.agent-answer__text code {
+  font-family: monospace;
+  white-space: pre-wrap;
 }
-.learning-task__form textarea {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 112px;
-  resize: vertical;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 14px 16px;
-  background: var(--surface, #fff);
-  color: inherit;
-  font: inherit;
-  font-weight: 400;
-  line-height: 1.5;
+.agent-answer__text pre {
+  min-width: 0;
+  max-width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  background: #ffffff80;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
-.learning-task__form textarea:focus-visible {
-  outline: 2px solid #8e6bc4;
-  outline-offset: 2px;
+.agent-answer__text a {
+  color: var(--green-dark, #244c32);
+  text-decoration: underline;
 }
-.learning-task__form textarea:disabled {
-  opacity: 0.65;
-}
-.learning-task .button-row {
+.agent-sources {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #26322b1a;
 }
-.learning-task [role='alert'] {
-  color: #a33030;
+.agent-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 6px 9px;
+  border: 1px solid #26322b24;
+  border-radius: 10px;
+  background: #ffffffa6;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #285a37;
 }
-@media (max-width: 600px) {
-  .learning-task {
-    padding: 20px;
-  }
-  .learning-task .button-row .button {
-    flex: 1 1 180px;
-  }
+.agent-source span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.agent-source svg {
+  flex-shrink: 0;
+}
+.agent-source:hover {
+  background: #fff;
+}
+.agent-source:focus-visible {
+  outline: 2px solid #4c8151;
+  outline-offset: 2px;
+}
+.agent-answer__text ol {
+  list-style: decimal;
+}
+.agent-answer__text ul {
+  list-style: disc;
 }

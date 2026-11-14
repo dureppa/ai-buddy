@@ -160,7 +160,8 @@ def structural_checks(
         urls = set(MARKDOWN_LINK.findall(text)) | {
             u.rstrip(".,;!?") for u in URL.findall(text)
         }
-        ids |= {i for i, url in sources.items() if url in urls}
+        reference_urls = {reference["url"] for reference in reply.get("references", [])}
+        ids |= {i for i, url in sources.items() if url in urls | reference_urls}
         allowed = set(exp.allowed_source_ids) & set(sources)
         allowed_urls = {sources[i] for i in allowed}
         checks["citations"] = ids <= allowed and set(exp.required_source_ids) <= ids

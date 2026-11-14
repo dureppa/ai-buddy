@@ -19,7 +19,15 @@ func (s *Store) ReadAI(ctx context.Context, profile, tool string, args map[strin
 		if !ok || strings.TrimSpace(query) == "" || len([]rune(query)) > 500 || !valid || limit < 1 || limit > 5 || limit != float64(int(limit)) || len(args) != 2 {
 			return nil, buddy.ErrInvalidInput
 		}
-		rows, err := s.q.Query(ctx, `SELECT id,title,url,left(content,1200) FROM knowledge_articles WHERE title ILIKE '%'||$1||'%' OR content ILIKE '%'||$1||'%' ORDER BY id LIMIT $2`, strings.TrimSpace(query), int(limit))
+		rows, err := s.q.Query(ctx, `WITH search AS (
+            SELECT websearch_to_tsquery('russian', array_to_string(tsvector_to_array(to_tsvector('russian', $1)), ' OR ')) AS terms
+        ), articles AS (
+            SELECT *, setweight(to_tsvector('russian', title), 'A') || setweight(to_tsvector('russian', content), 'B') AS document
+            FROM knowledge_articles
+        )
+        SELECT id,title,url,left(content,1200) FROM articles, search
+        WHERE document @@ terms
+        ORDER BY ts_rank(document, terms) DESC, id LIMIT $2`, strings.TrimSpace(query), int(limit))
 		if err != nil {
 			return nil, err
 		}

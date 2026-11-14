@@ -13,9 +13,15 @@ from pydantic import BaseModel, ValidationError
 from ai_buddy.config import Settings
 from ai_buddy.errors import ErrorCode, ServiceError
 from ai_buddy.schemas import (
+    AccessArguments,
+    AccessCatalogEnvelope,
+    AccessListEnvelope,
+    AccessSubmitEnvelope,
     EmptyArguments,
     EvidenceEnvelope,
     FailureEnvelope,
+    KnowledgeArguments,
+    KnowledgePageEnvelope,
     ProgressEnvelope,
     SearchArguments,
     SearchEnvelope,
@@ -43,6 +49,10 @@ class Contract:
 
 
 CONTRACTS = {
+    "get_access_catalog": Contract(EmptyArguments, AccessCatalogEnvelope),
+    "submit_access_request": Contract(AccessArguments, AccessSubmitEnvelope),
+    "get_access_requests": Contract(EmptyArguments, AccessListEnvelope),
+    "get_knowledge_page": Contract(KnowledgeArguments, KnowledgePageEnvelope),
     "get_onboarding_progress": Contract(EmptyArguments, ProgressEnvelope),
     "get_task_context": Contract(TaskArguments, TaskEnvelope),
     "get_task_evidence": Contract(TaskArguments, EvidenceEnvelope),

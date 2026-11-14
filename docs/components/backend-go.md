@@ -276,3 +276,19 @@ grafana — maria t, olga t, sasha f; прогресс — maria 12, olga 3, sas
 Миграция `08_team_guide` синхронизирует четыре профиля стажёров и их команды, добавляет брифы и таблицу `team_guides`. Маршрут путеводителя и воркер включаются при настройке `AI_SERVICE_URL`. [Спецификация путеводителя](../specs/product-guide.md).
 
 Для расписания `HR_ABSENCES_URL` и `HR_TRIPS_URL` задают адреса источников сведений за сегодня. [Спецификация](../specs/schedule-hr.md).
+
+## Серверные доступы и Confluence (следующий реализованный срез)
+
+[SDD 007](../specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
+get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
+Максимум — девять tools, запись объявляется только при AccessIntent текущего turn.
+Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
+POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
+X-Request-ID, TTL и ACL. local_demo остаётся с двумя read tools.
+Поиск включает сохранённые Confluence-страницы продукта и общие гайды; заявки
+портала/чата общие в PostgreSQL. Повторы идемпотентны; receipt из БД, approved
+не является granted. Исторические ограничения выше относятся к предыдущим срезам.
+
+Поиск MCP по knowledge_articles использует русский полнотекстовый поиск
+PostgreSQL: значимые слова объединяются через OR, заголовок имеет больший вес,
+чем содержимое. Полный вопрос не обязан встречаться в статье дословно.

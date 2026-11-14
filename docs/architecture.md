@@ -28,3 +28,15 @@
 [Jira](components/jira.md) — отдельный Go/PostgreSQL-сервис с собственным React UI. Пользователи связаны с Buddy по profile_id; права на пространства и доски проверяет Jira. Агент и главная пока не подключены.
 
 [Управление доступами](components/access-portal.md) — отдельный демофронт с конфигурируемым каталогом. Будущие Go/MCP-заявки описаны проектом контракта; текущий агент и выдача прав не изменены.
+
+## Серверные доступы и Confluence (следующий реализованный срез)
+
+[SDD 007](specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
+get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
+Максимум — девять tools, запись объявляется только при AccessIntent текущего turn.
+Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
+POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
+X-Request-ID, TTL и ACL. local_demo остаётся с двумя read tools.
+Поиск включает сохранённые Confluence-страницы продукта и общие гайды; заявки
+портала/чата общие в PostgreSQL. Повторы идемпотентны; receipt из БД, approved
+не является granted. Исторические ограничения выше относятся к предыдущим срезам.

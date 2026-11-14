@@ -19,6 +19,7 @@ import (
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/buddy"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/config"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/httpapi"
+	"github.com/dureppa/ai-buddy/services/backend-go/internal/portal"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/store"
 )
 
@@ -55,6 +56,20 @@ func runContext(ctx context.Context) error {
 		return fmt.Errorf("ping postgres: %w", err)
 	}
 
+	portalService := portal.New(pool)
+	if value := os.Getenv("ACCESS_PUBLIC_URL"); value != "" {
+		if err := setPublicURL(&portalService.AccessURL, value); err != nil {
+			return err
+		}
+	}
+	if value := os.Getenv("CONFLUENCE_PUBLIC_URL"); value != "" {
+		if err := setPublicURL(&portalService.KnowledgeURL, value); err != nil {
+			return err
+		}
+	}
+	if err := portalService.EnsureSeed(ctx); err != nil {
+		return fmt.Errorf("seed portal knowledge: %w", err)
+	}
 	st := store.New(pool)
 	tokens := buddy.NewTokens(cfg.SessionSecret, cfg.SessionTTL)
 	onboarding := buddy.NewOnboarding(st)
@@ -102,11 +117,12 @@ func runContext(ctx context.Context) error {
 				return err
 			}
 		}
+		bridge.Portal = portalService
 		bridge.HRSecret = cfg.SessionSecret
 		bridge.DemoMode = cfg.DemoMode
 		chat = buddy.NewChat(bridge)
 	}
-	api := httpapi.NewAPI(sessions, onboarding, access, notifications, chat)
+	api := httpapi.NewAPI(sessions, onboarding, access, notifications, chat).WithPortal(portalService)
 
 	if bridge != nil {
 		api.WithInternalRoutes(bridge.Register).WithTeamGuide(st).WithHRToday(bridge.TodayHR)

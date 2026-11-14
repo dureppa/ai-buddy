@@ -1,9 +1,8 @@
+import { AgentAnswer } from './AgentAnswer';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { services, suggestions, type ProfileId } from './data';
 import type { AccessDraft, BuddyReply } from './demo';
-import { backendEnabled } from './backend';
-import { ReviewPanel } from './ReviewPanel';
 import { Buddy, Icon } from './ui';
 
 export type ChatEntry = { id: number; from: 'user'; text: string } | { id: number; from: 'buddy'; reply: BuddyReply };
@@ -147,7 +146,7 @@ export function ChatWindow({
               <div>
                 <span className="sender">AI-buddy</span>
                 <div className="bubble">
-                  <p>{entry.reply.text}</p>
+                  <AgentAnswer text={entry.reply.text} references={entry.reply.references} />
                   {entry.reply.lines?.length ? (
                     <ul>
                       {entry.reply.lines.map((line) => (
@@ -160,17 +159,6 @@ export function ChatWindow({
                       {entry.reply.link.label} <Icon name="diagonal" size={16} />
                     </Link>
                   )}
-                  {entry.reply.references?.map((reference) => (
-                    <a
-                      key={reference.url}
-                      className="text-link bubble-link"
-                      href={reference.url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {reference.title}
-                    </a>
-                  ))}
                   {entry.reply.kind === 'access_confirmation_required' && (
                     <DraftCard
                       draft={entry.reply.draft}
@@ -187,8 +175,8 @@ export function ChatWindow({
         )}
         {waiting && (
           <div className="chat-entry typing" role="status" aria-label="Buddy думает">
-            <Buddy compact mood="thinking" />
-            <span>
+            <Buddy compact />
+            <span className="typing-dots" aria-hidden="true">
               <i />
               <i />
               <i />
@@ -239,7 +227,6 @@ export function ChatPage(props: ChatProps) {
         </div>
         <Buddy mood={props.waiting ? 'thinking' : 'happy'} />
       </header>
-      {backendEnabled && <ReviewPanel profileId={props.profileId} />}
       <div className="chat-layout">
         <section className="panel chat-panel">
           <ChatWindow {...props} />

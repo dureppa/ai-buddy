@@ -15,3 +15,15 @@ Resolve MUST иметь общий deadline ≤1 с, чтение ≤2,5 с; к�
 Таблица HTTP/code из инструкции MUST проверяться совместно. 400/INVALID_ARGUMENTS, 401/CONTEXT_EXPIRED, 403/FORBIDDEN, 404/NOT_FOUND, 429|503/TEMPORARILY_UNAVAILABLE сохраняются; 500 и неожиданные статусы → TOOL_ERROR. Сетевой сбой/HTTP timeout → TEMPORARILY_UNAVAILABLE, неверный JSON/schema/status-code pairing → INVALID_RESULT, размер → RESULT_TOO_LARGE. Ошибки resolve: inactive/expired → 401, неисправный upstream/неверный service secret → безопасный 503; MCP-клиент классифицирует handshake отказ как MCP_UNAVAILABLE. Тексты Go, секреты и headers не попадают в сообщения/логи приложения. Отмена не преобразуется в успех и закрывает stream/client.
 
 Тесты MUST включать реальные initialize/list/call, обе функции, два субъекта конкурентно, закрытые аргументы/метаданные, отзыв/истечение/недостаточные права, раздельные credentials, статусы/JSON/schema/size, медленный resolve/read/chunks, cancellation/cleanup, отсутствие повторов и redirects. Flask→MCP→HTTP-mock проверяется без LLM. Live Go и holdout не запускаются этим блоком.
+
+## Серверные доступы и Confluence (следующий реализованный срез)
+
+[SDD 007](../../../docs/specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
+get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
+Максимум — девять tools, запись объявляется только при AccessIntent текущего turn.
+Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
+POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
+X-Request-ID, TTL и ACL. local_demo остаётся с двумя read tools.
+Поиск включает сохранённые Confluence-страницы продукта и общие гайды; заявки
+портала/чата общие в PostgreSQL. Повторы идемпотентны; receipt из БД, approved
+не является granted. Исторические ограничения выше относятся к предыдущим срезам.
