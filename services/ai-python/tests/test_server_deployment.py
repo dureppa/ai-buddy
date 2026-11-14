@@ -25,3 +25,9 @@ def test_server_overlay_exposes_only_browser_sites() -> None:
     compose = yaml.safe_load((root / "docker-compose.yml").read_text())
     assert "PUBLIC_HR_ORIGIN" in compose["services"]["web"]["build"]["args"]
     assert "PUBLIC_WEB_ORIGIN" in compose["services"]["hr-web"]["build"]["args"]
+
+
+def test_server_credentials_and_backups_are_excluded_from_build_context() -> None:
+    root = Path(__file__).resolve().parents[3]
+    patterns = (root / ".dockerignore").read_text().splitlines()
+    assert {".deploy", "backups", "source.tar"} <= set(patterns)
