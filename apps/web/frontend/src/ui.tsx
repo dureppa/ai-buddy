@@ -146,3 +146,17 @@ export function EmptyState({ title, text }: { title: string; text: string }) {
     </div>
   );
 }
+
+export function PageIntro({ title, text, tone, icon }: { title: string; text: string; tone: string; icon: IconName }) {
+  return (
+    <header className={'page-intro tone-' + tone}>
+      <div>
+        <h1>{title}</h1>
+        <p>{text}</p>
+      </div>
+      <span className="page-intro__icon">
+        <Icon name={icon} size={44} />
+      </span>
+    </header>
+  );
+}

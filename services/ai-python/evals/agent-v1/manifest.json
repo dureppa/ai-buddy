@@ -1,0 +1,19 @@
+{
+  "dataset_version": "agent-v1",
+  "label_status": "draft_requires_team_review",
+  "created_on": "2026-11-13",
+  "development_count": 20,
+  "candidate_holdout_count": 10,
+  "review": {
+    "status": "pending_team_and_mentor",
+    "reviewers": []
+  },
+  "corpus_version": "synthetic-onboarding-v1",
+  "files": {
+    "development.json": "b98f9dc7f6493c9269bbd1a9bcb94b8145e2a4c280ff5b616c367815d7ab4727",
+    "holdout.json": "e142522f2349e6ad72108075055b25c390ca8e6bdd1d846913a09660681d5c9a"
+  },
+  "tool_schema_sha256": "8c974863b2e8f6034f047970eb715977e060c27494ffaf52c4c55d5cf7a27219",
+  "holdout_policy": "No live run or tuning; author-visible candidate set, not external blind benchmark.",
+  "scope": "Chat, six services, assessment, sources, failure handling and proposed progress/evidence acceptance. No Go/UI changes."
+}

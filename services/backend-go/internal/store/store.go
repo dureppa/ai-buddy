@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -16,26 +15,9 @@ type querier interface {
 }
 
 type Store struct {
-	pool *pgxpool.Pool
-	q    querier
+	q querier
 }
 
 func New(pool *pgxpool.Pool) *Store {
-	return &Store{pool: pool, q: pool}
-}
-
-func (s *Store) WithTx(ctx context.Context, fn func(*Store) error) error {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("begin tx: %w", err)
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	if err := fn(&Store{pool: s.pool, q: tx}); err != nil {
-		return err
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("commit tx: %w", err)
-	}
-	return nil
+	return &Store{q: pool}
 }

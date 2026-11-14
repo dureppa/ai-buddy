@@ -17,7 +17,7 @@ import {
   profiles,
 } from './data';
 import { progressFor, serviceStatus, type Workspace } from './demo';
-import { Avatar, Buddy, EmptyState, Icon, type IconName } from './ui';
+import { Avatar, Buddy, EmptyState, Icon, PageIntro } from './ui';
 
 export type Detail =
   | { kind: 'task'; item: Task }
@@ -237,20 +237,6 @@ export function Dashboard({ profile, workspace, onOpen, onToggle, savingTask }: 
         </div>
       </section>
     </>
-  );
-}
-
-function PageIntro({ title, text, tone, icon }: { title: string; text: string; tone: string; icon: IconName }) {
-  return (
-    <header className={'page-intro tone-' + tone}>
-      <div>
-        <h1>{title}</h1>
-        <p>{text}</p>
-      </div>
-      <span className="page-intro__icon">
-        <Icon name={icon} size={44} />
-      </span>
-    </header>
   );
 }
 
@@ -474,7 +460,7 @@ export function Tools({ workspace, onOpen }: { workspace: Workspace; onOpen: Ope
   );
 }
 
-export function Resources({ onOpen }: { onOpen: OpenDetail }) {
+export function Resources({ onOpen, directory }: { onOpen: OpenDetail; directory: ReactNode }) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('Все');
   const categories = ['Все', ...new Set(resources.map((resource) => resource.category))];
@@ -487,10 +473,14 @@ export function Resources({ onOpen }: { onOpen: OpenDetail }) {
     <>
       <PageIntro
         title="Корпоративные сервисы"
-        text="Памятки, обучение и контакты, которые пригодятся в первые недели."
+        text="Открывай HR-сервисы, инструкции и полезные материалы."
         tone="pink"
         icon="layers"
       />
+      {directory}
+      <div className="section-title">
+        <h2>Памятки и инструкции</h2>
+      </div>
       <label className="search-field resource-search">
         <Icon name="search" size={20} />
         <input

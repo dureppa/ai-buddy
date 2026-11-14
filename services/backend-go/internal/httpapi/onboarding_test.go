@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"context"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -43,12 +42,13 @@ func (f *fakeOnbStore) CompleteTask(_ context.Context, _, taskID string) error {
 
 func onboardAPI(store *fakeOnbStore) (*API, string) {
 	tokens := buddy.NewTokens(strings.Repeat("k", 32), time.Hour)
-	sessions := buddy.NewSessions(okStore(), tokens, true)
-	onb := buddy.NewOnboarding(store)
-	access := buddy.NewAccess(&fakeAccessStore{}, &fakeCorpGateway{})
-	notifications := buddy.NewNotifications(&fakeNotifStore{})
-	chat := buddy.NewChat(buddy.UnavailableAssistant{})
-	api := NewAPI(sessions, onb, access, notifications, chat)
+	api := NewAPI(
+		buddy.NewSessions(okStore(), tokens, true),
+		buddy.NewOnboarding(store),
+		buddy.NewAccess(&fakeAccessStore{}, &fakeCorpGateway{}),
+		buddy.NewNotifications(&fakeNotifStore{}),
+		buddy.NewChat(buddy.UnavailableAssistant{}),
+	)
 	token, _, _ := tokens.Issue("olga", time.Now())
 	return api, token
 }
@@ -77,12 +77,7 @@ func TestOnboardingHTTP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			api, token := onboardAPI(tt.store)
-			req := httptest.NewRequest(tt.method, tt.path, nil)
-			if tt.auth {
-				req.Header.Set("Authorization", "Bearer "+token)
-			}
-			rec := httptest.NewRecorder()
-			api.Routes().ServeHTTP(rec, req)
+			rec := doRequest(api, token, tt.method, tt.path, "", tt.auth)
 			require.Equal(t, tt.wantStatus, rec.Code)
 			if tt.wantBody != "" {
 				require.Contains(t, rec.Body.String(), tt.wantBody)
@@ -97,11 +92,7 @@ func TestOnboardingDTOStatuses(t *testing.T) {
 		{ID: "intro", Title: "Лид", Guidance: "g"},
 	}}
 	api, token := onboardAPI(store)
-
-	req := httptest.NewRequest("GET", "/api/v1/onboarding", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	rec := httptest.NewRecorder()
-	api.Routes().ServeHTTP(rec, req)
+	rec := doRequest(api, token, "GET", "/api/v1/onboarding", "", true)
 
 	body := rec.Body.String()
 	require.Contains(t, body, `"status":"completed"`)
@@ -111,11 +102,7 @@ func TestOnboardingDTOStatuses(t *testing.T) {
 func TestOnboardingActionURLOmittedWhenNil(t *testing.T) {
 	store := &fakeOnbStore{tasks: []buddy.OnboardingTask{{ID: "intro", Title: "Лид", Guidance: "g"}}}
 	api, token := onboardAPI(store)
-
-	req := httptest.NewRequest("GET", "/api/v1/onboarding", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	rec := httptest.NewRecorder()
-	api.Routes().ServeHTTP(rec, req)
+	rec := doRequest(api, token, "GET", "/api/v1/onboarding", "", true)
 
 	require.NotContains(t, rec.Body.String(), `"action_url":`)
 }

@@ -13,8 +13,12 @@ import {
   toggleTask,
   type AccessDraft,
 } from './demo';
+import { demoSessionKey, endDemoSession, readDemoSession, startDemoSession } from './demo-session';
 import { AccessBadge, Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
 import { Avatar, Buddy, EmptyState, Icon, Modal, type Mood } from './ui';
+
+import { corporateLinks } from './corporate-links';
+import { CorporateDirectory } from './CorporateDirectory';
 
 const searchItems = [
   ...navigation.map((item) => ({ label: item.label, detail: 'Раздел', to: item.path })),
@@ -24,6 +28,7 @@ const searchItems = [
     detail: service.category,
     to: '/tools?service=' + service.id,
   })),
+  ...corporateLinks.map((service) => ({ label: service.title, detail: 'Внешний сервис', to: service.url })),
   ...resources.map((resource) => ({
     label: resource.title,
     detail: resource.category,
@@ -34,11 +39,6 @@ const searchItems = [
 
 type Toast = { message: string; tone: 'success' | 'error' };
 const delay = (milliseconds: number) => new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
-
-function loadProfile(): ProfileId | null {
-  const saved = localStorage.getItem('ai-buddy.profile');
-  return saved && Object.keys(profiles).includes(saved) ? (saved as ProfileId) : null;
-}
 
 function StartScreen({ onSelect }: { onSelect: (id: ProfileId) => void }) {
   return (
@@ -105,7 +105,13 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
       </label>
       <div className="search-results">
         {results.map((item) => (
-          <Link key={item.to} className="search-result" to={item.to} onClick={onClose}>
+          <Link
+            key={item.to}
+            className="search-result"
+            to={item.to}
+            reloadDocument={!item.to.startsWith('/')}
+            onClick={onClose}
+          >
             <span>
               <strong>{item.label}</strong>
               <small>{item.detail}</small>
@@ -151,15 +157,7 @@ function Survey({ onSubmit }: { onSubmit: () => void }) {
   );
 }
 
-function WorkspaceShell({
-  profileId,
-  onProfile,
-  onExit,
-}: {
-  profileId: ProfileId;
-  onProfile: (id: ProfileId) => void;
-  onExit: () => void;
-}) {
+function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: () => void }) {
   const profile = profiles[profileId];
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -445,7 +443,10 @@ function WorkspaceShell({
                 <Route path="/onboarding" element={<Adaptation {...checklist} />} />
                 <Route path="/team" element={<Team onOpen={setDetail} />} />
                 <Route path="/tools" element={<Tools workspace={workspace} onOpen={setDetail} />} />
-                <Route path="/resources" element={<Resources onOpen={setDetail} />} />
+                <Route
+                  path="/resources"
+                  element={<Resources onOpen={setDetail} directory={<CorporateDirectory />} />}
+                />
                 <Route path="/chat" element={<ChatPage {...chatProps} />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
               </Routes>
@@ -642,31 +643,12 @@ function WorkspaceShell({
           )}
           {shownDetail.kind === 'settings' && (
             <div className="detail-content">
-              <h3>Демонстрационный профиль</h3>
-              <p>Переключи профиль, чтобы посмотреть другой этап адаптации и права доступа.</p>
-              {Object.values(profiles).map((option) => (
-                <button
-                  type="button"
-                  className="profile-option"
-                  key={option.id}
-                  onClick={() => {
-                    onProfile(option.id);
-                    setDetail(null);
-                  }}
-                  aria-pressed={profileId === option.id}
-                >
-                  <Avatar initials={option.initials} tone="lilac" avatar={option.avatar} />
-                  <span>
-                    <strong>{option.fullName}</strong>
-                    <small>
-                      {option.stage} · {option.team}
-                    </small>
-                  </span>
-                  {profileId === option.id && <Icon name="check" size={20} />}
-                </button>
-              ))}
-              <button type="button" className="text-link start-change-profile" onClick={onExit}>
-                Вернуться к выбору профиля <Icon name="arrow" size={16} />
+              <h3>{profile.fullName}</h3>
+              <p>
+                {profile.stage} · {profile.team}
+              </p>
+              <button type="button" className="button button--dark" onClick={onExit}>
+                Выйти из аккаунта
               </button>
             </div>
           )}
@@ -697,25 +679,36 @@ function WorkspaceShell({
 }
 
 export default function App() {
-  const [profile, setProfile] = useState(loadProfile);
+  const [profile, setProfile] = useState(() => readDemoSession(localStorage));
   const { pathname } = useLocation();
-  const navigate = useNavigate();
-  function selectProfile(id: ProfileId) {
-    localStorage.setItem('ai-buddy.profile', id);
-    setProfile(id);
-  }
+
+  useEffect(() => {
+    function syncSession(event: Event) {
+      if (event instanceof StorageEvent && event.key !== demoSessionKey && event.key !== null) return;
+      setProfile(readDemoSession(localStorage));
+    }
+    window.addEventListener('storage', syncSession);
+    window.addEventListener('pageshow', syncSession);
+    return () => {
+      window.removeEventListener('storage', syncSession);
+      window.removeEventListener('pageshow', syncSession);
+    };
+  }, []);
 
   if (pathname === '/') {
-    return (
-      <StartScreen
-        onSelect={(id) => {
-          selectProfile(id);
-          navigate('/home');
-        }}
-      />
-    );
+    if (profile) return <Navigate to="/home" replace />;
+    return <StartScreen onSelect={(id) => setProfile(startDemoSession(localStorage, id))} />;
   }
   if (!profile) return <Navigate to="/" replace />;
 
-  return <WorkspaceShell key={profile} profileId={profile} onProfile={selectProfile} onExit={() => navigate('/')} />;
+  return (
+    <WorkspaceShell
+      key={profile}
+      profileId={profile}
+      onExit={() => {
+        endDemoSession(localStorage);
+        setProfile(null);
+      }}
+    />
+  );
 }
