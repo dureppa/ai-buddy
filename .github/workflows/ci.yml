@@ -27,7 +27,13 @@ jobs:
       - run: npm exec -- prettier --check apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend services/access/frontend services/confluence/frontend eslint.config.mjs prettier.config.mjs
       - run: npm exec -- eslint apps/web/frontend apps/extension/frontend apps/corporate-services/frontend apps/corporate-services/sites.mjs services/hr/*/frontend services/jira/frontend services/access/frontend services/confluence/frontend
       - run: npm run typecheck --workspaces
-      - run: npm test --workspaces
+      - run: npm run test:coverage --workspace=@ai-buddy/web
+      - run: npm test --workspace=@ai-buddy/extension --workspace=@ai-buddy/corporate-services
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-coverage
+          path: apps/web/coverage/lcov.info
+          if-no-files-found: error
       - run: npm run build --workspaces
 
   python:
