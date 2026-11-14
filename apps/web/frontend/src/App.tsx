@@ -5,7 +5,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { ChatPage, ChatWindow, type ChatEntry, type DraftState } from './Chat';
-import { navigation, resources, resourcesFor, services, tasks } from './data';
+import { tasksFor } from './checklist';
+import { navigation, resources, resourcesFor, services } from './data';
 import { isStaffId, products, profiles, teamContacts, type ProfileId } from './demo-accounts';
 import {
   answerBuddy,
@@ -36,7 +37,6 @@ const searchItems = [
     detail: resource.category,
     to: '/resources?article=' + resource.id,
   })),
-  ...tasks.map((task) => ({ label: task.title, detail: 'Задача', to: '/onboarding?task=' + task.id })),
 ];
 
 type Toast = { message: string; tone: 'success' | 'error' };
@@ -46,6 +46,11 @@ function SearchDialog({ profileId, onClose }: { profileId: ProfileId; onClose: (
   const [query, setQuery] = useState('');
   const results = [
     ...searchItems,
+    ...tasksFor(profileId).map((task) => ({
+      label: task.title,
+      detail: 'Задача',
+      to: '/onboarding?task=' + task.id,
+    })),
     ...teamContacts(profileId).map((person) => ({
       label: person.name,
       detail: person.role + ' · ' + person.position,
@@ -265,7 +270,8 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   }
 
   const params = new URLSearchParams(location.search);
-  const task = location.pathname === '/onboarding' && tasks.find((item) => item.id === params.get('task'));
+  const task =
+    location.pathname === '/onboarding' && tasksFor(profileId).find((item) => item.id === params.get('task'));
   const person =
     location.pathname === '/team' && teamContacts(profileId).find((item) => item.id === params.get('person'));
   const service = location.pathname === '/tools' && services.find((item) => item.id === params.get('service'));
@@ -437,7 +443,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
             <div className="page-content" key={location.pathname}>
               <Routes>
                 <Route path="/home" element={<Dashboard profileId={profileId} {...checklist} />} />
-                <Route path="/onboarding" element={<Adaptation {...checklist} />} />
+                <Route path="/onboarding" element={<Adaptation profileId={profileId} {...checklist} />} />
                 <Route path="/team" element={<Team profileId={profileId} onOpen={setDetail} />} />
                 <Route path="/tools" element={<Tools workspace={workspace} onOpen={setDetail} />} />
                 <Route
@@ -544,15 +550,6 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                 >
                   {workspace.completed.includes(shownDetail.item.id) ? 'Вернуть в план' : 'Отметить выполненной'}
                 </button>
-                {shownDetail.item.resource && (
-                  <Link
-                    className="button button--white"
-                    to={'/resources?article=' + shownDetail.item.resource}
-                    onClick={() => setDetail(null)}
-                  >
-                    Открыть инструкцию
-                  </Link>
-                )}
               </div>
             </div>
           )}

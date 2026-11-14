@@ -6,7 +6,6 @@ import {
   resourcesFor,
   services,
   stages,
-  tasks,
   type Event,
   type Person,
   type ProfileId,
@@ -15,6 +14,7 @@ import {
   type Task,
   profiles,
 } from './data';
+import { homeTasks, tasksFor } from './checklist';
 import { products, teamContacts } from './demo-accounts';
 import { progressFor, serviceStatus, type Workspace } from './demo';
 import { Avatar, Buddy, EmptyState, Icon, PageIntro } from './ui';
@@ -37,6 +37,7 @@ const accessLabels = {
 } as const;
 
 type ChecklistProps = {
+  profileId: ProfileId;
   workspace: Workspace;
   onOpen: OpenDetail;
   onToggle: (id: string) => void;
@@ -145,16 +146,10 @@ const quickActions = [
   { title: 'Рабочие инструменты', detail: 'Сервисы и заявки', icon: 'key', to: '/tools', tone: 'pink' },
 ] as const;
 
-export function Dashboard({
-  profileId,
-  workspace,
-  onOpen,
-  onToggle,
-  savingTask,
-}: ChecklistProps & { profileId: ProfileId }) {
+export function Dashboard({ profileId, workspace, onOpen, onToggle, savingTask }: ChecklistProps) {
   const profile = profiles[profileId];
   const product = products[profile.productId];
-  const dashboardTasks = tasks.filter((task) => (profile.stageId === 'first' ? task.today : task.stage === 'finish'));
+  const dashboardTasks = homeTasks(profileId);
   const allDone = progressFor(workspace).remaining === 0;
   return (
     <>
@@ -248,7 +243,8 @@ export function Dashboard({
   );
 }
 
-export function Adaptation({ workspace, onOpen, onToggle, savingTask }: ChecklistProps) {
+export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask }: ChecklistProps) {
+  const tasks = tasksFor(profileId);
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all');
   const next = tasks.find((task) => !workspace.completed.includes(task.id))?.id;
   const visible = tasks.filter(
@@ -256,7 +252,12 @@ export function Adaptation({ workspace, onOpen, onToggle, savingTask }: Checklis
   );
   return (
     <>
-      <PageIntro title="Моя адаптация" text="План первых недель и ближайшие шаги." tone="mint" icon="map" />
+      <PageIntro
+        title="Моя адаптация"
+        text="Чек-лист стажировки: от первой недели до выпуска."
+        tone="mint"
+        icon="map"
+      />
       <div className="adaptation-layout">
         <section>
           <div className="filter-row" aria-label="Фильтр задач">
