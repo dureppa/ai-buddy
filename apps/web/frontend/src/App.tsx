@@ -26,8 +26,10 @@ import { Avatar, Buddy, EmptyState, Icon, Modal, type Mood } from './ui';
 
 import { corporateLinks } from './corporate-links';
 import { CorporateDirectory } from './CorporateDirectory';
+import { ProductGuide } from './ProductGuide';
 
 const searchItems = [
+  { label: 'Путеводитель по продукту', detail: 'Раздел', to: '/product-guide' },
   ...navigation.map((item) => ({ label: item.label, detail: 'Раздел', to: item.path })),
   ...services.map((service) => ({
     label: service.title,
@@ -35,11 +37,13 @@ const searchItems = [
     to: '/tools?service=' + service.id,
   })),
   ...corporateLinks.map((service) => ({ label: service.title, detail: 'Внешний сервис', to: service.url })),
-  ...resources.map((resource) => ({
-    label: resource.title,
-    detail: resource.category,
-    to: '/resources?article=' + resource.id,
-  })),
+  ...resources
+    .filter((resource) => resource.id !== 'product')
+    .map((resource) => ({
+      label: resource.title,
+      detail: resource.category,
+      to: '/resources?article=' + resource.id,
+    })),
 ];
 
 type Toast = { message: string; tone: 'success' | 'error' };
@@ -410,7 +414,9 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
             </button>
             <span className="breadcrumb-root">Рабочее пространство</span>
             <Icon name="chevron" size={15} />
-            <strong>{section?.label ?? 'AI-buddy'}</strong>
+            <strong>
+              {section?.label ?? (location.pathname === '/product-guide' ? 'Путеводитель по продукту' : 'AI-buddy')}
+            </strong>
           </div>
           <div className="topbar__actions">
             <button type="button" className="search-trigger" aria-label="Поиск" onClick={() => setSearchOpen(true)}>
@@ -463,6 +469,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                     />
                   }
                 />
+                <Route path="/product-guide" element={<ProductGuide profileId={profileId} />} />
                 <Route path="/onboarding" element={<Adaptation profileId={profileId} {...checklist} />} />
                 <Route path="/team" element={<Team profileId={profileId} onOpen={setDetail} />} />
                 <Route path="/tools" element={<Tools workspace={workspace} onOpen={setDetail} />} />

@@ -213,7 +213,7 @@ export function answerBuddy(
         (person) => person.name + ' — ' + person.role.toLocaleLowerCase('ru') + ' · ' + person.contact,
       ),
       link: /продукт/.test(question)
-        ? { label: 'Открыть путеводитель по продукту', to: '/resources?article=product' }
+        ? { label: 'Открыть путеводитель по продукту', to: '/product-guide' }
         : { label: 'Познакомиться с командой', to: '/team' },
     };
   if (/документ|подпис/.test(question))
@@ -226,7 +226,7 @@ export function answerBuddy(
     return {
       kind: 'answer',
       text: context + ' ' + product.teamDescription + ' ' + product.firstStep,
-      link: { label: 'Открыть путеводитель по продукту', to: '/resources?article=product' },
+      link: { label: 'Открыть путеводитель по продукту', to: '/product-guide' },
     };
   if (service)
     return {

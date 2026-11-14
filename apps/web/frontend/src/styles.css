@@ -556,8 +556,13 @@ svg {
 .button--white:hover:not(:disabled) {
   background: #f7faf7;
 }
-.hero__button {
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 19px;
+}
+.hero__button {
   border-radius: 25px;
   padding: 10px 14px;
 }
