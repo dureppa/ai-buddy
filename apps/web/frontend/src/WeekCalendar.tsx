@@ -37,12 +37,16 @@ export function WeekCalendar({
   events,
   onSelect,
   onOpen,
+  onCreate,
+  revealedEventId,
 }: {
   selected: Date;
   today: Date;
   events: ScheduleEvent[];
   onSelect: (date: Date) => void;
   onOpen: (event: ScheduleEvent) => void;
+  onCreate: (date: Date) => void;
+  revealedEventId?: string;
 }) {
   const first = weekStart(selected);
   const week = Array.from({ length: 7 }, (_, i) => shiftDay(first, i));
@@ -61,15 +65,21 @@ export function WeekCalendar({
     slot.push(event);
     slots.set(key, slot);
   }
+  const revealedButton = useRef<HTMLButtonElement>(null);
+  const revealedEvent = events.find((event) => event.id === revealedEventId);
   const firstHour = hours.find((hour) => week.some((_, index) => slots.has(hour + ':' + index))) ?? 9;
   const weekKey = first.getTime();
   useLayoutEffect(() => {
+    if (revealedEvent && revealedButton.current) {
+      revealedButton.current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      return;
+    }
     const row = rows.current[firstHour];
     const header = viewport.current?.querySelector('.calendar-weekdays');
     if (viewport.current && row && header) {
       viewport.current.scrollTop = row.offsetTop - header.clientHeight;
     }
-  }, [weekKey, firstHour]);
+  }, [weekKey, firstHour, revealedEvent]);
 
   return (
     <div className="week-calendar">
@@ -109,9 +119,6 @@ export function WeekCalendar({
           <h2>
             {dayLabel.format(first)} — {dayLabel.format(week[6])}
           </h2>
-          <button className="calendar-today" type="button" onClick={() => onSelect(today)}>
-            Сегодня
-          </button>
         </div>
         <div className="calendar-viewport" ref={viewport} tabIndex={0} aria-label="Дни недели и часы">
           <div className="calendar-timeline">
@@ -123,6 +130,7 @@ export function WeekCalendar({
                   type="button"
                   aria-label={fullDate.format(day)}
                   aria-pressed={sameDay(day, selected)}
+                  aria-current={sameDay(day, today) ? 'date' : undefined}
                   onClick={() => onSelect(day)}
                 >
                   <span>{weekdayLabel.format(day)}</span>
@@ -139,25 +147,39 @@ export function WeekCalendar({
                 }}
               >
                 <span className="calendar-hour-label">{String(hour).padStart(2, '0')}:00</span>
-                {week.map((day, index) => (
-                  <div
-                    className={'calendar-slot' + (sameDay(day, today) ? ' calendar-slot--today' : '')}
-                    key={day.getTime()}
-                  >
-                    {slots.get(hour + ':' + index)?.map((event) => (
-                      <button
-                        key={event.id}
-                        type="button"
-                        className={'calendar-event tone-' + event.tone}
-                        onClick={() => onOpen(event)}
-                        title={event.title}
-                      >
-                        <time dateTime={event.startsAt}>{eventTime.format(new Date(event.startsAt))}</time>
-                        <strong>{event.title}</strong>
-                      </button>
-                    ))}
-                  </div>
-                ))}
+                {week.map((day, index) => {
+                  const start = new Date(day);
+                  start.setHours(hour, 0, 0, 0);
+                  const available = start > today;
+                  const entries = slots.get(hour + ':' + index);
+                  return (
+                    <div className="calendar-slot" key={day.getTime()}>
+                      {available && !entries?.length && (
+                        <button
+                          type="button"
+                          className="calendar-create-slot"
+                          aria-label={'Создать событие: ' + fullDate.format(day) + ', ' + eventTime.format(start)}
+                          onClick={() => onCreate(start)}
+                        >
+                          <span aria-hidden="true">+</span>
+                        </button>
+                      )}
+                      {entries?.map((event) => (
+                        <button
+                          key={event.id}
+                          ref={event.id === revealedEventId ? revealedButton : undefined}
+                          type="button"
+                          className={'calendar-event tone-' + event.tone}
+                          onClick={() => onOpen(event)}
+                          title={event.title}
+                        >
+                          <time dateTime={event.startsAt}>{eventTime.format(new Date(event.startsAt))}</time>
+                          <strong>{event.title}</strong>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
