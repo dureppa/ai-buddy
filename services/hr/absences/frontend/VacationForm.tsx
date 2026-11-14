@@ -22,9 +22,9 @@ export function VacationForm({ view, submit }: FormProps) {
   return (
     <form
       className="hr-form"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
-        if (submit({ service: 'absences', start, end: end || start }, 'Заявка на отпуск сохранена.')) {
+        if (await submit({ service: 'absences', start, end: end || start }, 'Заявка на отпуск сохранена.')) {
           setStart('');
           setEnd('');
         }

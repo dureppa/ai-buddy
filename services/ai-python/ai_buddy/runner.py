@@ -33,6 +33,9 @@ class DirectRunner:
                     chat,
                     state,
                     history=context.history,
+                    hr_today=context.hr_today.model_dump_json()
+                    if context.hr_today
+                    else None,
                     page_url=context.page_context.url if context.page_context else None,
                 )
             finalize(state)

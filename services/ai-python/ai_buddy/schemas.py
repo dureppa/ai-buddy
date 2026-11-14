@@ -49,6 +49,18 @@ class PageContext(ClosedModel):
         return value
 
 
+class HRDayEvent(ClosedModel):
+    id: str
+    title: str
+    detail: str
+    service: Literal["absences", "trips"]
+
+
+class HRDay(ClosedModel):
+    events: list[HRDayEvent]
+    unavailable: list[Literal["absences", "trips"]]
+
+
 class TurnRequest(ClosedModel):
     request_id: UUID
     conversation_id: UUID
@@ -58,6 +70,7 @@ class TurnRequest(ClosedModel):
         default_factory=list
     )
     page_context: PageContext | None = None
+    hr_today: HRDay | None = None
 
     @field_validator("message")
     @classmethod

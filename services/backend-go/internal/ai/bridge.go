@@ -38,7 +38,7 @@ type Bridge struct {
 	DemoMode                                                 bool
 	Store                                                    Repository
 	URL, ServiceToken, AdapterToken, Secret, HRURL, HRSecret string
-	DocumentsURL, EventsURL                                  string
+	DocumentsURL, EventsURL, AbsencesURL, TripsURL           string
 	Client                                                   *http.Client
 }
 
@@ -80,7 +80,7 @@ func originOK(u *url.URL) bool {
 		return false
 	}
 	switch u.Hostname() {
-	case "127.0.0.1", "localhost", "agent", "hr-consents", "hr-documents", "hr-events":
+	case "127.0.0.1", "localhost", "agent", "hr-consents", "hr-documents", "hr-events", "hr-absences", "hr-trips":
 		return true
 	default:
 		return false
@@ -117,6 +117,9 @@ func (b *Bridge) Ask(ctx context.Context, profile string, msg buddy.ChatMessage)
 			return buddy.ChatReply{}, err
 		}
 		payload := map[string]any{"request_id": request, "conversation_id": conversation, "message": msg.Text, "history": history, "delegation_token": delegation}
+		if scheduleQuestion(msg.Text) && (b.AbsencesURL != "" || b.TripsURL != "") {
+			payload["hr_today"] = b.TodayHR(ctx, profile)
+		}
 		if msg.PageURL != "" {
 			payload["page_context"] = map[string]string{"url": msg.PageURL}
 		}

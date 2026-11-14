@@ -72,6 +72,8 @@ services:
       AI_SERVICE_TOKEN: ${COMPOSE_AI_TOKEN:-local-demo-flask-token}
       MCP_ADAPTER_SERVICE_TOKEN: ${COMPOSE_MCP_ADAPTER_TOKEN:-local-demo-adapter-token}
       AI_DELEGATION_SECRET: ${COMPOSE_DELEGATION_SECRET:-local-demo-delegation-change-for-shared-host}
+      HR_ABSENCES_URL: http://hr-absences:8181
+      HR_TRIPS_URL: http://hr-trips:8182
       HR_CONSENTS_URL: http://hr-consents:8185
       HR_CONSENTS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5185/
       HR_DOCUMENTS_URL: http://hr-documents:8187
