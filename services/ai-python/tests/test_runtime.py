@@ -119,7 +119,7 @@ def test_automatic_runner_handles_history_evidence_and_isolates_turns(
     )
     assert first.status_code == 200
     assert first.json["reply"] == {
-        "text": "Анна Тестова @demo_mentor [guide]",
+        "text": "Анна Тестова @demo_mentor",
         "references": [{"title": "Демо-памятка", "url": "https://demo.example/guide"}],
     }
     second = post(client, message="Привет", delegation_token="second-delegation")
