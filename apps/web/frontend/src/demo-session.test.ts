@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { products } from './demo-accounts';
 import { demoSessionKey, endDemoSession, readDemoSession, startDemoSession } from './demo-session';
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -27,5 +28,16 @@ describe('demo session', () => {
     expect(readDemoSession(storage)).toBeNull();
     expect(storage.getItem('ai-buddy.workspace.olga')).toBe('progress');
     expect(startDemoSession(storage, 'sasha')).toBe('sasha');
+  });
+  it('uses the same active session for interns, mentors and managers across all products', () => {
+    const storage = memoryStorage();
+    for (const { intern, mentor, manager } of Object.values(products)) {
+      for (const account of [intern, mentor, manager]) {
+        expect(startDemoSession(storage, account)).toBe(account);
+        expect(startDemoSession(storage, account === intern ? mentor : intern)).toBe(account);
+        expect(readDemoSession(storage)).toBe(account);
+        endDemoSession(storage);
+      }
+    }
   });
 });
