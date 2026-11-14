@@ -13,6 +13,7 @@ from ai_buddy.errors import ErrorCode, ServiceError
 from ai_buddy.go_http import GoHTTPBackend, GoHTTPSettings
 from ai_buddy.mcp_client import Gateway
 from ai_buddy.mcp_identity import PRINCIPAL, Principal
+from ai_buddy.runner import present_answer
 from ai_buddy.schemas import AccessArguments, AccessSubmitEnvelope
 from tests.helpers import FakeSession, context, result, settings
 
@@ -110,6 +111,10 @@ def test_submit_returns_persisted_receipt_without_an_extra_model_generation() ->
         assert len(session.calls) == 1
         assert trace.model_calls == 1
         assert "на согласовании" in trace.answer
+        presented = present_answer(trace)
+        assert "ДОС-000001" in presented and "не выдача доступа" in presented
+        assert "[access:" not in presented
+        assert RECEIPT["references"][0]["id"] in trace.sources
 
     asyncio.run(run())
 

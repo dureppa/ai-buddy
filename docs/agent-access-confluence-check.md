@@ -8,9 +8,9 @@ Python из uv.lock. Новых зависимостей нет. Ожидаем�
 `TEST_DATABASE_URL=... JIRA_TEST_DATABASE_URL=... just check`:
 
 - Jira `go vet`, `go test -race` — успешно.
-- `just frontend-check` — формат, ESLint, TypeScript, 111 тестов трёх workspace,
+- `just frontend-check` — формат, ESLint, TypeScript, 118 тестов трёх workspace,
   сборка веба, расширения и всех корпоративных сайтов, включая Confluence — успешно.
-- `just python-check` — locked sync, Ruff, mypy, 424 pytest — успешно.
+- `just python-check` — locked sync, Ruff, mypy, 428 pytest — успешно.
 - `just go-check` — gofmt, vet, все тесты, race, coverage — успешно.
   Portal на первом полном прогоне: 84.9% statements.
 - HR consents race и repository checks — успешно.
@@ -55,3 +55,9 @@ get_access_catalog → submit_access_request. Ни ключ провайдера
 редактор и загрузка корпоративных документов не реализованы. Согласование не
 выполняет provisioning. Demo-mode сохраняет прежний упрощённый вход по профилю;
 production SSO/ACL не заявляется. Старый localStorage портала не мигрируется.
+
+После второго обновления main (оформление ответов) `just frontend-check python-check`
+прошёл: 118 frontend и 428 Python тестов. Отдельно 7 тестов заявки/представления
+подтвердили, что номер и статус receipt сохраняются, технический id убирается
+из текста, а источник остаётся в реестре. Первый CI PR #53 успешно выполнил все
+четыре jobs, включая Compose; обновлённая ветка повторно проходит тот же CI.
