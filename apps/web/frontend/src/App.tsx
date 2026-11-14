@@ -16,6 +16,7 @@ import {
   type AccessDraft,
 } from './demo';
 import { demoSessionKey, endDemoSession, readDemoSession, startDemoSession } from './demo-session';
+import { saveServiceQuestion } from './service-questions';
 import { AccessBadge, Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
 import { Avatar, Buddy, EmptyState, Icon, Modal, type Mood } from './ui';
 
@@ -87,6 +88,52 @@ function SearchDialog({ profileId, onClose }: { profileId: ProfileId; onClose: (
   );
 }
 
+function ServiceQuestionForm({ profileId, onSaved }: { profileId: ProfileId; onSaved: () => void }) {
+  const [text, setText] = useState('');
+  const [error, setError] = useState('');
+  const trimmed = text.trim();
+
+  return (
+    <form
+      className="detail-form question-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        setError('');
+        try {
+          saveServiceQuestion(localStorage, profileId, text);
+          setText('');
+          onSaved();
+        } catch (reason) {
+          setError(reason instanceof Error ? reason.message : 'Не удалось сохранить вопрос.');
+        }
+      }}
+    >
+      <p>Опиши, что непонятно в работе сервиса.</p>
+      <label>
+        Вопрос
+        <textarea
+          name="question"
+          rows={4}
+          required
+          minLength={2}
+          maxLength={1000}
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          placeholder="Например, где посмотреть статус заявки на доступ"
+        />
+      </label>
+      {error && (
+        <p className="question-error" role="alert">
+          {error}
+        </p>
+      )}
+      <button className="button button--dark" type="submit" disabled={trimmed.length < 2}>
+        Отправить вопрос
+      </button>
+    </form>
+  );
+}
+
 function Survey({ onSubmit }: { onSubmit: () => void }) {
   const [answer, setAnswer] = useState('');
   return (
@@ -133,6 +180,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   const [surveyDone, setSurveyDone] = useState(() => localStorage.getItem('ai-buddy.survey.' + profileId) === 'done');
   const [navOpen, setNavOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [questionOpen, setQuestionOpen] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const [mood, setMood] = useState<Mood>('happy');
   const [entries, setEntries] = useState<ChatEntry[]>([]);
@@ -333,18 +381,14 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           </button>
           <button
             type="button"
-            className="sidebar-buddy"
+            className="sidebar-question"
             onClick={() => {
               setNavOpen(false);
-              setDrawerOpen(true);
+              setQuestionOpen(true);
             }}
           >
-            <Buddy compact />
-            <span>
-              <strong>Нужна помощь?</strong>
-              <small>Спроси Buddy</small>
-            </span>
-            <Icon name="diagonal" size={16} />
+            <Icon name="message" size={18} />
+            <span>Задать вопрос по работе сервиса</span>
           </button>
         </div>
       </aside>
@@ -432,6 +476,17 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
         >
           <Buddy mood={answerMutation.isPending ? 'thinking' : mood} compact />
         </button>
+      )}
+      {questionOpen && (
+        <Modal title="Вопрос по работе сервиса" onClose={() => setQuestionOpen(false)}>
+          <ServiceQuestionForm
+            profileId={profileId}
+            onSaved={() => {
+              setQuestionOpen(false);
+              setToast({ tone: 'success', message: 'Вопрос сохранён.' });
+            }}
+          />
+        </Modal>
       )}
       {searchOpen && <SearchDialog profileId={profileId} onClose={() => setSearchOpen(false)} />}
       {alertsOpen && (
