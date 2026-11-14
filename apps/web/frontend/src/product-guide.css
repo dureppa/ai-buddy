@@ -1,0 +1,352 @@
+.product-guide {
+  display: grid;
+  gap: clamp(22px, 3vw, 36px);
+  padding-bottom: 20px;
+}
+
+/* Keep the product palette for the cards without coloring the guide itself. */
+.product-guide[class*='tone-'] {
+  background-color: transparent;
+}
+
+.guide-back {
+  justify-self: start;
+  margin-bottom: -12px;
+}
+
+.guide-back svg {
+  transform: rotate(180deg);
+}
+
+.guide-hero {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.45fr);
+  gap: 12px 24px;
+  padding: clamp(20px, 3.5vw, 43px);
+  border-radius: 30px;
+  overflow: hidden;
+  background:
+    radial-gradient(at 85% 15%, #fff9, transparent 58%),
+    linear-gradient(125deg, var(--tone), color-mix(in srgb, var(--tone) 52%, white));
+}
+
+.guide-hero-copy h1 {
+  font-size: clamp(35px, 5.1vw, 74px);
+  font-weight: 780;
+  letter-spacing: -0.072em;
+  line-height: 0.98;
+  overflow-wrap: anywhere;
+}
+
+.guide-hero-copy p {
+  max-width: 41ch;
+  margin-top: 14px;
+  color: var(--tone-ink);
+  font-size: clamp(14px, 1.5vw, 19px);
+  line-height: 1.45;
+}
+
+.guide-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  color: var(--tone-ink);
+}
+
+.guide-art::before,
+.guide-art::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: min(112%, 240px);
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--tone-ink) 18%, transparent);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #fff7, transparent);
+}
+
+.guide-art::after {
+  width: min(88%, 183px);
+}
+
+.guide-art-symbol {
+  display: grid;
+  place-items: center;
+  width: clamp(80px, 11vw, 127px);
+  aspect-ratio: 1;
+  border: 1px solid #fff;
+  border-radius: 30%;
+  background: linear-gradient(140deg, #fff, #ffffff68);
+  box-shadow: 0 16px 32px color-mix(in srgb, var(--tone-ink) 17%, transparent);
+  transform: rotate(-9deg);
+}
+
+.guide-art-spark {
+  position: absolute;
+  top: 12%;
+  right: 13%;
+}
+
+.guide-team-strip {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px clamp(20px, 4vw, 55px);
+  padding: 13px 16px;
+  border-radius: 16px;
+  border: 1px solid #fffa;
+  background: #ffffffa0;
+  color: var(--tone-ink);
+}
+
+.guide-team-strip div {
+  display: grid;
+  gap: 3px;
+}
+
+.guide-team-strip span {
+  font-size: 11px;
+}
+
+.guide-team-strip strong {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.guide-team-strip a {
+  margin-left: auto;
+  color: inherit;
+}
+
+.product-guide h2 {
+  font-size: clamp(23px, 3vw, 36px);
+  letter-spacing: -0.055em;
+  line-height: 1.05;
+}
+
+.product-guide h3 {
+  font-size: clamp(16px, 1.65vw, 21px);
+  letter-spacing: -0.035em;
+  line-height: 1.18;
+}
+
+.guide-work,
+.guide-practice,
+.guide-facts {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.guide-work,
+.guide-facts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.guide-practice {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+}
+
+.guide-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: clamp(15px, 2.1vw, 23px);
+  background: var(--white);
+}
+
+.guide-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 39px;
+  height: 39px;
+  flex: none;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tone) 55%, white);
+  color: var(--tone-ink);
+}
+
+.guide-card .guide-icon {
+  margin-bottom: 11px;
+}
+
+.guide-card p,
+.guide-company p {
+  margin-top: 6px;
+  color: #4b4d56;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.guide-example {
+  background: color-mix(in srgb, var(--tone) 35%, white);
+}
+
+.guide-mentor {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 11px;
+  border-radius: 10px;
+  color: var(--tone-ink);
+  font-size: 13px;
+}
+
+.guide-mentor:hover strong {
+  text-decoration: underline;
+}
+
+.guide-mentor .avatar {
+  width: 35px;
+  height: 35px;
+}
+
+.guide-mentor small {
+  display: block;
+  color: var(--muted);
+}
+
+.guide-mentor > svg {
+  margin-left: auto;
+}
+
+.guide-company {
+  display: grid;
+  gap: 13px;
+  border-radius: 25px;
+  padding: clamp(20px, 3.2vw, 38px);
+  background: linear-gradient(140deg, #eae0f7, #f7f2fc 82%);
+}
+
+.guide-directions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.guide-directions li {
+  background: #fff9;
+  border: 1px solid #50377919;
+  border-radius: 99px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #4e3b69;
+}
+
+.guide-facts {
+  margin-block: 0;
+}
+
+.guide-facts > div {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  border-radius: 16px;
+  background: #fffaff;
+  padding: clamp(12px, 2vw, 20px);
+  color: #39274f;
+}
+
+.guide-facts dd {
+  margin: 0;
+  font-size: clamp(22px, 3.25vw, 44px);
+  font-weight: 770;
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+.guide-facts dt {
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.guide-career {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding-top: 3px;
+}
+
+.guide-career .guide-icon {
+  background: #fff9;
+  color: #4e3b69;
+}
+
+.guide-company .guide-source {
+  margin-top: 0;
+  font-size: 11px;
+}
+
+@media (max-width: 650px) {
+  .guide-hero {
+    grid-template-columns: minmax(0, 1fr) 70px;
+    gap: 16px 9px;
+  }
+
+  .guide-art {
+    min-height: 70px;
+  }
+
+  .guide-art-symbol {
+    width: 56px;
+  }
+
+  .guide-art-symbol svg {
+    width: 31px;
+    height: 31px;
+  }
+
+  .guide-art-spark {
+    display: none;
+  }
+
+  .guide-team-strip a {
+    margin-left: 0;
+  }
+
+  .guide-practice,
+  .guide-work {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .guide-work .guide-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 10px;
+    align-items: center;
+  }
+
+  .guide-work .guide-icon {
+    grid-row: span 2;
+    margin: 0;
+  }
+
+  .guide-work .guide-card p {
+    margin-top: 2px;
+  }
+}
+
+@media (max-width: 410px) {
+  .guide-facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .guide-facts > div {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .guide-facts dd {
+    white-space: nowrap;
+  }
+}

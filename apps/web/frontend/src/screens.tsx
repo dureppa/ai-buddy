@@ -177,9 +177,14 @@ export function Dashboard({
             <h2>Привет, {profile.name}!</h2>
             <p>Стажёр · {profile.position}</p>
             <p>{allDone ? 'Все шаги адаптации пройдены. Поздравляю!' : profile.stageDescription + '.'}</p>
-            <Link className="button button--dark hero__button" to="/onboarding">
-              Мой план адаптации <Icon name="diagonal" size={18} />
-            </Link>
+            <div className="hero__actions">
+              <Link className="button button--dark hero__button" to="/onboarding">
+                Мой план адаптации <Icon name="diagonal" size={18} />
+              </Link>
+              <Link className="button button--white hero__button" to="/product-guide">
+                Путеводитель по продукту <Icon name="arrow" size={16} />
+              </Link>
+            </div>
           </div>
           <div className="hero__art">
             <span className="hero__orbit hero__orbit--one" />
