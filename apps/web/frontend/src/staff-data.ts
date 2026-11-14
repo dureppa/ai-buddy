@@ -157,12 +157,21 @@ export function internMaterials(storage: StoragePort, profile: ProfileId): Shown
   return [...baselineFor(profile), ...published];
 }
 
+function newMaterialId() {
+  const bytes = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 15) | 64;
+  bytes[8] = (bytes[8] & 63) | 128;
+  const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export function saveMaterial(storage: StoragePort, author: StaffId, input: MaterialInput, id?: string) {
   const entries = readMaterials(storage);
   if (id && !entries.some((item) => item.id === id && item.author === author)) {
     throw new Error('Публикация недоступна для редактирования.');
   }
-  const parsed = materialSchema.safeParse({ ...input, id: id ?? globalThis.crypto.randomUUID(), author });
+  const parsed = materialSchema.safeParse({ ...input, id: id ?? newMaterialId(), author });
   if (!parsed.success) throw new Error('Проверь название, группу, пояснение, аудиторию и ссылку или файл.');
   const intern = products[staffAccounts[author].productId].intern;
   if (parsed.data.audience.some((profile) => profile !== intern)) {
