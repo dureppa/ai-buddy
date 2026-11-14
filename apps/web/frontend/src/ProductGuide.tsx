@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { products, profiles, staffAccounts, type ProfileId } from './demo-accounts';
 import { productGuides } from './product-guide-data';
+import { backendEnabled } from './backend';
+import { useTeamGuide } from './team-guide';
 import { Avatar, Icon } from './ui';
 import './product-guide.css';
 
@@ -16,6 +18,11 @@ export function ProductGuide({ profileId }: { profileId: ProfileId }) {
   const product = products[profile.productId];
   const guide = productGuides[profile.productId];
   const mentor = staffAccounts[product.mentor];
+  const { guide: generated, loading, error, retry } = useTeamGuide(profileId);
+  const cards =
+    backendEnabled && !loading && !error && generated?.status === 'ready'
+      ? generated.cards.map((card, index) => ({ ...card, icon: guide.work[index].icon }))
+      : guide.work;
 
   return (
     <article className={'product-guide tone-' + product.tone}>
@@ -53,17 +60,32 @@ export function ProductGuide({ profileId }: { profileId: ProfileId }) {
 
       <section className="guide-team" aria-labelledby="guide-team">
         <h2 id="guide-team">Чем занимается команда</h2>
-        <div className="guide-work">
-          {guide.work.map((item) => (
-            <div className="guide-card" key={item.title}>
-              <span className="guide-icon">
-                <Icon name={item.icon} size={21} />
-              </span>
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
-            </div>
-          ))}
-        </div>
+        {backendEnabled && (error || loading) ? (
+          <div className="guide-card" aria-live="polite">
+            {error && !loading ? (
+              <>
+                <p>Не удалось загрузить описание команды.</p>
+                <button type="button" className="button button--white" onClick={() => retry()}>
+                  Повторить
+                </button>
+              </>
+            ) : (
+              <p>Готовим описание команды…</p>
+            )}
+          </div>
+        ) : (
+          <div className="guide-work">
+            {cards.map((item, index) => (
+              <div className="guide-card" key={index}>
+                <span className="guide-icon">
+                  <Icon name={item.icon} size={21} />
+                </span>
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="guide-practice">
           <section className="guide-card guide-example">
             <h3>Пример задачи в демо</h3>

@@ -15,6 +15,7 @@ from ai_buddy.errors import ErrorCode, ServiceError
 from ai_buddy.mcp_client import Gateway, Session, sdk_session
 from ai_buddy.runner import DirectRunner
 from ai_buddy.schemas import Reply, TurnRequest
+from ai_buddy.team_guide import TeamBrief, TeamGuide, generate_team_guide
 
 
 class TurnRunner(Protocol):
@@ -101,6 +102,33 @@ def create_app(
             conversation_id=str(data.conversation_id),
             assessment=result.model_dump(mode="json"),
         ), 200
+
+    @app.post("/internal/v1/team-guide")
+    def team_guide() -> tuple[Response, int]:
+        if not authorized():
+            return error_response(ErrorCode.UNAUTHORIZED, 401)
+        if not request.is_json:
+            return error_response(ErrorCode.INVALID_REQUEST, 415)
+        try:
+            brief = TeamBrief.model_validate_json(request.get_data(cache=False))
+        except ValidationError:
+            return error_response(ErrorCode.INVALID_REQUEST, 400)
+        if not settings.agent_enabled or not settings.model_configured:
+            return error_response(ErrorCode.NOT_READY, 503)
+
+        async def execute() -> TeamGuide:
+            async with asyncio.timeout(settings.turn_timeout):
+                return await generate_team_guide(settings, brief)
+
+        try:
+            guide = asyncio.run(execute())
+        except TimeoutError:
+            return error_response(ErrorCode.AI_TIMEOUT, 503)
+        except ServiceError as error:
+            return error_response(error.code, 503)
+        except (ValidationError, ValueError):
+            return error_response(ErrorCode.AI_INVALID_RESPONSE, 503)
+        return jsonify(guide.model_dump(mode="json")), 200
 
     @app.get("/health/live")
     def live() -> Response:

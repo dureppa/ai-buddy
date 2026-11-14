@@ -85,7 +85,17 @@ func runContext(ctx context.Context) error {
 	api := httpapi.NewAPI(sessions, onboarding, access, notifications, chat)
 
 	if bridge != nil {
-		api.WithInternalRoutes(bridge.Register)
+		api.WithInternalRoutes(bridge.Register).WithTeamGuide(st)
+		workerCtx, cancelWorker := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			runTeamGuideWorker(workerCtx, st, bridge)
+		}()
+		defer func() {
+			cancelWorker()
+			<-done
+		}()
 	}
 	srv := &http.Server{
 		Addr:              cfg.Addr,
