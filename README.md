@@ -11,6 +11,16 @@
 - [Шаблон pull request](.github/pull_request_template.md)
 - [Маршрут демо](docs/demo.md)
 
+## Запуск через Docker Compose
+
+Из корня репозитория с запущенным Docker:
+
+```bash
+docker compose up -d --build --wait --wait-timeout 900
+```
+
+Открой [AI Buddy](http://127.0.0.1:5173/). PostgreSQL, Go, веб, Flask, Python MCP и Ollama поднимаются из одной конфигурации. Веб-чат использует прежние демоданные. Для прямой проверки Python-агента выполни `sh docker/check-agent.sh`. Чтобы добавить шесть корпоративных сайтов и их Go API, запусти ту же команду с `docker compose --profile hr`. [Настройки, проверка и остановка](docs/components/docker-compose.md)
+
 ## Фронтенд
 
 ```bash

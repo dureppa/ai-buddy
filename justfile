@@ -25,6 +25,10 @@ python-check:
 go-check:
 	if rg --files services/backend-go -g '*.go' | rg -q .; then cd services/backend-go && test -z "$(gofmt -l .)" && go vet ./... && go test ./... && go test -race ./... && go test -coverprofile=coverage.out -covermode=atomic ./... && go tool cover -func=coverage.out; else echo 'Go прикладного кода пока нет, проверки пакетов пропущены.'; fi
 
+compose-check:
+	docker compose config --quiet
+	docker compose --profile hr config --quiet
+
 repository-check:
 	git diff --check
 	test -f README.md

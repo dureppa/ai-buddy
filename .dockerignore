@@ -1,0 +1,15 @@
+.git
+**/.DS_Store
+**/.env
+**/.env.*
+**/node_modules
+**/.venv
+**/__pycache__
+**/dist
+**/bin
+**/coverage.out
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+services/ai-python/evals
+services/ai-python/experiments

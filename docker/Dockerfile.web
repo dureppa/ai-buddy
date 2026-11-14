@@ -1,0 +1,31 @@
+FROM node:24.22.2-alpine AS build
+WORKDIR /src
+COPY package.json package-lock.json ./
+COPY apps/web/package.json apps/web/
+COPY apps/corporate-services/package.json apps/corporate-services/
+COPY apps/extension/package.json apps/extension/
+RUN --mount=type=cache,target=/root/.npm npm ci
+COPY apps/web/ apps/web/
+COPY apps/corporate-services/ apps/corporate-services/
+
+FROM build AS web-build
+ENV VITE_ABSENCES_URL=http://127.0.0.1:5181/ \
+    VITE_TRIPS_URL=http://127.0.0.1:5182/ \
+    VITE_HIRING_URL=http://127.0.0.1:5183/ \
+    VITE_OFFBOARDING_URL=http://127.0.0.1:5184/ \
+    VITE_CONSENTS_URL=http://127.0.0.1:5185/ \
+    VITE_BENEFITS_URL=http://127.0.0.1:5186/
+RUN npm run build --workspace=@ai-buddy/web
+
+FROM nginx:1.28-alpine AS web
+COPY --from=web-build /src/apps/web/dist /usr/share/nginx/html
+COPY docker/web.conf /etc/nginx/conf.d/default.conf
+
+FROM build AS hr-build
+ARG AI_BUDDY_WEB_PORT=5173
+ENV VITE_AI_BUDDY_URL=http://127.0.0.1:${AI_BUDDY_WEB_PORT}/resources
+RUN npm run build --workspace=@ai-buddy/corporate-services
+
+FROM nginx:1.28-alpine AS hr-web
+COPY --from=hr-build /src/apps/corporate-services/dist /usr/share/nginx/html
+COPY docker/hr-web.conf /etc/nginx/conf.d/default.conf
