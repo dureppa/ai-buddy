@@ -16,7 +16,7 @@ import {
 } from './data';
 import { homeTasks, tasksFor } from './checklist';
 import { products, teamColleagues, teamContacts } from './demo-accounts';
-import { progressFor, serviceStatus, type Workspace } from './demo';
+import { buddyGrowthStage, progressFor, serviceStatus, type BuddyGrowthStage, type Workspace } from './demo';
 import { Avatar, Buddy, EmptyState, Icon, PageIntro } from './ui';
 
 export type Detail =
@@ -146,11 +146,20 @@ const quickActions = [
   { title: 'Рабочие инструменты', detail: 'Сервисы и заявки', icon: 'key', to: '/tools', tone: 'pink' },
 ] as const;
 
-export function Dashboard({ profileId, workspace, onOpen, onToggle, savingTask }: ChecklistProps) {
+export function Dashboard({
+  profileId,
+  workspace,
+  onOpen,
+  onToggle,
+  savingTask,
+  grownStage,
+  onGrowthEnd,
+}: ChecklistProps & { grownStage: BuddyGrowthStage | null; onGrowthEnd: () => void }) {
   const profile = profiles[profileId];
   const product = products[profile.productId];
   const dashboardTasks = homeTasks(profileId);
   const allDone = progressFor(workspace).remaining === 0;
+  const growthStage = buddyGrowthStage(profileId, workspace);
   return (
     <>
       <div className="page-title">
@@ -178,7 +187,11 @@ export function Dashboard({ profileId, workspace, onOpen, onToggle, savingTask }
             <span className="hero__spark hero__spark--one">✦</span>
             <span className="hero__spark hero__spark--two">✧</span>
             <span className="hero__speech">{allDone ? 'Отличная работа!' : 'Я рядом!'}</span>
-            <Buddy mood={allDone ? 'celebrating' : 'happy'} />
+            <Buddy
+              mood={allDone ? 'celebrating' : 'happy'}
+              growthStage={growthStage}
+              onGrowthEnd={grownStage === growthStage ? onGrowthEnd : undefined}
+            />
           </div>
         </section>
         <Progress workspace={workspace} />

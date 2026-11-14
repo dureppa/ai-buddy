@@ -10,12 +10,15 @@ import { navigation, resources, resourcesFor, services } from './data';
 import { isStaffId, products, profiles, teamColleagues, teamContacts, type ProfileId } from './demo-accounts';
 import {
   answerBuddy,
+  buddyGrowthStage,
   confirmAccess,
   progressFor,
   readWorkspace,
   serviceStatus,
   toggleTask,
   type AccessDraft,
+  type BuddyGrowthStage,
+  type Workspace,
 } from './demo';
 import { demoSessionKey, endDemoSession, readDemoSession, startDemoSession } from './demo-session';
 import { AccessBadge, Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
@@ -141,6 +144,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const [mood, setMood] = useState<Mood>('happy');
+  const [grownStage, setGrownStage] = useState<BuddyGrowthStage | null>(null);
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [drafts, setDrafts] = useState<Record<string, DraftState>>({});
   const [awaitingService, setAwaitingService] = useState(false);
@@ -189,8 +193,13 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   const taskMutation = useMutation({
     mutationFn: async (id: string) => toggleTask(localStorage, profileId, id),
     onSuccess: (updated, id) => {
-      queryClient.setQueryData(workspaceKey, updated);
+      const previous = queryClient.getQueryData<Workspace>(workspaceKey);
       const done = updated.completed.includes(id);
+      const nextStage = buddyGrowthStage(profileId, updated);
+      if (previous && nextStage !== buddyGrowthStage(profileId, previous)) {
+        setGrownStage(done ? nextStage : null);
+      }
+      queryClient.setQueryData(workspaceKey, updated);
       if (done) setMood('celebrating');
       setToast({
         tone: 'success',
@@ -443,7 +452,17 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           ) : (
             <div className="page-content" key={location.pathname}>
               <Routes>
-                <Route path="/home" element={<Dashboard profileId={profileId} {...checklist} />} />
+                <Route
+                  path="/home"
+                  element={
+                    <Dashboard
+                      profileId={profileId}
+                      {...checklist}
+                      grownStage={grownStage}
+                      onGrowthEnd={() => setGrownStage(null)}
+                    />
+                  }
+                />
                 <Route path="/onboarding" element={<Adaptation profileId={profileId} {...checklist} />} />
                 <Route path="/team" element={<Team profileId={profileId} onOpen={setDetail} />} />
                 <Route path="/tools" element={<Tools workspace={workspace} onOpen={setDetail} />} />
