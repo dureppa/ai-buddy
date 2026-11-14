@@ -1,18 +1,22 @@
 import { z } from 'zod';
-import { profiles, services, tasks, type ProfileId } from './data';
+import { services, tasks } from './data';
+import {
+  products,
+  profiles,
+  staffAccounts,
+  isStaffId,
+  isProfileId,
+  type ProfileId,
+  type StaffId,
+} from './demo-accounts';
+import { readDemoSession } from './demo-session';
 import { progressFor, readWorkspace, type StoragePort } from './demo';
 
-export const staffAccounts = {
-  mentor: { name: 'Анна Ким', initials: 'АК', role: 'Наставник', interns: ['olga', 'sasha'] },
-  manager: { name: 'Алексей Морозов', initials: 'АМ', role: 'Руководитель', interns: ['olga', 'sasha', 'maria'] },
-} as const satisfies Record<string, { name: string; initials: string; role: string; interns: readonly ProfileId[] }>;
-export type StaffId = keyof typeof staffAccounts;
-export const accountStorageKey = 'ai-buddy.profile';
 export const materialsKey = 'ai-buddy.staff-materials';
 export const maxMaterialBytes = 1024 * 1024;
 
-const profileSchema = z.enum(['olga', 'sasha', 'maria']);
-const staffSchema = z.enum(['mentor', 'manager']);
+const profileSchema = z.custom<ProfileId>((value) => typeof value === 'string' && isProfileId(value));
+const staffSchema = z.custom<StaffId>((value) => typeof value === 'string' && isStaffId(value));
 const webLink = z.url({ protocol: /^https?$/ });
 const dataFile =
   /^data:(application\/pdf|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document|text\/plain|image\/png|image\/jpeg);base64,[\w+/]+=*$/;
@@ -41,32 +45,41 @@ export type StaffMaterial = z.infer<typeof materialSchema>;
 export type MaterialInput = Omit<StaffMaterial, 'id' | 'author'>;
 
 export function readStaffId(storage: Pick<Storage, 'getItem'>): StaffId | null {
-  const candidate = staffSchema.safeParse(storage.getItem(accountStorageKey));
-  return candidate.success ? candidate.data : null;
+  const account = readDemoSession(storage);
+  return account && isStaffId(account) ? account : null;
 }
 
 export function internOverview(storage: StoragePort, staff: StaffId) {
-  return staffAccounts[staff].interns.map((id) => {
-    const workspace = readWorkspace(storage, id);
-    const checklist = tasks.map((task) => ({ ...task, done: workspace.completed.includes(task.id) }));
-    const requests = workspace.requests.flatMap((request) => {
-      const service = services.find((item) => item.id === request.serviceId);
-      return service ? [{ ...request, title: service.title, owner: service.owner }] : [];
-    });
-    return {
+  const id = products[staffAccounts[staff].productId].intern;
+  const workspace = readWorkspace(storage, id);
+  const checklist = tasks.map((task) => ({ ...task, done: workspace.completed.includes(task.id) }));
+  const requests = workspace.requests.flatMap((request) => {
+    const service = services.find((item) => item.id === request.serviceId);
+    return service ? [{ ...request, title: service.title, owner: service.owner }] : [];
+  });
+  return [
+    {
+      id,
       profile: profiles[id],
       progress: progressFor(workspace),
       checklist,
       next: checklist.find((item) => !item.done),
       requests,
-    };
-  });
+    },
+  ];
 }
 
 export function readMaterials(storage: StoragePort): StaffMaterial[] {
   try {
-    const result = z.array(materialSchema).safeParse(JSON.parse(storage.getItem(materialsKey) || '[]'));
-    return result.success ? result.data : [];
+    const stored: unknown = JSON.parse(storage.getItem(materialsKey) || '[]');
+    if (!Array.isArray(stored)) return [];
+    return stored.flatMap((entry) => {
+      const parsed = materialSchema.safeParse(entry);
+      if (!parsed.success) return [];
+      const material = parsed.data;
+      const intern = products[staffAccounts[material.author].productId].intern;
+      return material.audience.includes(intern) ? [{ ...material, audience: [intern] }] : [];
+    });
   } catch {
     return [];
   }
@@ -83,8 +96,8 @@ export function saveMaterial(storage: StoragePort, author: StaffId, input: Mater
   }
   const parsed = materialSchema.safeParse({ ...input, id: id ?? globalThis.crypto.randomUUID(), author });
   if (!parsed.success) throw new Error('Проверь название, пояснение, аудиторию и ссылку или файл.');
-  const allowed: readonly ProfileId[] = staffAccounts[author].interns;
-  if (parsed.data.audience.some((profile) => !allowed.includes(profile))) {
+  const intern = products[staffAccounts[author].productId].intern;
+  if (parsed.data.audience.some((profile) => profile !== intern)) {
     throw new Error('Можно публиковать только для своих стажёров.');
   }
   const data = { ...parsed.data, audience: [...new Set(parsed.data.audience)] };

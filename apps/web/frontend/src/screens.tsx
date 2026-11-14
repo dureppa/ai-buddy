@@ -2,9 +2,8 @@ import { InternMaterials } from './StaffWorkspace';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  eventsByProfile,
-  people,
-  resources,
+  eventsFor,
+  resourcesFor,
   services,
   stages,
   tasks,
@@ -16,6 +15,7 @@ import {
   type Task,
   profiles,
 } from './data';
+import { products, teamContacts } from './demo-accounts';
 import { progressFor, serviceStatus, type Workspace } from './demo';
 import { Avatar, Buddy, EmptyState, Icon, PageIntro } from './ui';
 
@@ -28,7 +28,6 @@ export type Detail =
   | { kind: 'settings' }
   | { kind: 'survey' };
 export type OpenDetail = (detail: Detail) => void;
-export type Profile = (typeof profiles)[ProfileId];
 
 const accessLabels = {
   available: 'Доступ предоставлен',
@@ -146,8 +145,16 @@ const quickActions = [
   { title: 'Рабочие инструменты', detail: 'Сервисы и заявки', icon: 'key', to: '/tools', tone: 'pink' },
 ] as const;
 
-export function Dashboard({ profile, workspace, onOpen, onToggle, savingTask }: ChecklistProps & { profile: Profile }) {
-  const dashboardTasks = tasks.filter((task) => (profile.id === 'olga' ? task.today : task.stage === 'finish'));
+export function Dashboard({
+  profileId,
+  workspace,
+  onOpen,
+  onToggle,
+  savingTask,
+}: ChecklistProps & { profileId: ProfileId }) {
+  const profile = profiles[profileId];
+  const product = products[profile.productId];
+  const dashboardTasks = tasks.filter((task) => (profile.stageId === 'first' ? task.today : task.stage === 'finish'));
   const allDone = progressFor(workspace).remaining === 0;
   return (
     <>
@@ -161,9 +168,10 @@ export function Dashboard({ profile, workspace, onOpen, onToggle, savingTask }: 
         <section className="hero">
           <div className="hero__copy">
             <span className="hero__badge">
-              <span /> День {profile.day} · {profile.team}
+              <span /> День {profile.day} · {product.name} · {product.team}
             </span>
             <h2>Привет, {profile.name}!</h2>
+            <p>Стажёр · {profile.position}</p>
             <p>{allDone ? 'Все шаги адаптации пройдены. Поздравляю!' : profile.stageDescription + '.'}</p>
             <Link className="button button--dark hero__button" to="/onboarding">
               Мой план адаптации <Icon name="diagonal" size={18} />
@@ -180,7 +188,7 @@ export function Dashboard({ profile, workspace, onOpen, onToggle, savingTask }: 
         </section>
         <Progress workspace={workspace} />
         <section className="panel tasks-panel">
-          <SectionTitle title={profile.id === 'olga' ? 'Задачи на сегодня' : 'Итоги адаптации'}>
+          <SectionTitle title={profile.stageId === 'first' ? 'Задачи на сегодня' : 'Итоги адаптации'}>
             <Link className="text-link" to="/onboarding">
               Весь план <Icon name="arrow" size={17} />
             </Link>
@@ -203,7 +211,7 @@ export function Dashboard({ profile, workspace, onOpen, onToggle, savingTask }: 
             <Icon name="calendar" size={19} />
           </SectionTitle>
           <ul className="event-list">
-            {eventsByProfile[profile.id].map((event) => (
+            {eventsFor(profileId).map((event) => (
               <li key={event.title}>
                 <button type="button" className="event-row" onClick={() => onOpen({ kind: 'event', item: event })}>
                   <span className={'event-date tone-' + event.tone}>
@@ -323,24 +331,25 @@ export function Adaptation({ workspace, onOpen, onToggle, savingTask }: Checklis
   );
 }
 
-export function Team({ onOpen }: { onOpen: OpenDetail }) {
+export function Team({ profileId, onOpen }: { profileId: ProfileId; onOpen: OpenDetail }) {
+  const product = products[profiles[profileId].productId];
   return (
     <>
       <PageIntro
         title="Моя команда"
-        text="Познакомься с теми, кто поможет тебе освоиться в дизайне продукта."
+        text={product.name + ' · «' + product.team + '». ' + product.teamDescription}
         tone="lilac"
         icon="users"
       />
       <SectionTitle title="Твои первые контакты" />
       <div className="people-grid people-grid--featured">
-        {people.slice(0, 2).map((person) => (
+        {teamContacts(profileId).map((person) => (
           <article className={'person-card tone-' + person.tone} key={person.id}>
-            <Avatar initials={person.initials} tone="paper" />
+            <Avatar initials={person.initials} tone="paper" avatar={person.avatar} />
             <div>
-              <span className="person-label">{person.group}</span>
+              <span className="person-label">{person.role}</span>
               <h3>{person.name}</h3>
-              <p>{person.role}</p>
+              <p>{person.position}</p>
             </div>
             <p className="person-bio">{person.bio}</p>
             <button
@@ -349,22 +358,6 @@ export function Team({ onOpen }: { onOpen: OpenDetail }) {
               onClick={() => onOpen({ kind: 'person', item: person })}
             >
               Открыть профиль <Icon name="diagonal" size={16} />
-            </button>
-          </article>
-        ))}
-      </div>
-      <SectionTitle title="Коллеги по команде" />
-      <div className="people-grid">
-        {people.slice(2).map((person) => (
-          <article className="panel person-card" key={person.id}>
-            <Avatar initials={person.initials} tone={person.tone} />
-            <div>
-              <h3>{person.name}</h3>
-              <p>{person.role}</p>
-            </div>
-            <p className="person-bio">{person.bio}</p>
-            <button type="button" className="text-link" onClick={() => onOpen({ kind: 'person', item: person })}>
-              Профиль <Icon name="arrow" size={16} />
             </button>
           </article>
         ))}
@@ -460,9 +453,18 @@ export function Tools({ workspace, onOpen }: { workspace: Workspace; onOpen: Ope
   );
 }
 
-export function Resources({ onOpen, directory }: { onOpen: OpenDetail; directory: ReactNode }) {
+export function Resources({
+  profileId,
+  onOpen,
+  directory,
+}: {
+  profileId: ProfileId;
+  onOpen: OpenDetail;
+  directory: ReactNode;
+}) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('Все');
+  const resources = resourcesFor(profileId);
   const categories = ['Все', ...new Set(resources.map((resource) => resource.category))];
   const visible = resources.filter(
     (resource) =>

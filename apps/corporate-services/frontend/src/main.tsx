@@ -27,8 +27,8 @@ function Page() {
       <label>
         Демопрофиль{' '}
         <select value={profileId} onChange={(event) => setProfileId(event.target.value as ProfileId)}>
-          {Object.values(profiles).map((profile) => (
-            <option key={profile.id} value={profile.id}>
+          {Object.entries(profiles).map(([id, profile]) => (
+            <option key={id} value={id}>
               {profile.fullName}
             </option>
           ))}

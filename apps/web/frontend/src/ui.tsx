@@ -1,4 +1,13 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import annaAvatar from './assets/avatars/avatar-7.webp';
+import alexeyAvatar from './assets/avatars/profile-alexey.webp';
+import ilyaAvatar from './assets/avatars/avatar-6.webp';
+import ekaterinaAvatar from './assets/avatars/profile-ekaterina.webp';
+import ninaAvatar from './assets/avatars/avatar-5.webp';
+import romanAvatar from './assets/avatars/avatar-4.webp';
+import dariaAvatar from './assets/avatars/avatar-9.webp';
+import mikhailAvatar from './assets/avatars/avatar-10.webp';
+import timurAvatar from './assets/avatars/avatar-8.webp';
 import buddy from './assets/buddy.webp';
 import alexanderAvatar from './assets/avatars/profile-alexander.webp';
 import mariaAvatar from './assets/avatars/profile-maria.webp';
@@ -9,6 +18,15 @@ const avatarSources: Record<AvatarVariant, string> = {
   olga: olgaAvatar,
   alexander: alexanderAvatar,
   maria: mariaAvatar,
+  timur: timurAvatar,
+  anna: annaAvatar,
+  alexey: alexeyAvatar,
+  ilya: ilyaAvatar,
+  ekaterina: ekaterinaAvatar,
+  nina: ninaAvatar,
+  roman: romanAvatar,
+  daria: dariaAvatar,
+  mikhail: mikhailAvatar,
 };
 
 const iconPaths = {

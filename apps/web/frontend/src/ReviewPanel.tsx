@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { apiFetch } from './backend';
 import { profiles, type ProfileId } from './data';
-import type { StaffId } from './staff-data';
+import type { StaffId } from './demo-accounts';
 
 const reviewSchema = z.object({
   profile_id: z.string(),

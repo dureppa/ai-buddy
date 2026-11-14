@@ -23,6 +23,18 @@
     "benefitBudget": 12000,
     "benefits": ["learning", "sport"]
   },
+  "timur": {
+    "vacationDays": 10,
+    "vacationNoticeDays": 14,
+    "travelEnabled": false,
+    "travelBudget": 0,
+    "referralSlots": 1,
+    "exitNoticeDays": 14,
+    "exitChecklist": [],
+    "consents": ["news"],
+    "benefitBudget": 8000,
+    "benefits": ["learning"]
+  },
   "maria": {
     "vacationDays": 24,
     "vacationNoticeDays": 7,
