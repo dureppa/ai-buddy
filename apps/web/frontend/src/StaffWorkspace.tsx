@@ -208,8 +208,8 @@ function MaterialLink({ material }: { material: Pick<StaffMaterial, 'source'> })
       Скачать файл <Icon name="file" size={15} />
     </a>
   ) : (
-    <a className="text-link" href={source.href} target="_blank" rel="noreferrer">
-      Открыть ссылку <Icon name="diagonal" size={15} />
+    <a className="text-link material-url" href={source.href} target="_blank" rel="noreferrer">
+      {source.href}
     </a>
   );
 }

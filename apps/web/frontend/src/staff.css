@@ -137,8 +137,14 @@
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
-.staff-material h3 {
+.staff-material h3,
+.material-url {
   overflow-wrap: anywhere;
+}
+.material-url {
+  display: inline;
+  max-width: 100%;
+  font-weight: 650;
 }
 .staff-actions,
 .staff-publications > .section-title {

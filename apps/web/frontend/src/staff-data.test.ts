@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { readWorkspace, toggleTask } from './demo';
 import { tasksFor } from './checklist';
 import { products } from './demo-accounts';
@@ -98,6 +98,18 @@ describe('staff workspace', () => {
     storage.setItem(materialsKey, JSON.stringify([legacy, { ...legacy, id: 'other', audience: ['sasha'] }]));
     expect(materialsFor(storage, 'olga')).toEqual([{ ...legacy, audience: ['olga'], group: 'Общее' }]);
     expect(materialsFor(storage, 'sasha')).toEqual([]);
+  });
+
+  it('saves a material when the page is not a secure context', () => {
+    const storage = memoryStorage();
+    const randomUUID = vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => {
+      throw new TypeError('crypto.randomUUID is not a function');
+    });
+    saveMaterial(storage, 'mentor', input);
+    expect(materialsFor(storage, 'olga')[0].id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    randomUUID.mockRestore();
   });
 
   it('shows the baseline chat before staff links and keeps them in one group', () => {
