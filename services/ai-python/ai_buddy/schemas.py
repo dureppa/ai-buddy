@@ -190,7 +190,7 @@ class TaskData(ClosedModel):
 
 class EvidenceItem(ClosedModel):
     version: Annotated[str, Field(min_length=1, max_length=128)]
-    kind: Literal["consent"]
+    kind: Literal["consent", "document", "event"]
     confirmed: bool
     summary: Annotated[str, Field(min_length=1, max_length=1200)]
 

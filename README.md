@@ -50,4 +50,4 @@ npm run dev --workspace=@ai-buddy/web
 npm run dev --workspace=@ai-buddy/corporate-services
 ```
 
-Сайты открываются на портах `5181–5186`. Каждый показывает синтетический демопрофиль. Для других адресов скопируй `apps/web/frontend/.env.example` и `apps/corporate-services/frontend/.env.example` в `.env` рядом с примерами. Команда `npm run build --workspace=@ai-buddy/corporate-services` создаёт отдельную сборку для каждого сайта в `apps/corporate-services/dist/`. [Карта адресов и запуск одного сайта](docs/components/corporate-services.md)
+Сайты открываются на портах `5181–5188`. Каждый показывает синтетический демопрофиль. Для других адресов скопируй `apps/web/frontend/.env.example` и `apps/corporate-services/frontend/.env.example` в `.env` рядом с примерами. Команда `npm run build --workspace=@ai-buddy/corporate-services` создаёт отдельную сборку для каждого сайта в `apps/corporate-services/dist/`. [Карта адресов и запуск одного сайта](docs/components/corporate-services.md)

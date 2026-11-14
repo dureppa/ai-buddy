@@ -346,7 +346,11 @@
               "type": "string"
             },
             "kind": {
-              "const": "consent",
+              "enum": [
+                "consent",
+                "document",
+                "event"
+              ],
               "title": "Kind",
               "type": "string"
             },

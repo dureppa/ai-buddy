@@ -3,10 +3,7 @@ import { Icon } from './ui';
 
 export function CorporateDirectory() {
   return (
-    <section className="corporate-directory" aria-labelledby="corporate-directory-title">
-      <div className="section-title">
-        <h2 id="corporate-directory-title">HR-сервисы</h2>
-      </div>
+    <section className="corporate-directory" aria-label="Сервисы">
       <div className="tile-grid">
         {corporateLinks.map((service) => (
           <a

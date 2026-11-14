@@ -7,6 +7,7 @@ COPY apps/extension/package.json apps/extension/
 RUN --mount=type=cache,target=/root/.npm npm ci
 COPY apps/web/ apps/web/
 COPY apps/corporate-services/ apps/corporate-services/
+COPY services/hr/ services/hr/
 
 FROM build AS web-build
 ENV VITE_API_ENABLED=true
@@ -16,7 +17,9 @@ ENV VITE_ABSENCES_URL=${PUBLIC_HR_ORIGIN}:5181/ \
     VITE_HIRING_URL=${PUBLIC_HR_ORIGIN}:5183/ \
     VITE_OFFBOARDING_URL=${PUBLIC_HR_ORIGIN}:5184/ \
     VITE_CONSENTS_URL=${PUBLIC_HR_ORIGIN}:5185/ \
-    VITE_BENEFITS_URL=${PUBLIC_HR_ORIGIN}:5186/
+    VITE_BENEFITS_URL=${PUBLIC_HR_ORIGIN}:5186/ \
+    VITE_DOCUMENTS_URL=${PUBLIC_HR_ORIGIN}:5187/ \
+    VITE_EVENTS_URL=${PUBLIC_HR_ORIGIN}:5188/
 RUN npm run build --workspace=@ai-buddy/web
 
 FROM nginx:1.28-alpine AS web

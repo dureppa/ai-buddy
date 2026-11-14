@@ -6,6 +6,8 @@ cd "$(dirname "$0")"
 path_for() {
   case "$1" in
     consents)    echo /api/v1/me/consents ;;
+    documents)   echo /api/v1/me/documents ;;
+    events)      echo /api/v1/me/events ;;
     absences)    echo /api/v1/me/absence-summary ;;
     trips)       echo /api/v1/me/travel-summary ;;
     hiring)      echo /api/v1/me/referral-summary ;;

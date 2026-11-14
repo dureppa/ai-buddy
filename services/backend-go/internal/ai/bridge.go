@@ -34,10 +34,11 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 type Bridge struct {
-	PublicConsentURL                                         string
+	PublicConsentURL, PublicDocumentsURL, PublicEventsURL    string
 	DemoMode                                                 bool
 	Store                                                    Repository
 	URL, ServiceToken, AdapterToken, Secret, HRURL, HRSecret string
+	DocumentsURL, EventsURL                                  string
 	Client                                                   *http.Client
 }
 
@@ -47,14 +48,43 @@ func New(st Repository, endpoint, service, adapter, secret, hr string) (*Bridge,
 			continue
 		}
 		u, err := url.Parse(raw)
-		if err != nil || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") || (u.Scheme != "https" && !(u.Scheme == "http" && (u.Hostname() == "127.0.0.1" || u.Hostname() == "localhost" || u.Hostname() == "agent" || u.Hostname() == "hr-consents"))) {
+		if err != nil || !originOK(u) {
 			return nil, fmt.Errorf("invalid AI/HR origin")
 		}
 	}
 	if endpoint == "" || len(service) < 16 || len(adapter) < 16 || len(secret) < 32 || service == adapter || secret == service || secret == adapter {
 		return nil, fmt.Errorf("separate AI secrets required")
 	}
-	return &Bridge{PublicConsentURL: "http://localhost:5185/", Store: st, URL: strings.TrimRight(endpoint, "/"), ServiceToken: service, AdapterToken: adapter, Secret: secret, HRURL: strings.TrimRight(hr, "/"), Client: &http.Client{Timeout: 26 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
+	return &Bridge{PublicConsentURL: "http://localhost:5185/", PublicDocumentsURL: "http://localhost:5187/", PublicEventsURL: "http://localhost:5188/", Store: st, URL: strings.TrimRight(endpoint, "/"), ServiceToken: service, AdapterToken: adapter, Secret: secret, HRURL: strings.TrimRight(hr, "/"), Client: &http.Client{Timeout: 26 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
+}
+
+func OriginOK(raw string) error {
+	if raw == "" {
+		return nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil || !originOK(u) {
+		return fmt.Errorf("invalid AI/HR origin")
+	}
+	return nil
+}
+
+func originOK(u *url.URL) bool {
+	if u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
+		return false
+	}
+	if u.Scheme == "https" {
+		return true
+	}
+	if u.Scheme != "http" {
+		return false
+	}
+	switch u.Hostname() {
+	case "127.0.0.1", "localhost", "agent", "hr-consents", "hr-documents", "hr-events":
+		return true
+	default:
+		return false
+	}
 }
 func uuid() string {
 	var b [16]byte
@@ -251,16 +281,34 @@ func (b *Bridge) read(tool string) http.HandlerFunc {
 			}
 			return
 		}
-		if tool == "get_task_context" && args["task_id"] == "consent-news" {
-			data["action_url"] = b.PublicConsentURL
+		if tool == "get_task_context" {
+			switch args["task_id"] {
+			case "consent-news":
+				data["action_url"] = b.PublicConsentURL
+			case "documents":
+				data["action_url"] = b.PublicDocumentsURL
+			case "events":
+				data["action_url"] = b.PublicEventsURL
+			}
 		}
 		if tool == "search_knowledge" {
 			if documents, ok := data["documents"].([]any); ok {
 				for _, raw := range documents {
-					if document, ok := raw.(map[string]any); ok {
-						if source, ok := document["source"].(map[string]any); ok && source["id"] == "consents" {
-							source["url"] = b.PublicConsentURL
-						}
+					document, ok := raw.(map[string]any)
+					if !ok {
+						continue
+					}
+					source, ok := document["source"].(map[string]any)
+					if !ok {
+						continue
+					}
+					switch source["id"] {
+					case "consents":
+						source["url"] = b.PublicConsentURL
+					case "documents":
+						source["url"] = b.PublicDocumentsURL
+					case "meetups":
+						source["url"] = b.PublicEventsURL
 					}
 				}
 			}

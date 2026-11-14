@@ -4,15 +4,16 @@
 
 При AI_SERVICE_URL включается Go → Flask → Python MCP → Go. Обязательны отдельные
 AI_SERVICE_TOKEN, MCP_ADAPTER_SERVICE_TOKEN и AI_DELEGATION_SECRET (32+ символа).
-HR_CONSENTS_URL задаёт API согласий. Локальные адреса HTTP и фиксированные DNS
-`agent`/`hr-consents` поддержаны для Compose; другие origins требуют HTTPS.
+HR_CONSENTS_URL, HR_DOCUMENTS_URL и HR_EVENTS_URL задают API согласий, документов
+и мероприятий. Локальные адреса HTTP и фиксированные DNS
+`agent`/`hr-consents`/`hr-documents`/`hr-events` поддержаны для Compose; другие origins требуют HTTPS.
 При отсутствии AI_SERVICE_URL сохраняется прежний отказ unavailable.
 
 `internal/ai` отвечает за Flask HTTP, короткие JWT с разными audience,
 MCP resolve/read и учебный assessment/review. `internal/store/chat.go` сохраняет
 диалоги, проверяет владельца и сериализует генерации блокировкой строки.
 `internal/store/ai.go` читает знания/команду/прогресс, `review.go` сохраняет оценки
-и применяет решение наставника транзакционно. Новые миграции 06/07 обязательны.
+и применяет решение наставника транзакционно. Новые миграции 06/07/08 обязательны.
 WriteTimeout увеличен до 35 с. История читается владельцем через
 GET /api/v1/chat/conversations/{conversation_id}.
 

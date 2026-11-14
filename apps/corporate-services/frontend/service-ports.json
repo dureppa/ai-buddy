@@ -4,5 +4,7 @@
   "hiring": 5183,
   "offboarding": 5184,
   "consents": 5185,
-  "benefits": 5186
+  "benefits": 5186,
+  "documents": 5187,
+  "events": 5188
 }
