@@ -133,6 +133,8 @@ describe('AI-buddy demo workspace', () => {
     expect(completed.completed).toContain('dev-principles');
     expect(pending.completed).not.toContain('dev-principles');
     expect(() => toggleTask(storage, 'olga', 'missing-task')).toThrow('Задача недоступна.');
+    expect(toggleTask(storage, 'olga', 'extra-review').completed).toContain('extra-review');
+    expect(readWorkspace(storage, 'olga').completed).toContain('extra-review');
   });
 
   it('falls back when saved workspace data is malformed', () => {
