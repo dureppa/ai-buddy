@@ -25,7 +25,7 @@ htmlcov/
 /services/ai-python/dist/
 
 # JavaScript and TypeScript
-node_modules/
+node_modules
 *.tsbuildinfo
 /apps/*/build/
 /apps/*/dist/
@@ -38,3 +38,5 @@ node_modules/
 
 # Server-only credentials and nginx authentication
 /.deploy/
+
+/current

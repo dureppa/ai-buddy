@@ -47,3 +47,6 @@ health всех сервисов, URL возврата, отсутствие с�
 выдавать gate-cookie. После входа проверяются и Basic, и последующие запросы API
 с cookie + Bearer. `.deploy`, резервные копии и архив исходников исключены из
 Docker build context, чтобы не передавать их сборщику вместе с кодом.
+
+[Continuous delivery](continuous-delivery.md) обновляет отдельные source releases;
+текущий код доступен через current. .env и nginx-пароль остаются постоянными.

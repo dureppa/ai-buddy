@@ -1,5 +1,7 @@
 # Документация AI Buddy
 
+- [Continuous delivery](components/continuous-delivery.md): проверенный main → SSH → server release, backup, health и rollback.
+
 - [Развёртывание серверного демо](components/server-deployment.md): адреса браузера, пароль nginx и откат старого проекта.
 
 - [DeepSeek и живые сервисы](specs/004-agent-service-integration.md): чат, MCP-прогресс и учебный маршрут согласий с review.

@@ -46,10 +46,10 @@ jobs:
         run: |
           uv sync --locked
           if rg --files . -g '*.py' | rg -q .; then
-            uv run --locked ruff format --check .
-            uv run --locked ruff check .
-            uv run --locked mypy .
-            uv run --locked pytest --cov=. --cov-report=term-missing --cov-fail-under=80
+            uv run --locked ruff format --check . ../../scripts/deploy
+            uv run --locked ruff check . ../../scripts/deploy
+            uv run --locked mypy . ../../scripts/deploy
+            uv run --locked pytest --cov=. --cov=../../scripts/deploy --cov-report=term-missing --cov-fail-under=80
           else
             echo 'Python прикладного кода пока нет, проверки пропущены.'
           fi
@@ -109,6 +109,7 @@ jobs:
       - run: git diff --check HEAD^ HEAD
       - run: test -f README.md && test -f AGENTS.md && test -f justfile
       - run: test -f .github/pull_request_template.md && test -f .github/CODEOWNERS
+      - run: for script in scripts/deploy/*.sh; do bash -n "$script"; done
       - run: docker compose config --quiet && docker compose --profile hr config --quiet && docker compose -f docker-compose.yml -f docker-compose.server.yml --profile hr config --quiet
       - run: test -z "$(git ls-files | rg '(^|/)dist/|(^|/)\.venv/' || true)"
       - run: node -e "const fs=require('fs'); for (const p of ['package.json','package-lock.json','apps/web/package.json','apps/extension/package.json','services/ai-python/pyproject.toml','services/backend-go/go.mod']) { if (!fs.existsSync(p)) throw new Error('Missing '+p) }"

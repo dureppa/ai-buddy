@@ -20,7 +20,7 @@ frontend-build:
 frontend-check: frontend-format frontend-lint frontend-typecheck frontend-test frontend-build
 
 python-check:
-	cd services/ai-python && uv sync --locked && if rg --files . -g '*.py' | rg -q .; then uv run --locked ruff format --check . && uv run --locked ruff check . && uv run --locked mypy . && uv run --locked pytest --cov=. --cov-report=term-missing --cov-fail-under=80; else echo 'Python прикладного кода пока нет, проверки пропущены.'; fi
+	cd services/ai-python && uv sync --locked && if rg --files . -g '*.py' | rg -q .; then uv run --locked ruff format --check . ../../scripts/deploy && uv run --locked ruff check . ../../scripts/deploy && uv run --locked mypy . ../../scripts/deploy && uv run --locked pytest --cov=. --cov=../../scripts/deploy --cov-report=term-missing --cov-fail-under=80; else echo 'Python прикладного кода пока нет, проверки пропущены.'; fi
 
 go-check:
 	if rg --files services/backend-go -g '*.go' | rg -q .; then cd services/backend-go && test -z "$(gofmt -l .)" && go vet ./... && go test ./... && go test -race ./... && go test -coverprofile=coverage.out -covermode=atomic ./... && go tool cover -func=coverage.out; else echo 'Go прикладного кода пока нет, проверки пакетов пропущены.'; fi
