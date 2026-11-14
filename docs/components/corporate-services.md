@@ -54,3 +54,7 @@ npm run dev --workspace=@ai-buddy/corporate-services
 | Бенефиты | `GET /api/v1/me/benefit-summary` — доступные программы, бюджет, заявки | `POST /api/v1/me/benefit-requests` — программа компенсации |
 
 При включённом API страницы отсутствий и командировок создают заявки в соответствующих HR-сервисах. В локальном деморежиме используется браузерное хранилище. [Спецификация расписания](../specs/schedule-hr.md).
+
+## Jira
+
+На порту 5189 собирается отдельный [трекер задач](jira.md) из services/jira/frontend; backend и БД запускаются профилем jira. Он всегда использует API, не localStorage.

@@ -27,8 +27,8 @@ import { demoSessionKey, endDemoSession, readDemoSession, startDemoSession } fro
 import { AccessBadge, Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
 import { Avatar, Buddy, EmptyState, Icon, Modal, type Mood } from './ui';
 
-import { corporateLinks } from './corporate-links';
-import { CorporateDirectory } from './CorporateDirectory';
+import { corporateLinks, jiraService } from './corporate-links';
+import { CorporateDirectory, jiraProfileUrl } from './CorporateDirectory';
 import { ProductGuide } from './ProductGuide';
 
 const searchItems = [
@@ -48,7 +48,9 @@ const delay = (milliseconds: number) => new Promise<void>((resolve) => window.se
 function SearchDialog({ profileId, onClose }: { profileId: ProfileId; onClose: () => void }) {
   const [query, setQuery] = useState('');
   const results = [
-    ...searchItems,
+    ...searchItems.map((item) =>
+      item.to === jiraService.url ? { ...item, to: jiraProfileUrl(item.to, profileId) } : item,
+    ),
     ...tasksFor(profileId).map((task) => ({
       label: task.title,
       detail: 'Задача',
@@ -81,6 +83,8 @@ function SearchDialog({ profileId, onClose }: { profileId: ProfileId; onClose: (
             className="search-result"
             to={item.to}
             reloadDocument={!item.to.startsWith('/')}
+            target={!item.to.startsWith('/') ? '_blank' : undefined}
+            rel={!item.to.startsWith('/') ? 'noopener noreferrer' : undefined}
             onClick={onClose}
           >
             <span>
@@ -529,7 +533,10 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                 />
                 <Route path="/team" element={<Team profileId={profileId} onOpen={setDetail} />} />
                 <Route path="/tools" element={<Tools workspace={workspace} onOpen={setDetail} />} />
-                <Route path="/resources" element={<Resources directory={<CorporateDirectory />} />} />
+                <Route
+                  path="/resources"
+                  element={<Resources directory={<CorporateDirectory profileId={profileId} />} />}
+                />
                 <Route path="/chat" element={<ChatPage {...chatProps} />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
               </Routes>

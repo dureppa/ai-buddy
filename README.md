@@ -51,3 +51,7 @@ npm run dev --workspace=@ai-buddy/corporate-services
 ```
 
 Сайты открываются на портах `5181–5188`. Каждый показывает синтетический демопрофиль. Для других адресов скопируй `apps/web/frontend/.env.example` и `apps/corporate-services/frontend/.env.example` в `.env` рядом с примерами. Команда `npm run build --workspace=@ai-buddy/corporate-services` создаёт отдельную сборку для каждого сайта в `apps/corporate-services/dist/`. [Карта адресов и запуск одного сайта](docs/components/corporate-services.md)
+
+### Jira: доски и задачи
+
+`docker compose --profile hr --profile jira up --build -d` запускает самостоятельный Jira-клон с отдельной PostgreSQL. Открой карточку Jira в корпоративных сервисах или http://localhost:5189/. Доступны пространства, доски, создание и редактирование задач. [Настройки, API и проверки](docs/components/jira.md).

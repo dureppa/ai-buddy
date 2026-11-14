@@ -13,3 +13,9 @@ it('opens every corporate service in a separate tab', () => {
     expect(links[index]).toContain('rel="noopener noreferrer"');
   });
 });
+
+it('passes the current demo profile to Jira without a token', () => {
+  const html = renderToStaticMarkup(<CorporateDirectory profileId="sasha" />);
+  expect(html).toContain('profile=sasha');
+  expect(html).not.toContain('access_token');
+});

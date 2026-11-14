@@ -9,7 +9,11 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['apps/**/frontend/**/*.{ts,tsx}', 'services/hr/**/frontend/**/*.{ts,tsx}'],
+    files: [
+      'apps/**/frontend/**/*.{ts,tsx}',
+      'services/hr/**/frontend/**/*.{ts,tsx}',
+      'services/jira/frontend/**/*.{ts,tsx}',
+    ],
     languageOptions: {
       parserOptions: {
         ecmaFeatures: { jsx: true },

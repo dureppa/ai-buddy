@@ -156,7 +156,7 @@ services:
       args:
         PUBLIC_WEB_ORIGIN: ${PUBLIC_WEB_ORIGIN:-http://127.0.0.1:${AI_BUDDY_WEB_PORT:-5173}}
     ports:
-      - "127.0.0.1:5181-5188:5181-5188"
+      - "127.0.0.1:5181-5189:5181-5189"
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5181/"]
       interval: 3s
@@ -308,5 +308,65 @@ services:
     ports:
       - "127.0.0.1:8188:8188"
 
+  jira-db:
+    profiles: [jira]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: jira
+      POSTGRES_PASSWORD: ${COMPOSE_JIRA_DB_PASSWORD:-local-jira-secret}
+      POSTGRES_DB: jira
+    volumes:
+      - jira-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U jira -d jira']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  jira-migrate:
+    profiles: [jira]
+    image: postgres:17-alpine
+    environment:
+      PGHOST: jira-db
+      PGUSER: jira
+      PGPASSWORD: ${COMPOSE_JIRA_DB_PASSWORD:-local-jira-secret}
+      PGDATABASE: jira
+    depends_on:
+      jira-db:
+        condition: service_healthy
+    volumes:
+      - ./docker/migrate.sh:/migrate.sh:ro
+      - ./services/jira/migrations:/migrations:ro
+      - ./services/jira/seeds:/seeds:ro
+    entrypoint: ['sh', '/migrate.sh']
+
+  jira:
+    profiles: [jira]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go
+      args:
+        MODULE: services/jira
+        ENTRY: .
+    environment:
+      PGHOST: jira-db
+      PGUSER: jira
+      PGPASSWORD: ${COMPOSE_JIRA_DB_PASSWORD:-local-jira-secret}
+      PGDATABASE: jira
+      JIRA_SESSION_SECRET: ${COMPOSE_JIRA_SESSION_SECRET:-local-jira-session-secret-change-for-shared-host}
+      DEMO_MODE: 'true'
+      HTTP_ADDR: ':8189'
+    depends_on:
+      jira-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8189/health']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
 volumes:
+  jira-postgres:
   postgres:

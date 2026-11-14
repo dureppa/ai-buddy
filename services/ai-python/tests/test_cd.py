@@ -179,6 +179,7 @@ def test_deploy_success_and_failure_keep_the_expected_release(
     monkeypatch.setattr(worker, "image_snapshot", lambda _: {"image:latest": "old-id"})
     monkeypatch.setattr(worker, "backup_database", lambda *_: None)
     monkeypatch.setattr(worker, "verify_http", lambda _: None)
+    monkeypatch.setattr(worker, "verify_jira", lambda _: None)
     monkeypatch.setattr(
         worker.shutil, "disk_usage", lambda _: SimpleNamespace(free=10 * 1024**3)
     )
@@ -233,7 +234,12 @@ def test_image_snapshot_and_database_backup(
     assert worker.image_snapshot(tmp_path) == {"image:latest": "sha256:old"}
     process = Mock(stdout=io.BytesIO(b"-- database snapshot\n"))
     process.wait.return_value = 0
-    monkeypatch.setattr(worker.subprocess, "Popen", Mock(return_value=process))
+
+    def start_dump(*args: Any, **kwargs: Any) -> Mock:
+        process.stdout = io.BytesIO(b"-- database snapshot\n")
+        return process
+
+    monkeypatch.setattr(worker.subprocess, "Popen", start_dump)
     worker.backup_database(tmp_path, tmp_path)
     import gzip
 
@@ -241,6 +247,7 @@ def test_image_snapshot_and_database_backup(
         gzip.decompress((tmp_path / "database.sql.gz").read_bytes())
         == b"-- database snapshot\n"
     )
+    assert (tmp_path / "jira-database.sql.gz").exists()
     process.stdout = io.BytesIO(b"partial")
     process.wait.return_value = 1
     with pytest.raises(ValueError):
@@ -311,3 +318,52 @@ def test_rollback_failure_is_distinct_and_state_corruption_fails_closed(
     with pytest.raises(subprocess.CalledProcessError):
         worker.deploy(tmp_path, SHA)
     assert common.read_json(state / (SHA + ".json"))["phase"] == "rollback_failed"
+
+
+def test_jira_smoke_checks_gate_session_and_tasks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / ".deploy").mkdir()
+    (tmp_path / ".deploy/access.txt").write_text("Username: buddy\nPassword: test\n")
+    good = [
+        (401, {}, b""),
+        (200, {"Set-Cookie": "ai_buddy_gate=test; HttpOnly"}, b""),
+        (200, {}, b'{"access_token":"jira-token"}'),
+        (200, {}, b"[]"),
+    ]
+    replies = good.copy()
+    calls: list[dict[str, Any]] = []
+
+    def request(path: str, **kwargs: Any) -> tuple[int, dict[str, str], bytes]:
+        calls.append(kwargs)
+        return replies[len(calls) - 1]
+
+    monkeypatch.setattr(worker, "http_request", request)
+    worker.verify_jira(tmp_path)
+    assert all(call["port"] == 5189 for call in calls)
+    assert calls[-1]["headers"]["Authorization"] == "Bearer jira-token"
+    assert calls[-1]["headers"]["Cookie"] == "ai_buddy_gate=test"
+    cases: list[tuple[int, tuple[int, dict[str, str], bytes]]] = [
+        (0, (200, {}, b"")),
+        (1, (200, {}, b"")),
+        (2, (503, {}, b"")),
+        (3, (200, {}, b"{}")),
+    ]
+    for index, replacement in cases:
+        calls.clear()
+        replies = good.copy()
+        replies[index] = replacement
+        with pytest.raises(ValueError):
+            worker.verify_jira(tmp_path)
+
+
+def test_first_deploy_has_no_jira_database_to_backup(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(worker, "run", lambda args, cwd: "db" if "-q" in args else "")
+    dumps: list[Path] = []
+    monkeypatch.setattr(
+        worker, "dump_database", lambda container, target: dumps.append(target)
+    )
+    worker.backup_database(tmp_path, tmp_path)
+    assert dumps == [tmp_path / "database.sql.gz"]

@@ -1,3 +1,4 @@
+- [Jira](components/jira.md): самостоятельные доски и задачи, PostgreSQL и API.
 # Документация AI Buddy
 
 - [Continuous delivery](components/continuous-delivery.md): проверенный main → SSH → server release, backup, health и rollback.
