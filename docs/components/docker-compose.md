@@ -52,3 +52,6 @@ sh docker/check-agent.sh
 ```bash
 docker compose --profile hr down
 ```
+
+[Публикация на сервере](server-deployment.md) использует отдельный overlay с
+паролем nginx; PUBLIC_HR_ORIGIN/PUBLIC_WEB_ORIGIN задают внешние ссылки при сборке.
