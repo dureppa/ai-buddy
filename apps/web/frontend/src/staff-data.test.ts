@@ -6,6 +6,7 @@ import { demoSessionKey } from './demo-session';
 import {
   baselineFor,
   groupByName,
+  materialGroupChoices,
   internMaterials,
   materialsKey,
   internOverview,
@@ -110,6 +111,15 @@ describe('staff workspace', () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
     randomUUID.mockRestore();
+  });
+
+  it('keeps a custom group in the choices ahead of unused suggestions', () => {
+    expect(materialGroupChoices(['Чаты', '  Онбординг  ', 'Чаты', 'я'])).toEqual([
+      'Чаты',
+      'Онбординг',
+      'Документы',
+      'Встречи',
+    ]);
   });
 
   it('shows the baseline chat before staff links and keeps them in one group', () => {
