@@ -14,8 +14,8 @@ it('opens every corporate service in a separate tab', () => {
   });
 });
 
-it('passes the current demo profile to Jira without a token', () => {
-  const html = renderToStaticMarkup(<CorporateDirectory profileId="sasha" />);
-  expect(html).toContain('profile=sasha');
-  expect(html).not.toContain('access_token');
+it('does not list Jira among corporate services', () => {
+  const html = renderToStaticMarkup(<CorporateDirectory />);
+  expect(corporateLinks.some((service) => String(service.id) === 'jira')).toBe(false);
+  expect(html).not.toContain('Jira');
 });

@@ -1,8 +1,7 @@
 import { corporateLinks } from './corporate-links';
-import type { ProfileId } from './data';
 import { Icon } from './ui';
 
-export function CorporateDirectory({ profileId }: { profileId?: ProfileId }) {
+export function CorporateDirectory() {
   return (
     <section className="corporate-directory" aria-label="Сервисы">
       <div className="tile-grid">
@@ -10,7 +9,7 @@ export function CorporateDirectory({ profileId }: { profileId?: ProfileId }) {
           <a
             className={'resource-card tone-' + service.tone}
             key={service.id}
-            href={service.id === 'jira' && profileId ? jiraProfileUrl(service.url, profileId) : service.url}
+            href={service.url}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -27,10 +26,4 @@ export function CorporateDirectory({ profileId }: { profileId?: ProfileId }) {
       </div>
     </section>
   );
-}
-
-export function jiraProfileUrl(base: string, profile: ProfileId) {
-  const url = new URL(base);
-  url.searchParams.set('profile', profile);
-  return url.toString();
 }

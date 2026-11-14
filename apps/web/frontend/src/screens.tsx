@@ -8,6 +8,7 @@ import { homeTasks, tasksFor } from './checklist';
 import { products, teamColleagues, teamContacts } from './demo-accounts';
 import { buddyGrowthStage, progressFor, serviceStatus, type BuddyGrowthStage, type Workspace } from './demo';
 import { Avatar, Buddy, EmptyState, Icon, PageIntro } from './ui';
+import { jiraService, jiraProfileUrl } from './tool-links';
 import { InternMaterials } from './StaffWorkspace';
 
 export type Detail =
@@ -448,9 +449,39 @@ export function AccessBadge({ status }: { status: keyof typeof accessLabels }) {
   );
 }
 
-export function Tools({ workspace, onOpen }: { workspace: Workspace; onOpen: OpenDetail }) {
+export function JiraToolCard({ profileId }: { profileId: ProfileId }) {
+  return (
+    <a
+      className="panel service-card"
+      href={jiraProfileUrl(jiraService.url, profileId)}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <span className="tile-top">
+        <span className="service-symbol tone-blue">J</span>
+        <Icon name="diagonal" size={19} />
+      </span>
+      <span className="tile-category">Задачи</span>
+      <strong>Jira</strong>
+      <span className="tile-description">{jiraService.description}</span>
+      <span>Открыть доски</span>
+    </a>
+  );
+}
+
+export function Tools({
+  profileId,
+  workspace,
+  onOpen,
+}: {
+  profileId: ProfileId;
+  workspace: Workspace;
+  onOpen: OpenDetail;
+}) {
   const [filter, setFilter] = useState<'all' | keyof typeof accessLabels>('all');
-  const visible = services.filter((service) => filter === 'all' || serviceStatus(workspace, service) === filter);
+  const visible = services.filter((service) =>
+    service.id === 'jira' ? filter === 'all' : filter === 'all' || serviceStatus(workspace, service) === filter,
+  );
   return (
     <>
       <PageIntro
@@ -489,23 +520,27 @@ export function Tools({ workspace, onOpen }: { workspace: Workspace; onOpen: Ope
         </button>
       </div>
       <div className="tile-grid">
-        {visible.map((service) => (
-          <button
-            type="button"
-            className="panel service-card"
-            key={service.id}
-            onClick={() => onOpen({ kind: 'service', item: service })}
-          >
-            <span className="tile-top">
-              <span className={'service-symbol tone-' + service.tone}>{service.symbol}</span>
-              <Icon name="diagonal" size={19} />
-            </span>
-            <span className="tile-category">{service.category}</span>
-            <strong>{service.title}</strong>
-            <span className="tile-description">{service.description}</span>
-            <AccessBadge status={serviceStatus(workspace, service)} />
-          </button>
-        ))}
+        {visible.map((service) =>
+          service.id === 'jira' ? (
+            <JiraToolCard key={service.id} profileId={profileId} />
+          ) : (
+            <button
+              type="button"
+              className="panel service-card"
+              key={service.id}
+              onClick={() => onOpen({ kind: 'service', item: service })}
+            >
+              <span className="tile-top">
+                <span className={'service-symbol tone-' + service.tone}>{service.symbol}</span>
+                <Icon name="diagonal" size={19} />
+              </span>
+              <span className="tile-category">{service.category}</span>
+              <strong>{service.title}</strong>
+              <span className="tile-description">{service.description}</span>
+              <AccessBadge status={serviceStatus(workspace, service)} />
+            </button>
+          ),
+        )}
       </div>
       {!visible.length && (
         <EmptyState title="В этом списке пока пусто" text="Заявка появится здесь после подтверждения в чате Buddy." />
