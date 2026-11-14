@@ -7,7 +7,7 @@ from ai_buddy.agent import Trace, direct_loop, finalize
 from ai_buddy.answer_policy import CITATION, MARKDOWN_LINK, URL
 from ai_buddy.config import Settings
 from ai_buddy.errors import ServiceError
-from ai_buddy.mcp_client import Gateway
+from ai_buddy.mcp_client import CONTRACTS, Gateway
 from ai_buddy.provider import model_session
 from ai_buddy.schemas import Reference, Reply, TurnRequest
 
@@ -33,6 +33,7 @@ class DirectRunner:
                     chat,
                     state,
                     history=context.history,
+                    recover_context=True,
                     hr_today=context.hr_today.model_dump_json()
                     if context.hr_today
                     else None,
@@ -54,7 +55,7 @@ class DirectRunner:
             raise
         finally:
             self.logger.info(
-                "ai_turn request_id=%s provider=%s model=%s prompt=onboarding-v2 model_calls=%d tool_calls=%d guard_count=%d outcome=%s seconds=%.3f",
+                "ai_turn request_id=%s provider=%s model=%s prompt=onboarding-v3 model_calls=%d tool_calls=%d guard_count=%d outcome=%s seconds=%.3f tools=%s guards=%s",
                 context.request_id,
                 self.settings.llm_provider,
                 self.settings.model_name,
@@ -63,4 +64,8 @@ class DirectRunner:
                 len(state.guard_events),
                 outcome,
                 time.monotonic() - started,
+                ",".join(
+                    call["name"] for call in state.calls if call["name"] in CONTRACTS
+                ),
+                ",".join(sorted(set(state.guard_events))),
             )
