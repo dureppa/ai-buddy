@@ -16,6 +16,9 @@ import { demoSessionKey, endDemoSession, readDemoSession, startDemoSession } fro
 import { AccessBadge, Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
 import { Avatar, Buddy, EmptyState, Icon, Modal, type Mood } from './ui';
 
+import { corporateLinks } from './corporate-links';
+import { CorporateDirectory } from './CorporateDirectory';
+
 const searchItems = [
   ...navigation.map((item) => ({ label: item.label, detail: 'Раздел', to: item.path })),
   ...people.map((person) => ({ label: person.name, detail: person.role, to: '/team?person=' + person.id })),
@@ -24,6 +27,7 @@ const searchItems = [
     detail: service.category,
     to: '/tools?service=' + service.id,
   })),
+  ...corporateLinks.map((service) => ({ label: service.title, detail: 'Внешний сервис', to: service.url })),
   ...resources.map((resource) => ({
     label: resource.title,
     detail: resource.category,
@@ -99,7 +103,13 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
       </label>
       <div className="search-results">
         {results.map((item) => (
-          <Link key={item.to} className="search-result" to={item.to} onClick={onClose}>
+          <Link
+            key={item.to}
+            className="search-result"
+            to={item.to}
+            reloadDocument={!item.to.startsWith('/')}
+            onClick={onClose}
+          >
             <span>
               <strong>{item.label}</strong>
               <small>{item.detail}</small>
@@ -431,7 +441,10 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                 <Route path="/onboarding" element={<Adaptation {...checklist} />} />
                 <Route path="/team" element={<Team onOpen={setDetail} />} />
                 <Route path="/tools" element={<Tools workspace={workspace} onOpen={setDetail} />} />
-                <Route path="/resources" element={<Resources onOpen={setDetail} />} />
+                <Route
+                  path="/resources"
+                  element={<Resources onOpen={setDetail} directory={<CorporateDirectory />} />}
+                />
                 <Route path="/chat" element={<ChatPage {...chatProps} />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
               </Routes>
