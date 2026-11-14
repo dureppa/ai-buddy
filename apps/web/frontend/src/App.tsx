@@ -26,6 +26,7 @@ import {
 } from './demo';
 import { demoSessionKey, endDemoSession, readDemoSession, startDemoSession } from './demo-session';
 import { saveServiceQuestion } from './service-questions';
+import { materialsForTask } from './staff-data';
 import { AccessBadge, Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
 import { Avatar, Buddy, EmptyState, Icon, Modal, type Mood } from './ui';
 
@@ -52,6 +53,30 @@ const searchItems = [
 
 type Toast = { message: string; tone: 'success' | 'error' };
 const delay = (milliseconds: number) => new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
+
+function TaskMaterialList({ profileId, taskId }: { profileId: ProfileId; taskId: string }) {
+  const materials = materialsForTask(localStorage, profileId, taskId);
+  if (!materials.length) return null;
+  return (
+    <section className="task-materials" aria-label="Материалы к заданию">
+      <h3>Материалы к заданию</h3>
+      <ul>
+        {materials.map((material) => (
+          <li key={material.id} className="panel task-material">
+            <strong>{material.title}</strong>
+            <p>{material.description}</p>
+            <small>
+              {material.group} · {material.author}
+            </small>
+            <a href={material.source.href} target="_blank" rel="noreferrer">
+              {material.source.kind === 'file' ? material.source.name : material.source.href}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 function SearchDialog({ profileId, onClose }: { profileId: ProfileId; onClose: () => void }) {
   const [query, setQuery] = useState('');
@@ -690,6 +715,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
         >
           {shownDetail.kind === 'task' && (
             <div className="detail-content">
+              <TaskMaterialList profileId={profileId} taskId={shownDetail.item.id} />
               <p>{shownDetail.item.details}</p>
               <dl>
                 <dt>Срок</dt>

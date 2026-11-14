@@ -88,6 +88,59 @@
 .staff-back {
   margin-bottom: 14px;
 }
+.staff-checklist {
+  display: grid;
+  gap: 14px;
+}
+.staff-checklist .section-title {
+  align-items: flex-start;
+}
+.staff-checklist .section-title h2 {
+  margin: 0;
+}
+.staff-checklist__task h3 {
+  margin: 8px 0 0;
+  font-size: 18px;
+  letter-spacing: -0.04em;
+}
+.checklist-materials {
+  display: grid;
+  gap: 10px;
+}
+.checklist-material {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  text-align: left;
+}
+.checklist-material input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  accent-color: #2b8d4a;
+}
+.checklist-material strong,
+.checklist-material small {
+  display: block;
+}
+.checklist-material strong {
+  font-size: 15px;
+  letter-spacing: -0.03em;
+}
+.checklist-material small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.checklist-request {
+  padding: 12px 15px 14px;
+}
+.staff-checklist .staff-actions .button,
+.staff-checklist .section-title .button {
+  min-height: 40px;
+  padding-inline: 16px;
+}
 .staff-back__icon {
   display: inline-flex;
   transform: rotate(180deg);

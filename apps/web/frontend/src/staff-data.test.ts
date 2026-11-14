@@ -4,9 +4,16 @@ import { tasksFor } from './checklist';
 import { products } from './demo-accounts';
 import { demoSessionKey } from './demo-session';
 import {
+  addChecklistItem,
   baselineFor,
+  checklistFor,
   groupByName,
   internMaterials,
+  materialGroupChoices,
+  materialsForTask,
+  publishedForIntern,
+  removeChecklistItem,
+  setTaskMaterials,
   materialsKey,
   internOverview,
   materialsFor,
@@ -57,6 +64,56 @@ describe('staff workspace', () => {
     expect(tasksFor('sasha').find((item) => item.id === 'avito-cli')?.title).toBe('Настрой avito-cli');
     expect(maria.requests[0]).toMatchObject({ number: 'Д-001', title: 'Grafana' });
     expect(maria.requests[0].owner).toBeTruthy();
+  });
+
+  it('lets a mentor and a manager share checklist items and team materials', () => {
+    const storage = memoryStorage();
+    const added = addChecklistItem(storage, 'mentor', {
+      title: 'Созвон с заказчиком',
+      summary: 'Коротко обсудить метрику недели.',
+      stage: 'week-1',
+    });
+    addChecklistItem(storage, 'manager', {
+      title: 'План от руководителя',
+      summary: 'Зафиксировать цель на первую неделю.',
+      stage: 'week-1',
+    });
+    const [forMentor] = internOverview(storage, 'mentor');
+    const [forManager] = internOverview(storage, 'manager');
+    const [sasha] = internOverview(storage, 'travel-manager');
+    expect(forMentor.checklist.some((item) => item.id === added.id && item.custom)).toBe(true);
+    expect(forManager.checklist.map((item) => item.title)).toEqual(forMentor.checklist.map((item) => item.title));
+    expect(sasha.checklist.some((item) => item.custom)).toBe(false);
+
+    saveMaterial(storage, 'mentor', input);
+    saveMaterial(storage, 'manager', { ...input, title: 'План руководителя', group: 'Документы' });
+    expect(
+      publishedForIntern(storage, 'olga')
+        .map((item) => item.author)
+        .sort(),
+    ).toEqual(['Алексей Морозов', 'Анна Ким']);
+    expect(publishedForIntern(storage, 'sasha')).toEqual([]);
+
+    const materialId = publishedForIntern(storage, 'olga').find((item) => item.title === input.title)?.id ?? '';
+    expect(materialId).not.toBe('');
+    setTaskMaterials(storage, 'manager', added.id, [materialId, 'baseline-delivery-chat']);
+    setTaskMaterials(storage, 'manager', 'meet-team', ['baseline-delivery-chat']);
+    expect(materialsForTask(storage, 'olga', added.id).map((item) => item.id)).toEqual([
+      materialId,
+      'baseline-delivery-chat',
+    ]);
+    expect(checklistFor(storage, 'olga').find((item) => item.id === 'meet-team')?.materialIds).toEqual([
+      'baseline-delivery-chat',
+    ]);
+    expect(() => setTaskMaterials(storage, 'manager', added.id, ['missing'])).toThrow(
+      'Можно указать только материалы этого стажёра.',
+    );
+
+    removeChecklistItem(storage, 'manager', added.id);
+    expect(checklistFor(storage, 'olga').some((item) => item.id === added.id)).toBe(false);
+    expect(() => removeChecklistItem(storage, 'manager', 'meet-team')).toThrow(
+      'Можно удалить только добавленный пункт.',
+    );
   });
 
   it('filters publications by intern and supports editing and deletion by their author', () => {
@@ -110,6 +167,15 @@ describe('staff workspace', () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
     randomUUID.mockRestore();
+  });
+
+  it('keeps a custom group in the choices ahead of unused suggestions', () => {
+    expect(materialGroupChoices(['Чаты', '  Онбординг  ', 'Чаты', 'я'])).toEqual([
+      'Чаты',
+      'Онбординг',
+      'Документы',
+      'Встречи',
+    ]);
   });
 
   it('shows the baseline chat before staff links and keeps them in one group', () => {

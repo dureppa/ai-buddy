@@ -2,21 +2,26 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { isProfileId, products, profiles, staffAccounts, type ProfileId, type StaffId } from './demo-accounts';
 import { readDemoSession } from './demo-session';
 import {
+  addChecklistItem,
   baselineFor,
   groupByName,
   internMaterials,
   internOverview,
-  materialGroupSuggestions,
+  materialGroupChoices,
   materialsKey,
   maxMaterialBytes,
   readMaterials,
+  publishedForIntern,
   readStaffId,
+  removeChecklistItem,
   removeMaterial,
+  setTaskMaterials,
   saveMaterial,
   type MaterialInput,
   type ShownMaterial,
   type StaffMaterial,
 } from './staff-data';
+import { InternChecklist } from './InternChecklist';
 import { Avatar, Icon, Modal } from './ui';
 import './staff.css';
 
@@ -49,19 +54,28 @@ function fileSource(file: File): Promise<StaffMaterial['source']> {
   });
 }
 
+const customGroupValue = 'custom-group';
+
 function MaterialForm({
   staff,
   edit,
   group,
+  groups,
   onSaved,
 }: {
   staff: StaffId;
   edit?: StaffMaterial;
   group?: string;
+  groups: readonly string[];
   onSaved: (group: string) => void;
 }) {
   const internId = products[staffAccounts[staff].productId].intern;
+  const initialGroup = edit?.group ?? group ?? groups[0] ?? 'Чаты';
   const [kind, setKind] = useState<'link' | 'file'>(edit?.source.kind ?? 'link');
+  const [custom, setCustom] = useState(() => !groups.includes(initialGroup));
+  const [selected, setSelected] = useState(() =>
+    groups.includes(initialGroup) ? initialGroup : (groups[0] ?? 'Чаты'),
+  );
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -108,20 +122,39 @@ function MaterialForm({
       </label>
       <label>
         Группа
-        <input
-          name="group"
-          list="material-groups"
-          defaultValue={edit?.group ?? group ?? 'Чаты'}
-          required
-          minLength={2}
-          maxLength={40}
-        />
-        <datalist id="material-groups">
-          {materialGroupSuggestions.map((group) => (
-            <option key={group} value={group} />
+        <select
+          name={custom ? undefined : 'group'}
+          value={custom ? customGroupValue : selected}
+          onChange={(event) => {
+            const value = event.target.value;
+            if (value === customGroupValue) setCustom(true);
+            else {
+              setCustom(false);
+              setSelected(value);
+            }
+          }}
+        >
+          {groups.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
           ))}
-        </datalist>
+          <option value={customGroupValue}>Своя группа</option>
+        </select>
       </label>
+      {custom && (
+        <label>
+          Название группы
+          <input
+            name="group"
+            required
+            minLength={2}
+            maxLength={40}
+            defaultValue={groups.includes(initialGroup) ? '' : initialGroup}
+            placeholder="Например, Онбординг"
+          />
+        </label>
+      )}
       <label>
         Пояснение
         <textarea name="description" defaultValue={edit?.description} rows={3} required minLength={2} maxLength={420} />
@@ -400,16 +433,15 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
   }, [id]);
 
   const current = interns.find((intern) => intern.id === selected);
-  const ownMaterials = materials.filter((material) => material.author === id);
-  const visibleMaterials: ShownMaterial[] = ownMaterials.map((material) => ({
-    id: material.id,
-    group: material.group,
-    title: material.title,
-    description: material.description,
-    source: material.source,
-    author: account.name,
-  }));
+  const ownMaterials = materials.filter(
+    (material) => material.author === id && material.audience.includes(product.intern),
+  );
+  const visibleMaterials = publishedForIntern(localStorage, product.intern);
   const baseline = baselineFor(product.intern);
+  const groupOptions = materialGroupChoices([
+    ...baseline.map((item) => item.group),
+    ...visibleMaterials.map((item) => item.group),
+  ]);
 
   function deleteMaterial() {
     if (!pendingRemoval) return;
@@ -464,7 +496,10 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
             className="filter"
             type="button"
             aria-pressed={section === 'interns'}
-            onClick={() => setSection('interns')}
+            onClick={() => {
+              setSection('interns');
+              setSelected(undefined);
+            }}
           >
             Мои стажёры
           </button>
@@ -481,31 +516,60 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
           </button>
         </nav>
         {section === 'interns' ? (
-          <div className="staff-grid">
-            {interns.map(({ id: internId, profile, progress, next, requests }) => (
-              <button key={internId} type="button" className="panel staff-intern" onClick={() => setSelected(internId)}>
-                <span className="staff-person">
-                  <Avatar initials={profile.initials} avatar={profile.avatar} />
-                  <span>
-                    <strong>{profile.fullName}</strong>
+          current ? (
+            <InternChecklist
+              name={current.profile.fullName}
+              stageLabel={current.profile.stage + ' · ' + current.progress.percent + '% выполнено'}
+              items={current.checklist}
+              requests={current.requests}
+              materials={internMaterials(localStorage, current.id)}
+              canEdit
+              onBack={() => setSelected(undefined)}
+              onAdd={(input) => {
+                addChecklistItem(localStorage, id, input);
+                setInterns(internOverview(localStorage, id));
+              }}
+              onSaveMaterials={(taskId, materialIds) => {
+                setTaskMaterials(localStorage, id, taskId, materialIds);
+                setInterns(internOverview(localStorage, id));
+              }}
+              onRemove={(taskId) => {
+                removeChecklistItem(localStorage, id, taskId);
+                setInterns(internOverview(localStorage, id));
+              }}
+            />
+          ) : (
+            <div className="staff-grid">
+              {interns.map(({ id: internId, profile, progress, next, requests }) => (
+                <button
+                  key={internId}
+                  type="button"
+                  className="panel staff-intern"
+                  onClick={() => setSelected(internId)}
+                >
+                  <span className="staff-person">
+                    <Avatar initials={profile.initials} avatar={profile.avatar} />
+                    <span>
+                      <strong>{profile.fullName}</strong>
+                      <small>
+                        {profile.position} · {profile.stage}
+                      </small>
+                    </span>
+                    <Icon name="arrow" />
+                  </span>
+                  <span className="staff-progress">
+                    <strong>{progress.percent}%</strong>
                     <small>
-                      {profile.position} · {profile.stage}
+                      {progress.completed} из {progress.completed + progress.remaining} задач
                     </small>
                   </span>
-                  <Icon name="arrow" />
-                </span>
-                <span className="staff-progress">
-                  <strong>{progress.percent}%</strong>
-                  <small>
-                    {progress.completed} из {progress.completed + progress.remaining} задач
-                  </small>
-                </span>
-                <progress value={progress.percent} max="100" aria-label={'Прогресс · ' + profile.fullName} />
-                <span className="staff-intern__next">{next ? 'Дальше · ' + next.title : 'Чек-лист выполнен'}</span>
-                {requests.length > 0 && <span className="status">На согласовании · {requests.length}</span>}
-              </button>
-            ))}
-          </div>
+                  <progress value={progress.percent} max="100" aria-label={'Прогресс · ' + profile.fullName} />
+                  <span className="staff-intern__next">{next ? 'Дальше · ' + next.title : 'Чек-лист выполнен'}</span>
+                  {requests.length > 0 && <span className="status">На согласовании · {requests.length}</span>}
+                </button>
+              ))}
+            </div>
+          )
         ) : (
           <StaffMaterials
             baseline={baseline}
@@ -523,38 +587,6 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
           />
         )}
       </main>
-      {current && (
-        <Modal title={current.profile.fullName} onClose={() => setSelected(undefined)}>
-          <div className="staff-detail">
-            <p>
-              {current.profile.stage} · {current.progress.percent}% выполнено
-            </p>
-            <h3>Чек-лист адаптации</h3>
-            <ul>
-              {current.checklist.map((item) => (
-                <li key={item.id}>
-                  <Icon name={item.done ? 'check' : 'clock'} size={17} />
-                  {item.title}
-                  <small>{item.done ? 'Выполнено' : 'Осталось'}</small>
-                </li>
-              ))}
-            </ul>
-            <h3>Заявки на согласовании</h3>
-            {current.requests.length ? (
-              current.requests.map((request) => (
-                <details key={request.id}>
-                  <summary>
-                    {request.title} · {request.number}
-                  </summary>
-                  <p>На согласовании · владелец сервиса {request.owner}</p>
-                </details>
-              ))
-            ) : (
-              <p>Активных заявок нет.</p>
-            )}
-          </div>
-        </Modal>
-      )}
       {editor && (
         <Modal
           title={editor === 'new' ? 'Новый материал' : 'Редактирование материала'}
@@ -564,6 +596,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
             staff={id}
             edit={editor === 'new' ? undefined : editor}
             group={editor === 'new' ? openGroup : undefined}
+            groups={groupOptions}
             onSaved={(group) => {
               setMaterials(readMaterials(localStorage));
               setEditor(undefined);
