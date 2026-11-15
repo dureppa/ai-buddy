@@ -35,7 +35,7 @@ import { Avatar, Buddy, EmptyState, Icon, Modal, Toast, type Mood } from './ui';
 import { corporateLinks } from './corporate-links';
 import { toolProfileUrl, workToolsOrigin, toolsFor } from './tool-links';
 import { CorporateDirectory, accessPortalUrl } from './CorporateDirectory';
-import { WorkToolPage } from './WorkToolPage';
+import { WorkToolPage } from '../../../tools/shared/frontend/WorkToolPage';
 import { ProductGuide } from './ProductGuide';
 
 const searchItems = [
