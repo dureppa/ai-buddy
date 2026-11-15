@@ -4,7 +4,7 @@ import { eventDay, eventMonth, eventTime, upcomingEvents, type ScheduleEvent } f
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { services, stages, type Person, type ProfileId, type Service, type Task, profiles } from './data';
-import { homeTasks } from './checklist';
+import { homeSectionTitle, homeTasks } from './checklist';
 import { checklistFor } from './staff-data';
 import { products, teamColleagues, teamContacts } from './demo-accounts';
 import { buddyGrowthStage, progressFor, serviceStatus, type BuddyGrowthStage, type Workspace } from './demo';
@@ -212,7 +212,7 @@ export function Dashboard({
         </section>
         <Progress workspace={workspace} />
         <section className="panel tasks-panel">
-          <SectionTitle title={profile.stageId === 'first' ? 'Задачи на сегодня' : 'Итоги адаптации'}>
+          <SectionTitle title={homeSectionTitle(profileId)}>
             <Link className="text-link" to="/onboarding">
               Весь план <Icon name="arrow" size={17} />
             </Link>
