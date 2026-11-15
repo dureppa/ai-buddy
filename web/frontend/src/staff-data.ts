@@ -1,3 +1,4 @@
+import { resourceKit } from './resource-kits';
 import { z } from 'zod';
 import { stages, tasksFor, type StageId, type Task } from './checklist';
 import {
@@ -44,7 +45,7 @@ const materialSchema = z.object({
 
 export type StaffMaterial = z.infer<typeof materialSchema>;
 export type MaterialInput = Omit<StaffMaterial, 'id' | 'author'>;
-export const materialGroupSuggestions = ['Чаты', 'Документы', 'Встречи'] as const;
+export const materialGroupSuggestions = ['Чаты', 'Доступы', 'Документы', 'Встречи'] as const;
 
 export function materialGroupChoices(existing: readonly string[]) {
   const choices: string[] = [];
@@ -56,25 +57,6 @@ export function materialGroupChoices(existing: readonly string[]) {
   return choices;
 }
 
-const baselineChats = {
-  delivery: {
-    title: 'Общий чат для всех сотрудников Авито Доставки',
-    href: 'https://chat.delivery.example/all',
-  },
-  travel: {
-    title: 'Общий чат для всех сотрудников Авито Путешествия',
-    href: 'https://chat.travel.example/all',
-  },
-  autoteca: {
-    title: 'Общий чат для всех сотрудников Автотеки',
-    href: 'https://chat.autoteca.example/all',
-  },
-  help: {
-    title: 'Общий чат для всех сотрудников #яПомогаю',
-    href: 'https://chat.help.example/all',
-  },
-} as const;
-
 export type ShownMaterial = {
   id: string;
   group: string;
@@ -85,18 +67,7 @@ export type ShownMaterial = {
 };
 
 export function baselineFor(profile: ProfileId): ShownMaterial[] {
-  const productId = profiles[profile].productId;
-  const chat = baselineChats[productId];
-  return [
-    {
-      id: 'baseline-' + productId + '-chat',
-      group: 'Чаты',
-      title: chat.title,
-      description: 'Общий канал: объявления, вопросы и ссылки, которые нужны с первого дня.',
-      source: { kind: 'link', href: chat.href },
-      author: 'Базовый',
-    },
-  ];
+  return resourceKit(profile);
 }
 
 export function groupByName<T extends { group: string }>(items: readonly T[]) {

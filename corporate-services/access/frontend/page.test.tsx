@@ -134,3 +134,27 @@ it('keeps the operation key on retry and rotates it for a new form after success
   await hasText('Заявка сохранена.');
   expect(api.submit.mock.calls[2][1]).not.toBe(first);
 });
+
+it('opens a prefilled review from a template link without submitting until clicked', async () => {
+  window.history.replaceState(null, '', '/?template=dwh&profile=olga');
+  await mount();
+  await hasText('Проверьте заявку');
+  expect(container.textContent).toContain('delivery.orders_mart');
+  expect(api.submit).not.toHaveBeenCalled();
+  await act(async () => window.dispatchEvent(new Event('focus')));
+  expect(api.submit).not.toHaveBeenCalled();
+  api.submit.mockResolvedValue(record);
+  await submitForm();
+  expect(api.submit).toHaveBeenCalledWith(
+    expect.objectContaining({ resource_key: 'delivery.orders_mart', permission: 'read', duration_days: 30 }),
+    expect.any(String),
+  );
+  window.history.replaceState(null, '', '/');
+});
+it('rejects unknown preset links without creating a request', async () => {
+  window.history.replaceState(null, '', '/?template=foreign-resource');
+  await mount();
+  await hasText('Этот раздел доступов недоступен');
+  expect(api.submit).not.toHaveBeenCalled();
+  window.history.replaceState(null, '', '/');
+});
