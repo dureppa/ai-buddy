@@ -41,7 +41,7 @@ export const requestSchema = z.object({
 });
 export type AccessRequest = z.infer<typeof requestSchema>;
 export const statusLabels = {
-  submitted: 'На согласовании',
+  submitted: 'Отправлено',
   approved: 'Согласовано',
   rejected: 'Отклонено',
   cancelled: 'Отменено',
@@ -51,17 +51,15 @@ export function accountContext(account: AccountId): {
   name: string;
   productId: ProductId;
   role: JobRole | null;
-  canReview: boolean;
 } {
   if (isProfileId(account))
     return {
       name: profiles[account].fullName,
       productId: profiles[account].productId,
       role: ({ olga: 'analyst', sasha: 'backend', timur: 'tester', maria: 'designer' } as const)[account],
-      canReview: false,
     };
   const staff = staffAccounts[account];
-  return { name: staff.name, productId: staff.productId, role: null, canReview: staff.role === 'Руководитель' };
+  return { name: staff.name, productId: staff.productId, role: null };
 }
 export function readAccessAccount(cookie: string): AccountId | null {
   const id = cookie
@@ -139,36 +137,16 @@ export function createRequest(
   });
   return [request, ...existing];
 }
-export function changeRequest(
-  existing: AccessRequest[],
-  id: string,
-  actor: AccountId,
-  action: 'approved' | 'rejected' | 'cancelled',
-  note: string,
-  now: string,
-): AccessRequest[] {
+export function changeRequest(existing: AccessRequest[], id: string, actor: AccountId, now: string): AccessRequest[] {
   const item = existing.find((request) => request.id === id);
   if (!item || item.status !== 'submitted') throw new Error('Заявка уже изменена. Обновите список.');
-  const context = accountContext(actor);
-  if (
-    action === 'cancelled'
-      ? actor !== item.profile_id
-      : !context.canReview || context.productId !== item.product_id || actor === item.profile_id
-  )
-    throw new Error('Это действие недоступно для текущего профиля.');
-  if (action === 'rejected' && note.trim().length < 5) throw new Error('Укажите причину отказа (не менее 5 символов).');
-  if (note.length > 2000) throw new Error('Комментарий слишком длинный.');
+  if (actor !== item.profile_id) throw new Error('Это действие недоступно для текущего профиля.');
   return existing.map((request) =>
-    request.id === id
-      ? { ...request, status: action, decision_by: actor, decision_note: note.trim(), decided_at: now }
-      : request,
+    request.id === id ? { ...request, status: 'cancelled', decision_by: actor, decided_at: now } : request,
   );
 }
 export function visibleRequests(requests: AccessRequest[], actor: AccountId): AccessRequest[] {
-  const context = accountContext(actor);
-  return requests.filter((request) =>
-    context.canReview ? request.product_id === context.productId : request.profile_id === actor,
-  );
+  return requests.filter((request) => request.profile_id === actor);
 }
 export function saveRequests(storage: Pick<Storage, 'setItem'>, requests: AccessRequest[]) {
   storage.setItem(storageKey, JSON.stringify(requests));

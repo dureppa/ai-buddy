@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { ChatPage, ChatWindow, type ChatEntry, type DraftState } from './Chat';
 import { tasksFor } from './checklist';
-import { navigation, services } from './data';
+import { navigation } from './data';
 import { isStaffId, products, profiles, teamColleagues, teamContacts, type ProfileId } from './demo-accounts';
 import {
   answerBuddy,
@@ -18,7 +18,6 @@ import {
   confirmAccess,
   progressFor,
   readWorkspace,
-  serviceStatus,
   toggleTask,
   type AccessDraft,
   type BuddyGrowthStage,
@@ -27,27 +26,17 @@ import {
 import { demoSessionKey, endDemoSession, readDemoSession, startDemoSession } from './demo-session';
 import { saveServiceQuestion } from './service-questions';
 import { materialsForTask } from './staff-data';
-import { AccessBadge, Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
+import { Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
 import { Avatar, Buddy, EmptyState, Icon, Modal, Toast, type Mood } from './ui';
 
 import { corporateLinks } from './corporate-links';
-import { jiraService, confluenceService, toolProfileUrl } from './tool-links';
+import { toolProfileUrl, toolsFor } from './tool-links';
 import { CorporateDirectory, accessPortalUrl } from './CorporateDirectory';
 import { ProductGuide } from './ProductGuide';
 
 const searchItems = [
   { label: 'Путеводитель по продукту', detail: 'Раздел', to: '/product-guide' },
   ...navigation.map((item) => ({ label: item.label, detail: 'Раздел', to: item.path })),
-  ...services.map((service) => ({
-    label: service.title,
-    detail: service.category,
-    to:
-      service.id === 'jira'
-        ? jiraService.url
-        : service.id === 'confluence'
-          ? confluenceService.url
-          : '/tools?service=' + service.id,
-  })),
   ...corporateLinks.map((service) => ({ label: service.title, detail: 'Внешний сервис', to: service.url })),
 ];
 
@@ -99,12 +88,15 @@ function SearchDialog({ profileId, onClose }: { profileId: ProfileId; onClose: (
   const [query, setQuery] = useState('');
   const results = [
     ...searchItems.map((item) =>
-      item.to === jiraService.url || item.to === confluenceService.url
-        ? { ...item, to: toolProfileUrl(item.to, profileId) }
-        : item.to === corporateLinks.find((service) => service.id === 'access')?.url
-          ? { ...item, to: accessPortalUrl(item.to, profileId) }
-          : item,
+      item.to === corporateLinks.find((service) => service.id === 'access')?.url
+        ? { ...item, to: accessPortalUrl(item.to, profileId) }
+        : item,
     ),
+    ...toolsFor(profileId).map((tool) => ({
+      label: tool.title,
+      detail: tool.category,
+      to: 'url' in tool ? toolProfileUrl(tool.url, profileId) : '/tools?service=' + tool.id,
+    })),
     ...tasksFor(profileId).map((task) => ({
       label: task.title,
       detail: 'Задача',
@@ -437,12 +429,13 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   const person =
     location.pathname === '/team' &&
     [...teamContacts(profileId), ...teamColleagues(profileId)].find((item) => item.id === params.get('person'));
-  const service = location.pathname === '/tools' && services.find((item) => item.id === params.get('service'));
+  const service =
+    location.pathname === '/tools' && toolsFor(profileId).find((item) => item.id === params.get('service'));
   const linkedDetail: Detail | null = task
     ? { kind: 'task', item: task }
     : person
       ? { kind: 'person', item: person }
-      : service
+      : service && 'instruction' in service
         ? { kind: 'service', item: service }
         : null;
   const shownDetail = detail ?? linkedDetail;
@@ -629,10 +622,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                   }
                 />
                 <Route path="/team" element={<Team profileId={profileId} onOpen={setDetail} />} />
-                <Route
-                  path="/tools"
-                  element={<Tools profileId={profileId} workspace={workspace} onOpen={setDetail} />}
-                />
+                <Route path="/tools" element={<Tools profileId={profileId} onOpen={setDetail} />} />
                 <Route
                   path="/resources"
                   element={<Resources directory={<CorporateDirectory profileId={profileId} />} />}
@@ -796,33 +786,8 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           )}
           {shownDetail.kind === 'service' && (
             <div className="detail-content">
-              <AccessBadge status={serviceStatus(workspace, shownDetail.item)} />
               <p>{shownDetail.item.description}</p>
               <p>{shownDetail.item.instruction}</p>
-              <dl>
-                <dt>Ответственный</dt>
-                <dd>{shownDetail.item.owner}</dd>
-              </dl>
-              {serviceStatus(workspace, shownDetail.item) === 'requestable' && (
-                <button
-                  type="button"
-                  className="button button--dark"
-                  onClick={() => {
-                    closeDetail();
-                    navigate('/chat');
-                    send('Запроси доступ к ' + shownDetail.item.title);
-                  }}
-                >
-                  Подготовить заявку <Icon name="arrow" size={17} />
-                </button>
-              )}
-              {workspace.requests
-                .filter((request) => request.serviceId === shownDetail.item.id)
-                .map((request) => (
-                  <p className="detail-request" key={request.id}>
-                    Заявка <strong>{request.number}</strong>
-                  </p>
-                ))}
             </div>
           )}
           {shownDetail.kind === 'event' && (

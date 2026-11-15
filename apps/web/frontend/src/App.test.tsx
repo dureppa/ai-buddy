@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from './App';
 import { apiFetch, askBackend, readBackendConversation } from './backend';
+import { readWorkspace } from './demo';
 import { demoSessionKey } from './demo-session';
 import { readServiceQuestions } from './service-questions';
 import { saveMaterial } from './staff-data';
@@ -359,18 +360,15 @@ it('shows fetched HR events alongside a partial outage without hiding the calend
   expect(container.querySelector('[aria-label="Расписание на неделю"]')).not.toBeNull();
 });
 
-it('opens a service request from the tools page and hands it to the chat', async () => {
-  localStorage.setItem(demoSessionKey, 'olga');
-  vi.mocked(askBackend).mockResolvedValueOnce({ kind: 'answer', text: 'Уточни причину запроса.' });
+it('opens the role-specific Grafana guide without a request action', async () => {
+  localStorage.setItem(demoSessionKey, 'sasha');
   await mount('/tools?service=grafana');
-  await click(await button('Подготовить заявку'));
-  expect(askBackend).toHaveBeenCalledWith('olga', 'Запроси доступ к Grafana');
-  const message = await waitForElement(() =>
-    [...container.querySelectorAll<HTMLElement>('[role="log"] .bubble')].find((item) =>
-      item.textContent?.includes('Уточни причину запроса.'),
-    ),
+  const guide = await waitForElement(() =>
+    container.querySelector<HTMLDialogElement>('dialog[open][aria-label="Grafana"]'),
   );
-  expect(message.textContent).toContain('Уточни причину запроса.');
+  expect(guide.textContent).toContain('Графики ошибок и задержек сервиса бронирования.');
+  expect(guide.textContent).not.toContain('Подготовить заявку');
+  expect(askBackend).not.toHaveBeenCalled();
 });
 
 it('shows history-loading errors and keeps the chat available for a new question', async () => {
@@ -416,7 +414,7 @@ it('records the midpoint survey and removes the reminder on the next visit', asy
   expect(container.textContent).not.toContain('Пройти опрос');
 });
 
-it('persists a confirmed demo request and shows its number on the tools page', async () => {
+it('persists a confirmed demo request and leaves the tools page free of requests', async () => {
   backendMode.enabled = false;
   localStorage.setItem(demoSessionKey, 'olga');
   await mount('/chat');
@@ -427,11 +425,12 @@ it('persists a confirmed demo request and shows its number on the tools page', a
     const log = container.querySelector<HTMLElement>('[role="log"]');
     return log?.textContent?.includes('Д-001') ? log : null;
   });
+  expect(readWorkspace(localStorage, 'olga').requests).toMatchObject([{ number: 'Д-001', serviceId: 'grafana' }]);
   await click(await waitForElement(() => container.querySelector<HTMLAnchorElement>('a[href="/tools"]')));
   await waitForElement(() =>
-    [...container.querySelectorAll('h2')].find((heading) => heading.textContent === 'Мои заявки'),
+    [...container.querySelectorAll('h1')].find((heading) => heading.textContent === 'Инструменты'),
   );
-  expect(container.textContent).toContain('Д-001');
+  expect(container.querySelector('main')?.textContent).not.toMatch(/Мои заявки|Д-001/);
   expect(askBackend).not.toHaveBeenCalled();
 });
 

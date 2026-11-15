@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { stages, tasksFor, type StageId, type Task } from './checklist';
-import { services } from './data';
 import {
   products,
   profiles,
@@ -119,13 +118,8 @@ export type ChecklistEntry = Task & { custom: boolean; materialIds: string[]; do
 
 export function internOverview(storage: StoragePort, staff: StaffId) {
   const id = products[staffAccounts[staff].productId].intern;
-  const workspace = readWorkspace(storage, id);
   const checklist = checklistFor(storage, id);
   const completed = checklist.filter((item) => item.done).length;
-  const requests = workspace.requests.flatMap((request) => {
-    const service = services.find((item) => item.id === request.serviceId);
-    return service ? [{ ...request, title: service.title, owner: service.owner }] : [];
-  });
   return [
     {
       id,
@@ -137,7 +131,6 @@ export function internOverview(storage: StoragePort, staff: StaffId) {
       },
       checklist,
       next: checklist.find((item) => !item.done),
-      requests,
     },
   ];
 }

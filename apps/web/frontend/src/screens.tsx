@@ -3,30 +3,23 @@ import type { HrToday } from './hr-schedule';
 import { eventDay, eventMonth, eventTime, upcomingEvents, type ScheduleEvent } from './schedule';
 import { useId, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { services, stages, type Person, type ProfileId, type Service, type Task, profiles } from './data';
+import { stages, type Person, type ProfileId, type Task, profiles } from './data';
 import { homeSectionTitle, homeTasks } from './checklist';
 import { checklistFor } from './staff-data';
 import { products, teamColleagues, teamContacts } from './demo-accounts';
-import { buddyGrowthStage, progressFor, serviceStatus, type BuddyGrowthStage, type Workspace } from './demo';
+import { buddyGrowthStage, progressFor, type BuddyGrowthStage, type Workspace } from './demo';
 import { Avatar, Buddy, EmptyState, Icon, PageIntro } from './ui';
-import { jiraService, confluenceService, toolProfileUrl } from './tool-links';
+import { toolProfileUrl, toolsFor, type ToolGuide } from './tool-links';
 import { InternMaterials } from './StaffWorkspace';
 
 export type Detail =
   | { kind: 'task'; item: Task }
   | { kind: 'person'; item: Person }
-  | { kind: 'service'; item: Service }
+  | { kind: 'service'; item: ToolGuide }
   | { kind: 'event'; item: Pick<ScheduleEvent, 'title' | 'description'> & { detail: string } }
   | { kind: 'settings' }
   | { kind: 'survey' };
 export type OpenDetail = (detail: Detail) => void;
-
-const accessLabels = {
-  available: 'Доступ предоставлен',
-  requestable: 'Требуется запрос',
-  submitted: 'Ожидает подтверждения',
-  setup: 'Не настроено',
-} as const;
 
 type ChecklistProps = {
   profileId: ProfileId;
@@ -142,7 +135,7 @@ const quickActions = [
   { title: 'Спросить Buddy', detail: 'Подскажу, с чего начать', icon: 'message', to: '/chat', tone: 'lilac' },
   { title: 'Мой план адаптации', detail: 'Этапы, задачи и прогресс', icon: 'map', to: '/onboarding', tone: 'mint' },
   { title: 'Познакомиться с командой', detail: 'Твои коллеги и наставник', icon: 'users', to: '/team', tone: 'blue' },
-  { title: 'Рабочие инструменты', detail: 'Сервисы и заявки', icon: 'key', to: '/tools', tone: 'pink' },
+  { title: 'Рабочие инструменты', detail: 'Сервисы команды', icon: 'key', to: '/tools', tone: 'pink' },
 ] as const;
 
 export function Dashboard({
@@ -486,126 +479,47 @@ export function Team({ profileId, onOpen }: { profileId: ProfileId; onOpen: Open
   );
 }
 
-export function AccessBadge({ status }: { status: keyof typeof accessLabels }) {
-  return (
-    <span className={'status status--' + status}>
-      <span />
-      {accessLabels[status]}
-    </span>
-  );
-}
-
-export function ToolLinkCard({ profileId, tool = 'jira' }: { profileId: ProfileId; tool?: 'jira' | 'confluence' }) {
-  const service = tool === 'jira' ? jiraService : confluenceService;
-  return (
-    <a
-      className="panel service-card"
-      href={toolProfileUrl(service.url, profileId)}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <span className="tile-top">
-        <span className="service-symbol tone-blue">{tool === 'jira' ? 'J' : 'C'}</span>
-        <Icon name="diagonal" size={19} />
-      </span>
-      <span className="tile-category">{tool === 'jira' ? 'Задачи' : 'Документация'}</span>
-      <strong>{service.title}</strong>
-      <span className="tile-description">{service.description}</span>
-      <span>{tool === 'jira' ? 'Открыть доски' : 'Открыть базу знаний'}</span>
-    </a>
-  );
-}
-
-export function Tools({
-  profileId,
-  workspace,
-  onOpen,
-}: {
-  profileId: ProfileId;
-  workspace: Workspace;
-  onOpen: OpenDetail;
-}) {
-  const [filter, setFilter] = useState<'all' | keyof typeof accessLabels>('all');
-  const visible = services.filter((service) =>
-    service.id === 'jira' || service.id === 'confluence'
-      ? filter === 'all'
-      : filter === 'all' || serviceStatus(workspace, service) === filter,
-  );
+export function Tools({ profileId, onOpen }: { profileId: ProfileId; onOpen: OpenDetail }) {
   return (
     <>
-      <PageIntro
-        title="Инструменты и доступы"
-        text="Рабочие сервисы, инструкции и статусы твоих заявок."
-        tone="blue"
-        icon="key"
-      />
-      <div className="filter-row" aria-label="Фильтр доступов">
-        <button type="button" className="filter" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
-          Все сервисы
-        </button>
-        <button
-          type="button"
-          className="filter"
-          aria-pressed={filter === 'available'}
-          onClick={() => setFilter('available')}
-        >
-          Есть доступ
-        </button>
-        <button
-          type="button"
-          className="filter"
-          aria-pressed={filter === 'requestable'}
-          onClick={() => setFilter('requestable')}
-        >
-          Нужен запрос
-        </button>
-        <button
-          type="button"
-          className="filter"
-          aria-pressed={filter === 'submitted'}
-          onClick={() => setFilter('submitted')}
-        >
-          Ожидают подтверждения
-        </button>
-      </div>
+      <PageIntro title="Инструменты" text="Рабочие сервисы для твоих задач и команды." tone="blue" icon="grid" />
       <div className="tile-grid">
-        {visible.map((service) =>
-          service.id === 'jira' || service.id === 'confluence' ? (
-            <ToolLinkCard key={service.id} profileId={profileId} tool={service.id} />
+        {toolsFor(profileId).map((tool) => {
+          const isLink = 'url' in tool;
+          const content = (
+            <>
+              <span className="tile-top">
+                <span className={'service-symbol tone-' + tool.tone}>{tool.symbol}</span>
+                <Icon name={isLink ? 'diagonal' : 'arrow'} size={19} />
+              </span>
+              <span className="tile-category">{tool.category}</span>
+              <strong>{tool.title}</strong>
+              <span className="tile-description">{tool.description}</span>
+              <span>{isLink ? tool.action : 'Открыть инструкцию'}</span>
+            </>
+          );
+          return isLink ? (
+            <a
+              className="panel service-card"
+              key={tool.id}
+              href={toolProfileUrl(tool.url, profileId)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {content}
+            </a>
           ) : (
             <button
-              type="button"
               className="panel service-card"
-              key={service.id}
-              onClick={() => onOpen({ kind: 'service', item: service })}
+              key={tool.id}
+              type="button"
+              onClick={() => onOpen({ kind: 'service', item: tool })}
             >
-              <span className="tile-top">
-                <span className={'service-symbol tone-' + service.tone}>{service.symbol}</span>
-                <Icon name="diagonal" size={19} />
-              </span>
-              <span className="tile-category">{service.category}</span>
-              <strong>{service.title}</strong>
-              <span className="tile-description">{service.description}</span>
-              <AccessBadge status={serviceStatus(workspace, service)} />
+              {content}
             </button>
-          ),
-        )}
+          );
+        })}
       </div>
-      {!visible.length && (
-        <EmptyState title="В этом списке пока пусто" text="Заявка появится здесь после подтверждения в чате Buddy." />
-      )}
-      {workspace.requests.length > 0 && (
-        <section className="panel requests-panel">
-          <SectionTitle title="Мои заявки" />
-          {workspace.requests.map((request) => (
-            <div className="request-row" key={request.id}>
-              <span>{services.find((service) => service.id === request.serviceId)?.title || request.serviceId}</span>
-              <strong>{request.number}</strong>
-              <AccessBadge status={request.status} />
-            </div>
-          ))}
-        </section>
-      )}
     </>
   );
 }

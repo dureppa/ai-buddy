@@ -91,12 +91,12 @@ export function accessClient(account: AccountId) {
           })
         ).json(),
       ),
-    decide: async (id: string, action: string, note: string) =>
+    cancel: async (id: string) =>
       requestSchema.parse(
         await (
           await portalFetch(account, '/api/v1/portal-access/requests/' + encodeURIComponent(id) + '/decision', {
             method: 'POST',
-            body: JSON.stringify({ action, note }),
+            body: JSON.stringify({ action: 'cancelled', note: '' }),
           })
         ).json(),
       ),

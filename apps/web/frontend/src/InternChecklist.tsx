@@ -4,13 +4,10 @@ import type { ChecklistEntry, ChecklistItemInput, ShownMaterial } from './staff-
 import { Icon, Modal } from './ui';
 import { TaskMaterialPicker } from './TaskMaterialPicker';
 
-type ChecklistRequest = { id: string; title: string; number: string; owner: string };
-
 export function InternChecklist({
   name,
   stageLabel,
   items,
-  requests,
   materials,
   canEdit,
   onBack,
@@ -21,7 +18,6 @@ export function InternChecklist({
   name: string;
   stageLabel: string;
   items: ChecklistEntry[];
-  requests: ChecklistRequest[];
   materials: ShownMaterial[];
   canEdit: boolean;
   onBack: () => void;
@@ -130,31 +126,6 @@ export function InternChecklist({
               );
             })}
           </ol>
-          <section className="panel stage">
-            <div className="stage__header tone-blue">
-              <span className="icon-tile">
-                <Icon name="file" size={18} />
-              </span>
-              <div>
-                <h2>Заявки на согласовании</h2>
-                <small>{requests.length ? requests.length + ' активных' : 'Активных заявок нет'}</small>
-              </div>
-            </div>
-            {requests.length > 0 && (
-              <ul className="task-list">
-                {requests.map((request) => (
-                  <li key={request.id} className="task-row">
-                    <span className="task-text checklist-request">
-                      <strong>
-                        {request.title} · {request.number}
-                      </strong>
-                      <small>На согласовании · владелец сервиса {request.owner}</small>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
         </>
       )}
       {adding && (
