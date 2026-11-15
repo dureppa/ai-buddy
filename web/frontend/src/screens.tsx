@@ -57,7 +57,7 @@ function TaskRow({
   return (
     <li className={'task-row' + (checked ? ' task-row--done' : '') + (survey ? ' task-row--survey' : '')}>
       {survey ? (
-        <span className="task-check" aria-hidden="true">
+        <span className="task-check" data-checked={checked} aria-hidden="true">
           <Icon name="check" size={15} />
         </span>
       ) : (
