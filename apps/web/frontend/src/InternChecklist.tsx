@@ -32,7 +32,6 @@ export function InternChecklist({
   const [openId, setOpenId] = useState<string>();
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const task = items.find((item) => item.id === openId);
 
   return (
@@ -49,21 +48,16 @@ export function InternChecklist({
           materials={materials}
           canEdit={canEdit}
           error={error}
-          notice={notice}
           onSave={(materialIds) => {
-            setNotice('');
             onSaveMaterials(task.id, materialIds);
             setError('');
-            setNotice('Материалы пункта сохранены.');
           }}
           onRemove={() => {
             try {
               onRemove(task.id);
               setOpenId(undefined);
               setError('');
-              setNotice('Пункт удалён.');
             } catch (problem) {
-              setNotice('');
               setError(problem instanceof Error ? problem.message : 'Не удалось удалить пункт.');
             }
           }}
@@ -81,11 +75,6 @@ export function InternChecklist({
               </button>
             )}
           </div>
-          {notice && (
-            <p className="staff-message" role="status">
-              {notice}
-            </p>
-          )}
           <ol className="stage-list">
             {stages.map((stage) => {
               const stageItems = items.filter((item) => item.stage === stage.id);
@@ -116,7 +105,6 @@ export function InternChecklist({
                           className="task-link"
                           onClick={() => {
                             setError('');
-                            setNotice('');
                             setOpenId(item.id);
                           }}
                         >
@@ -178,7 +166,6 @@ export function InternChecklist({
                 onAdd(input);
                 setAdding(false);
                 setError('');
-                setNotice('Пункт добавлен в чек-лист.');
               } catch (problem) {
                 setError(problem instanceof Error ? problem.message : 'Не удалось добавить пункт.');
               }
@@ -239,7 +226,6 @@ function TaskMaterials({
   materials,
   canEdit,
   error,
-  notice,
   onSave,
   onRemove,
 }: {
@@ -247,7 +233,6 @@ function TaskMaterials({
   materials: ShownMaterial[];
   canEdit: boolean;
   error: string;
-  notice: string;
   onSave: (materialIds: string[]) => void;
   onRemove: () => void;
 }) {
@@ -264,11 +249,6 @@ function TaskMaterials({
         <h2>{task.title}</h2>
       </div>
       <p className="staff-muted">{task.summary}</p>
-      {notice && (
-        <p className="staff-message" role="status">
-          {notice}
-        </p>
-      )}
       {error && (
         <p className="staff-error" role="alert">
           {error}

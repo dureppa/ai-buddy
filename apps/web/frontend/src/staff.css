@@ -362,20 +362,12 @@
 .staff-form > .button {
   justify-self: start;
 }
-.staff-error,
-.staff-message {
+.staff-error {
   padding: 9px 12px;
   border-radius: 9px;
   font-size: 13px;
-}
-.staff-error {
   background: #ffebed;
   color: #7a263b;
-}
-.staff-message {
-  margin-bottom: 12px;
-  background: var(--mint);
-  color: var(--dark);
 }
 .intern-materials {
   margin: 18px 0 25px;

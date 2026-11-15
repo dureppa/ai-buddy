@@ -61,6 +61,7 @@ afterEach(async () => {
   await act(async () => root.unmount());
   client.clear();
   container.remove();
+  vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -89,6 +90,12 @@ async function click(target: HTMLElement | null | undefined) {
   await act(async () => target?.click());
 }
 
+function expectSuccessToast(message: string) {
+  const toast = container.querySelector('.toast--top-right[role="status"]');
+  expect(toast?.textContent).toBe(message);
+  expect(toast?.parentElement).toBe(container.querySelector('.staff-workspace'));
+}
+
 function picker() {
   const dialog = container.querySelector<HTMLDialogElement>('dialog[open]');
   if (!dialog) throw new Error('Панель выбора материалов закрыта');
@@ -106,12 +113,16 @@ async function openStaffTask() {
   await click(currentTaskButton());
 }
 
-async function openInternTask() {
+async function openInternAdaptation() {
   await mount('olga', '/onboarding');
   await vi.waitFor(async () => {
     await act(async () => {});
     expect(currentTaskButton()).toBeTruthy();
   });
+}
+
+async function openInternTask() {
+  await openInternAdaptation();
   await click(currentTaskButton());
 }
 
@@ -162,7 +173,7 @@ it.each(['mentor', 'manager'] as const)(
     await click(button('Сохранить материалы', picker()));
 
     expect(container.querySelector('dialog')).toBeNull();
-    expect(container.querySelector('[role="status"]')?.textContent).toContain('Материалы пункта сохранены.');
+    expectSuccessToast('Материалы пункта сохранены.');
     expect(button('Изменить материалы')).toBeTruthy();
 
     await openInternTask();
@@ -223,9 +234,84 @@ it('keeps the draft available when writing the new selection fails', async () =>
 
   await click(button('Сохранить материалы', picker()));
   expect(picker().querySelector('[role="alert"]')?.textContent).toBe('Хранилище недоступно.');
+  expect(container.querySelector('.toast')).toBeNull();
   expect(button('Выбрано (1)', picker())).toBeTruthy();
   expect(materialsForTask(localStorage, 'olga', task.id)).toEqual([]);
   await click(button('Сохранить материалы', picker()));
   expect(container.querySelector('dialog')).toBeNull();
   expect(materialsForTask(localStorage, 'olga', task.id).map(({ title }) => title)).toEqual([chat]);
+});
+
+it('switches adaptation tabs by keyboard and keeps the task filter selected', async () => {
+  await openInternAdaptation();
+  const tasks = button('Задачи');
+  const materials = button('Материалы');
+  expect(tasks?.getAttribute('aria-selected')).toBe('true');
+  expect(materials?.tabIndex).toBe(-1);
+  await click(button('Осталось'));
+
+  await act(async () => tasks?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })));
+  expect(document.activeElement).toBe(materials);
+  expect(materials?.getAttribute('aria-selected')).toBe('true');
+  const openPanel = container.querySelector('[role="tabpanel"]:not([hidden])');
+  expect(openPanel?.id).toBe(materials?.getAttribute('aria-controls'));
+  expect(openPanel?.textContent).toContain(chat);
+  expect(button('Осталось')).toBeUndefined();
+
+  await act(async () => materials?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })));
+  expect(document.activeElement).toBe(tasks);
+  expect(tasks?.tabIndex).toBe(0);
+  expect(button('Осталось')?.getAttribute('aria-pressed')).toBe('true');
+  await click(materials);
+  expect(materials?.getAttribute('aria-selected')).toBe('true');
+});
+
+it('shows checklist confirmations across navigation and expires the newest toast', async () => {
+  await mount('mentor', '/staff');
+  await click(container.querySelector('.staff-intern'));
+  vi.useFakeTimers();
+  await click(button('Добавить пункт'));
+
+  const form = picker().querySelector('form')!;
+  form.querySelector<HTMLInputElement>('input[name="title"]')!.value = 'Проверить отчёт';
+  form.querySelector<HTMLTextAreaElement>('textarea[name="summary"]')!.value = 'Учебное задание';
+  await click(button('Добавить в чек-лист', form));
+  expectSuccessToast('Пункт добавлен в чек-лист.');
+  await act(async () => vi.advanceTimersByTimeAsync(2500));
+
+  await click(
+    [...container.querySelectorAll<HTMLButtonElement>('.task-link')].find(
+      (candidate) => candidate.querySelector('strong')?.textContent === 'Проверить отчёт',
+    ),
+  );
+  expectSuccessToast('Пункт добавлен в чек-лист.');
+  await click(button('Удалить пункт'));
+  expectSuccessToast('Пункт удалён.');
+  await act(async () => vi.advanceTimersByTimeAsync(1000));
+  expectSuccessToast('Пункт удалён.');
+  await act(async () => vi.advanceTimersByTimeAsync(2500));
+  expect(container.querySelector('.toast')).toBeNull();
+});
+
+it('shows publication, edit and removal confirmations in the same corner', async () => {
+  await mount('manager', '/staff');
+  await click(button('Материалы для стажёров'));
+  await click(button('Добавить материал'));
+
+  const form = picker().querySelector('form')!;
+  form.querySelector<HTMLInputElement>('input[name="title"]')!.value = 'Гайд по аналитике';
+  form.querySelector<HTMLTextAreaElement>('textarea[name="description"]')!.value = 'Учебный материал';
+  form.querySelector<HTMLInputElement>('input[name="url"]')!.value = 'https://example.com/guide';
+  await click(button('Опубликовать материал', form));
+  expectSuccessToast('Материал опубликован.');
+
+  await click(button('Редактировать'));
+  const edit = picker().querySelector('form')!;
+  edit.querySelector<HTMLInputElement>('input[name="title"]')!.value = 'Новый гайд по аналитике';
+  await click(button('Сохранить изменения', edit));
+  expectSuccessToast('Изменения сохранены.');
+
+  await click(button('Удалить'));
+  await click(button('Удалить публикацию', picker()));
+  expectSuccessToast('Материал удалён.');
 });

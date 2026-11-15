@@ -28,7 +28,7 @@ import { demoSessionKey, endDemoSession, readDemoSession, startDemoSession } fro
 import { saveServiceQuestion } from './service-questions';
 import { materialsForTask } from './staff-data';
 import { AccessBadge, Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
-import { Avatar, Buddy, EmptyState, Icon, Modal, type Mood } from './ui';
+import { Avatar, Buddy, EmptyState, Icon, Modal, Toast, type Mood } from './ui';
 
 import { corporateLinks } from './corporate-links';
 import { jiraService, confluenceService, toolProfileUrl } from './tool-links';
@@ -51,7 +51,7 @@ const searchItems = [
   ...corporateLinks.map((service) => ({ label: service.title, detail: 'Внешний сервис', to: service.url })),
 ];
 
-type Toast = { message: string; tone: 'success' | 'error' };
+type ToastState = { message: string; tone: 'success' | 'error' };
 const delay = (milliseconds: number) => new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
 
 function TaskMaterialList({ profileId, taskId }: { profileId: ProfileId; taskId: string }) {
@@ -295,7 +295,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   const [navOpen, setNavOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [questionOpen, setQuestionOpen] = useState(false);
-  const [toast, setToast] = useState<Toast | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
   const [mood, setMood] = useState<Mood>('happy');
   const [grownStage, setGrownStage] = useState<BuddyGrowthStage | null>(null);
   const [entries, setEntries] = useState<ChatEntry[]>([]);
@@ -861,12 +861,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
             ))}
         </Modal>
       )}
-      {toast && (
-        <div className={'toast toast--' + toast.tone} role={toast.tone === 'error' ? 'alert' : 'status'}>
-          <Icon name={toast.tone === 'success' ? 'check' : 'info'} size={20} />
-          {toast.message}
-        </div>
-      )}
+      {toast && <Toast message={toast.message} tone={toast.tone} />}
     </div>
   );
 }
