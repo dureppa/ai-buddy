@@ -165,10 +165,11 @@ def test_deepseek_report_metadata_no_ollama_or_holdout(
     )
     original = load_split
 
-    def development_only() -> Any:
+    def development_only(version: str) -> Any:
+        assert version == "agent-v1"
         return original()
 
-    monkeypatch.setattr(harness, "load_split", development_only)
+    monkeypatch.setattr(harness, "load_development", development_only)
 
     def execute(case: Any, settings: Settings) -> dict[str, Any]:
         assert (

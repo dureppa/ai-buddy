@@ -9,7 +9,8 @@ from typing import Annotated, Any, Literal
 from pydantic import Field
 
 from ai_buddy.schemas import ClosedModel
-from evals.golden import load_split, resolve_pointer
+from evals.development import dataset_directory, load_development
+from evals.golden import resolve_pointer
 
 
 class FactRating(ClosedModel):
@@ -54,7 +55,17 @@ class Review(ClosedModel):
 def reviewed_report(report: dict[str, Any], review: Review) -> dict[str, Any]:
     if report["split"] != "development" or not report["complete"]:
         raise ValueError("only complete development reports may be reviewed")
-    cases = {c.case_id: c for c in load_split().cases}
+    version = report.get("dataset_version", "agent-v1")
+    dataset = load_development(version)
+    if (
+        "dataset_version" in report
+        and report.get("dataset_sha256")
+        != hashlib.sha256(
+            (dataset_directory(version) / "development.json").read_bytes()
+        ).hexdigest()
+    ):
+        raise ValueError("review dataset hash/version mismatch")
+    cases = {c.case_id: c for c in dataset.cases}
     if len({c.case_id for c in review.cases}) != len(review.cases):
         raise ValueError("duplicate review")
     runs = {r["case_id"]: r for r in report["runs"]}

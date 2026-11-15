@@ -129,6 +129,12 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 
 ## Общий development eval
 
+Текущий [agent-v2 development](../../services/ai-python/evals/agent-v2/README.md)
+содержит 25 синтетических кейсов. --dataset agent-v2 выбирает его явно; agent-v1
+и holdout сохранены. Fixture не является подключением функции на сайте: для
+пользовательского пути нужны работающие Go API, MCP и соответствующий UI.
+
+
 Harness поддерживает текущие DeepSeek/Ollama transport и 11 MCP tools с
 синтетическими ответами; [runbook](../../services/ai-python/evals/HARNESS.md).
 Живой CLI требует --allow-live-llm. Контрактные тесты новых tools не расширяют
