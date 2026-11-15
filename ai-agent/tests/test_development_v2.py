@@ -44,6 +44,7 @@ def test_arbitrary_versions_do_not_read_files(
     "mutation",
     [
         "hash",
+        "catalog",
         "schema",
         "split",
         "version",
@@ -62,7 +63,9 @@ def test_current_dataset_rejects_drift_and_invalid_expectations(
     data = json.loads((original / "development.json").read_text())
     manifest = json.loads((original / "manifest.json").read_text())
     c = data["cases"][0]
-    if mutation == "schema":
+    if mutation == "catalog":
+        manifest["tool_names"].append("unknown")
+    elif mutation == "schema":
         manifest["tool_schema_sha256"] = "wrong"
     elif mutation == "split":
         data["split"] = "holdout"

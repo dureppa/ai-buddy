@@ -52,6 +52,11 @@ def load_development(version: DatasetVersion = "agent-v1") -> Split:
         or manifest["label_status"] != dataset.label_status
     ):
         raise ValueError("development manifest/schema drift")
+    declared = set(manifest["tool_names"])
+    if declared != {
+        f.tool for c in dataset.cases for f in c.fixtures
+    } or not declared <= set(CONTRACTS):
+        raise ValueError("development tool catalog mismatch")
     if len(dataset.cases) != manifest["case_count"] or len(
         {case.case_id for case in dataset.cases}
     ) != len(dataset.cases):
