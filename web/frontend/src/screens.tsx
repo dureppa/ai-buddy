@@ -10,6 +10,7 @@ import { products, teamColleagues, teamContacts } from './demo-accounts';
 import { buddyGrowthStage, progressFor, type BuddyGrowthStage, type Workspace } from './demo';
 import { Avatar, Buddy, EmptyState, Icon, PageIntro } from './ui';
 import { toolProfileUrl, toolsFor, type ToolGuide } from './tool-links';
+import { surveyForTask, type SurveyStage } from './surveys';
 import { InternMaterials } from './StaffWorkspace';
 
 export type Detail =
@@ -18,7 +19,7 @@ export type Detail =
   | { kind: 'service'; item: ToolGuide }
   | { kind: 'event'; item: Pick<ScheduleEvent, 'title' | 'description'> & { detail: string } }
   | { kind: 'settings' }
-  | { kind: 'survey' };
+  | { kind: 'survey'; stage: SurveyStage };
 export type OpenDetail = (detail: Detail) => void;
 
 type ChecklistProps = {
@@ -51,20 +52,31 @@ function TaskRow({
   onAsk?: (task: Task) => void;
   asking?: boolean;
 }) {
+  const survey = surveyForTask(task.id);
   return (
-    <li className={'task-row' + (checked ? ' task-row--done' : '')}>
+    <li className={'task-row' + (checked ? ' task-row--done' : '') + (survey ? ' task-row--survey' : '')}>
+      {survey ? (
+        <span className="task-check" aria-hidden="true">
+          <Icon name="check" size={15} />
+        </span>
+      ) : (
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={checked}
+          aria-label={task.title}
+          className="task-check"
+          disabled={saving}
+          onClick={() => onToggle(task.id)}
+        >
+          <Icon name="check" size={15} />
+        </button>
+      )}
       <button
         type="button"
-        role="checkbox"
-        aria-checked={checked}
-        aria-label={task.title}
-        className="task-check"
-        disabled={saving}
-        onClick={() => onToggle(task.id)}
+        className="task-link"
+        onClick={() => onOpen(survey ? { kind: 'survey', stage: survey } : { kind: 'task', item: task })}
       >
-        <Icon name="check" size={15} />
-      </button>
-      <button type="button" className="task-link" onClick={() => onOpen({ kind: 'task', item: task })}>
         <span className={'icon-tile tone-' + task.tone}>
           <Icon name={task.icon} size={19} />
         </span>
@@ -77,7 +89,7 @@ function TaskRow({
         </span>
         <Icon name="chevron" size={16} />
       </button>
-      {onAsk && (
+      {!survey && onAsk && (
         <button type="button" className="button button--white task-ask" disabled={asking} onClick={() => onAsk(task)}>
           Разобрать пункт
         </button>
