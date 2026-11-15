@@ -31,6 +31,7 @@ SERVICES = (
     "hr-documents",
     "hr-events",
     "jira",
+    "confluence",
 )
 COMPOSE = [
     "docker",

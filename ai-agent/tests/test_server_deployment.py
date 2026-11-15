@@ -10,9 +10,10 @@ def test_server_overlay_exposes_only_browser_sites() -> None:
         (root / "docker-compose.server.yml").read_text().replace("!override", "")
     )
     published = {
-        name for name, service in overlay["services"].items() if "ports" in service
+        name for name, service in overlay["services"].items() if service.get("ports")
     }
     assert published == {"web", "hr-web"}
+    assert overlay["services"]["confluence"]["ports"] == []
     assert all(
         service["restart"] == "unless-stopped"
         for name, service in overlay["services"].items()

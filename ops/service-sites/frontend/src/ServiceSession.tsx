@@ -1,5 +1,5 @@
-import { useSyncExternalStore, type ReactNode } from 'react';
-import type { ProfileId } from '../../../../web/frontend/src/data';
+import { useState, useSyncExternalStore, type ReactNode } from 'react';
+import { isProfileId, profiles, type ProfileId } from '../../../../web/frontend/src/demo-accounts';
 import { readServiceProfile } from '../../../../web/frontend/src/service-session';
 
 function subscribe(onChange: () => void) {
@@ -11,12 +11,36 @@ function subscribe(onChange: () => void) {
   };
 }
 
-export function ServiceSession({ children }: { children: (profile: ProfileId) => ReactNode }) {
-  const profile = useSyncExternalStore(
+export function ServiceSession({
+  children,
+  standalone = false,
+}: {
+  children: (profile: ProfileId) => ReactNode;
+  standalone?: boolean;
+}) {
+  const [selected, setSelected] = useState<ProfileId>();
+  const buddyProfile = useSyncExternalStore(
     subscribe,
     () => readServiceProfile(document.cookie),
     () => null,
   );
+  const profile = buddyProfile ?? selected;
+  if (!profile && standalone) {
+    return (
+      <main className="hr-page">
+        <section className="panel hr-panel">
+          <h1>Войти в Confluence</h1>
+          {Object.keys(profiles)
+            .filter(isProfileId)
+            .map((id) => (
+              <button key={id} type="button" onClick={() => setSelected(id)}>
+                {profiles[id].fullName}
+              </button>
+            ))}
+        </section>
+      </main>
+    );
+  }
   if (!profile)
     return (
       <main className="hr-page">

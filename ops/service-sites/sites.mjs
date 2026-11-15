@@ -35,7 +35,7 @@ for (const [id, port] of Object.entries(ports)) {
       strictPort: true,
       fs: { allow: [root, repo] },
       proxy: {
-        '/api': 'http://127.0.0.1:8080',
+        '/api': id === 'confluence' ? 'http://127.0.0.1:8191' : 'http://127.0.0.1:8080',
         '/jira-api': { target: 'http://127.0.0.1:8189', rewrite: (path) => path.replace(/^\/jira-api/, '/api') },
         ...(hrApiPorts[id]
           ? {
