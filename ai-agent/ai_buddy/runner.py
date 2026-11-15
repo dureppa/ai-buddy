@@ -59,7 +59,7 @@ class DirectRunner:
             raise
         finally:
             self.logger.info(
-                "ai_turn request_id=%s provider=%s model=%s prompt=onboarding-v4-focused model_calls=%d tool_calls=%d guard_count=%d outcome=%s seconds=%.3f tools=%s guards=%s",
+                "ai_turn request_id=%s provider=%s model=%s prompt=onboarding-v5.1-clarify model_calls=%d tool_calls=%d guard_count=%d outcome=%s seconds=%.3f tools=%s guards=%s",
                 context.request_id,
                 self.settings.llm_provider,
                 self.settings.model_name,

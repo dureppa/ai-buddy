@@ -99,7 +99,7 @@ class Case(ClosedModel):
 
 
 class Split(ClosedModel):
-    dataset_version: Literal["agent-v1"]
+    dataset_version: Literal["agent-v1", "agent-v2"]
     split: Literal["development", "holdout"]
     label_status: Literal["draft_requires_team_review"]
     cases: list[Case]

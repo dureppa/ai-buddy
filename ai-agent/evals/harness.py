@@ -31,7 +31,12 @@ from ai_buddy.mcp_identity import Principal
 from ai_buddy.mcp_server import create_mcp_app
 from ai_buddy.ollama import MAX_BYTES
 from ai_buddy.schemas import FailureEnvelope, TurnRequest
-from evals.golden import DIRECTORY, Case, load_split, tool_schema_hash
+from evals.development import (
+    DatasetVersion,
+    dataset_directory,
+    load_development,
+)
+from evals.golden import Case, tool_schema_hash
 
 REPORTS = Path(__file__).with_name("reports")
 
@@ -114,13 +119,26 @@ def structural_checks(
         == (exp.error_code.value if exp.error_code else None),
         "allowed_tools": not (set(counts) - {c.tool for c in exp.calls}),
         "call_counts": all(
-            c.min_calls <= counts[c.tool] <= c.max_calls for c in exp.calls
+            c.min_calls
+            <= sum(
+                call["name"] == c.tool
+                and (
+                    c.argument_match == "semantic_query"
+                    or call["arguments"]
+                    == CONTRACTS[c.tool]
+                    .arguments.model_validate(c.arguments_example)
+                    .model_dump()
+                )
+                for call in calls
+            )
+            <= c.max_calls
+            for c in exp.calls
         ),
         "argument_shapes": True,
         "exact_arguments": True,
     }
     for call in calls:
-        rule = next((r for r in exp.calls if r.tool == call["name"]), None)
+        rules = [r for r in exp.calls if r.tool == call["name"]]
         contract = CONTRACTS.get(call["name"])
         try:
             if contract is None:
@@ -129,11 +147,16 @@ def structural_checks(
         except ValueError:
             checks["argument_shapes"] = False
         if (
-            rule
-            and rule.argument_match == "exact"
+            rules
             and contract is not None
-            and call["arguments"]
-            != contract.arguments.model_validate(rule.arguments_example).model_dump()
+            and not any(
+                rule.argument_match == "semantic_query"
+                or call["arguments"]
+                == contract.arguments.model_validate(
+                    rule.arguments_example
+                ).model_dump()
+                for rule in rules
+            )
         ):
             checks["exact_arguments"] = False
     ordered = [call["name"] for call in calls if call["name"] in exp.ordered_tools]
@@ -401,11 +424,12 @@ def main(
     *,
     provider: Literal["ollama", "deepseek"] = "ollama",
     allow_live_llm: bool = False,
+    dataset_version: DatasetVersion = "agent-v1",
 ) -> Path:
     if not allow_live_llm:
         raise ValueError("--allow-live-llm is required; no requests sent")
     # No split option: holdout is intentionally inaccessible to this command.
-    dataset = load_split()
+    dataset = load_development(dataset_version)
     for case in dataset.cases:
         if case.readiness == "python_ready":
             FixtureBackend(case)
@@ -449,7 +473,8 @@ def main(
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     path = output_dir / f"development-{stamp}.json"
     report: dict[str, Any] = {
-        "version": "agent-harness-v3",
+        "version": "agent-harness-v4",
+        "dataset_version": dataset_version,
         "created_at": stamp,
         "git_commit": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], text=True
@@ -460,7 +485,7 @@ def main(
             for p in d.glob("*.py")
         },
         "dataset_sha256": hashlib.sha256(
-            (DIRECTORY / "development.json").read_bytes()
+            (dataset_directory(dataset_version) / "development.json").read_bytes()
         ).hexdigest(),
         "tool_schema_sha256": digest(
             {
@@ -471,7 +496,11 @@ def main(
                 for n, c in CONTRACTS.items()
             }
         ),
-        "dataset_tool_schema_sha256": tool_schema_hash(),
+        "dataset_tool_schema_sha256": tool_schema_hash()
+        if dataset_version == "agent-v1"
+        else json.loads(
+            (dataset_directory(dataset_version) / "manifest.json").read_text()
+        )["tool_schema_sha256"],
         "runtime_tools": sorted(CONTRACTS),
         "provider": provider,
         "endpoint": settings.ollama_url
@@ -484,7 +513,7 @@ def main(
         "model": selected,
         "split": "development",
         "label_status": dataset.label_status,
-        "scope": "Current Flask/provider/SDK MCP; synthetic principal and fixtures only. Legacy agent-v1 is not full coverage of current actions/stages. No real Go/corporate writes, no semantic approval.",
+        "scope": "Current Flask/provider/SDK MCP; selected development only, synthetic principal/fixtures. No real Go/corporate writes or full stage acceptance; human approval pending.",
         "turn_timeout": settings.turn_timeout,
         "model_timeout": settings.model_timeout,
         "holdout_executed": False,
@@ -534,6 +563,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--provider", choices=["ollama", "deepseek"], default="ollama")
     parser.add_argument("--model")
+    parser.add_argument(
+        "--dataset", choices=["agent-v1", "agent-v2"], default="agent-v1"
+    )
     parser.add_argument("--allow-live-llm", action="store_true")
     parser.add_argument("--output-dir", type=Path, default=REPORTS)
     args = parser.parse_args()
@@ -547,4 +579,5 @@ if __name__ == "__main__":
         args.output_dir,
         provider=args.provider,
         allow_live_llm=args.allow_live_llm,
+        dataset_version=args.dataset,
     )
