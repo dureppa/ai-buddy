@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { apiFetch } from '../../../../apps/web/frontend/src/backend';
 import { type ProfileId } from '../../../../apps/web/frontend/src/data';
-import { Icon, PageIntro } from '../../../../apps/web/frontend/src/ui';
+import { PageIntro } from '../../../../apps/web/frontend/src/ui';
 import { eventsService } from './meta';
 
 const itemsSchema = z.array(
@@ -59,12 +59,6 @@ export function EventsApi({ profileId }: { profileId: ProfileId }) {
 
   return (
     <main className="hr-page">
-      <a className="text-link hr-back" href={import.meta.env.VITE_AI_BUDDY_URL || 'http://localhost:5173/resources'}>
-        <span className="hr-back-icon">
-          <Icon name="arrow" size={16} />
-        </span>
-        Вернуться в AI Buddy
-      </a>
       <PageIntro
         title={eventsService.title}
         text={eventsService.description}

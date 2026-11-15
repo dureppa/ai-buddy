@@ -1,7 +1,7 @@
 import type { ProfileId } from '../../../../apps/web/frontend/src/data';
 import { useState } from 'react';
 import { backendEnabled } from '../../../../apps/web/frontend/src/backend';
-import { Icon, PageIntro } from '../../../../apps/web/frontend/src/ui';
+import { PageIntro } from '../../../../apps/web/frontend/src/ui';
 import { readGuide, toggleGuide } from '../../../../apps/corporate-services/frontend/src/guide-store';
 import type { GuideItem } from '../../../../apps/corporate-services/frontend/src/guide-catalog';
 import { DocumentsApi } from './api';
@@ -17,12 +17,6 @@ function DocumentsLocal() {
 
   return (
     <main className="hr-page">
-      <a className="text-link hr-back" href={import.meta.env.VITE_AI_BUDDY_URL || 'http://localhost:5173/resources'}>
-        <span className="hr-back-icon">
-          <Icon name="arrow" size={16} />
-        </span>
-        Вернуться в AI Buddy
-      </a>
       <PageIntro
         title={documentsService.title}
         text={documentsService.description}
