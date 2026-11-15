@@ -109,34 +109,23 @@ func TestRequestsLifecycleAndIsolation(t *testing.T) {
 	require.ErrorIs(t, err, buddy.ErrForbidden)
 	_, err = s.Submit(ctx, "manager", validInput(), "other", "portal")
 	require.ErrorIs(t, err, buddy.ErrForbidden)
-	for _, account := range []string{"olga", "manager"} {
-		records, err := s.List(ctx, account)
-		require.NoError(t, err)
-		require.Len(t, records, 1)
-	}
-	for _, account := range []string{"sasha", "travel-manager", "mentor"} {
+	records, err := s.List(ctx, "olga")
+	require.NoError(t, err)
+	require.Len(t, records, 1)
+	for _, account := range []string{"manager", "sasha", "travel-manager", "mentor"} {
 		records, err := s.List(ctx, account)
 		require.NoError(t, err)
 		require.Empty(t, records)
 	}
-	_, err = s.Decide(ctx, "travel-manager", request.ID, "approved", "")
-	require.ErrorIs(t, err, buddy.ErrNotFound)
-	_, err = s.Decide(ctx, "olga", request.ID, "approved", "")
-	require.ErrorIs(t, err, buddy.ErrForbidden)
-	_, err = s.Decide(ctx, "manager", request.ID, "rejected", "")
-	require.ErrorIs(t, err, buddy.ErrInvalidInput)
-	approved, err := s.Decide(ctx, "manager", request.ID, "approved", "Рабочая задача согласована")
-	require.NoError(t, err)
-	require.Equal(t, "approved", approved.Status)
-	require.NotNil(t, approved.Decided)
-	_, err = s.Decide(ctx, "manager", request.ID, "rejected", "Другая причина")
-	require.ErrorIs(t, err, ErrConflict)
-	// A different permission/resource stays independent; no approval is treated as granted.
+	for _, action := range []string{"approved", "rejected"} {
+		_, err = s.Decide(ctx, "manager", request.ID, action, "Рабочий комментарий")
+		require.ErrorIs(t, err, buddy.ErrInvalidInput)
+	}
 	repository := Input{TemplateID: "repository", Version: 1, System: "Git", Key: "travel/service-api", Justification: "Исправить проверку дат бронирования", Permission: "write", Days: 30, Fields: map[string]string{"repository_url": "https://git.example/travel/service-api"}}
 	r, err := s.Submit(ctx, "sasha", repository, "repo-1", "portal")
 	require.NoError(t, err)
 	_, err = s.Decide(ctx, "travel-manager", r.ID, "cancelled", "")
-	require.ErrorIs(t, err, buddy.ErrForbidden)
+	require.ErrorIs(t, err, buddy.ErrNotFound)
 	cancelled, err := s.Decide(ctx, "sasha", r.ID, "cancelled", "")
 	require.NoError(t, err)
 	require.Equal(t, "cancelled", cancelled.Status)
@@ -235,14 +224,16 @@ func TestPortalHTTP(t *testing.T) {
 	w := call("POST", "/api/v1/portal-access/requests", "olga", string(raw), 200)
 	var request Request
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &request))
-	call("GET", "/api/v1/portal-access/requests", "manager", "", 200)
-	call("POST", "/api/v1/portal-access/requests/"+request.ID+"/decision", "manager", `{"action":"rejected","note":"Уточните основание"}`, 200)
-	call("POST", "/api/v1/portal-access/requests/"+request.ID+"/decision", "manager", `{"action":"approved","note":""}`, 409)
+	require.JSONEq(t, "[]", call("GET", "/api/v1/portal-access/requests", "manager", "", 200).Body.String())
+	call("POST", "/api/v1/portal-access/requests/"+request.ID+"/decision", "manager", `{"action":"rejected","note":"Уточните основание"}`, 400)
+	call("POST", "/api/v1/portal-access/requests/"+request.ID+"/decision", "manager", `{"action":"approved","note":""}`, 400)
+	call("POST", "/api/v1/portal-access/requests/"+request.ID+"/decision", "olga", `{"action":"cancelled","note":""}`, 200)
+	call("POST", "/api/v1/portal-access/requests/"+request.ID+"/decision", "olga", `{"action":"cancelled","note":""}`, 409)
 	s.DB.Close()
 	call("GET", "/api/v1/portal-access/catalog", "olga", "", 503)
 }
 
-func TestDecisionIsNotLimitedToLatestHundredRequests(t *testing.T) {
+func TestCancellationIsNotLimitedToLatestHundredRequests(t *testing.T) {
 	s := testService(t)
 	ctx := context.Background()
 	first, err := s.Submit(ctx, "olga", validInput(), "old-request", "portal")
@@ -251,12 +242,12 @@ func TestDecisionIsNotLimitedToLatestHundredRequests(t *testing.T) {
  SELECT profile_id,product_id,template_id,resource_key,permission,'history-'||n,input,'history-'||n,origin,created_at+interval '1 second'
  FROM portal_access_requests CROSS JOIN generate_series(1,101) n WHERE id::text=$1`, first.ID)
 	require.NoError(t, err)
-	recent, err := s.List(ctx, "manager")
+	recent, err := s.List(ctx, "olga")
 	require.NoError(t, err)
 	require.Len(t, recent, 100)
-	result, err := s.Decide(ctx, "manager", first.ID, "approved", "")
+	result, err := s.Decide(ctx, "olga", first.ID, "cancelled", "")
 	require.NoError(t, err)
-	require.Equal(t, "approved", result.Status)
+	require.Equal(t, "cancelled", result.Status)
 }
 
 func TestMigrationRollbackPreservesProfilesAndCanBeReapplied(t *testing.T) {
@@ -271,5 +262,27 @@ func TestMigrationRollbackPreservesProfilesAndCanBeReapplied(t *testing.T) {
 	require.NoError(t, s.EnsureSeed(ctx))
 	identity, err := s.Identity(ctx, "manager")
 	require.NoError(t, err)
-	require.True(t, identity.Manager)
+	require.False(t, identity.CanReview)
+}
+
+func TestAccessStatusMigrationUpdatesExistingGuides(t *testing.T) {
+	s := testService(t)
+	ctx := context.Background()
+	for _, direction := range []string{"down", "up"} {
+		raw, err := os.ReadFile("../../migrations/10_access_status_guides." + direction + ".sql")
+		require.NoError(t, err)
+		_, err = s.DB.Exec(ctx, string(raw))
+		require.NoError(t, err)
+	}
+	guide, err := s.Page(ctx, "olga", "guide-status")
+	require.NoError(t, err)
+	require.Equal(t, "Статусы заявок", guide.Title)
+	require.Contains(t, guide.Body, "## Отправлено")
+	require.NotContains(t, guide.Body, "может принять решение")
+	require.Equal(t, 3, guide.Version)
+
+	team, err := s.Page(ctx, "olga", "team-delivery")
+	require.NoError(t, err)
+	require.NotContains(t, team.Body, "приоритеты и доступы")
+	require.Equal(t, 3, team.Version)
 }

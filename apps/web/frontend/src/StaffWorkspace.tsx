@@ -521,7 +521,6 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
               name={current.profile.fullName}
               stageLabel={current.profile.stage + ' · ' + current.progress.percent + '% выполнено'}
               items={current.checklist}
-              requests={current.requests}
               materials={internMaterials(localStorage, current.id)}
               canEdit
               onBack={() => setSelected(undefined)}
@@ -540,7 +539,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
             />
           ) : (
             <div className="staff-grid">
-              {interns.map(({ id: internId, profile, progress, next, requests }) => (
+              {interns.map(({ id: internId, profile, progress, next }) => (
                 <button
                   key={internId}
                   type="button"
@@ -565,7 +564,6 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
                   </span>
                   <progress value={progress.percent} max="100" aria-label={'Прогресс · ' + profile.fullName} />
                   <span className="staff-intern__next">{next ? 'Дальше · ' + next.title : 'Чек-лист выполнен'}</span>
-                  {requests.length > 0 && <span className="status">На согласовании · {requests.length}</span>}
                 </button>
               ))}
             </div>

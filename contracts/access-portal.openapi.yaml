@@ -59,7 +59,7 @@
         {
           'get':
             {
-              'summary': 'Own requests; product requests for a reviewer (latest 100)',
+              'summary': 'Own requests (latest 100)',
               'responses':
                 {
                   '200':
@@ -164,7 +164,7 @@
         {
           'post':
             {
-              'summary': 'Reviewer approves/rejects; owner cancels a submitted request',
+              'summary': 'Owner cancels a submitted request',
               'responses':
                 {
                   '200':
@@ -217,12 +217,12 @@
                               'required': ['action', 'note'],
                               'properties':
                                 {
-                                  'action': { 'type': 'string', 'enum': ['approved', 'rejected', 'cancelled'] },
+                                  'action': { 'type': 'string', 'enum': ['cancelled'] },
                                   'note':
                                     {
                                       'type': 'string',
                                       'maxLength': 2000,
-                                      'description': 'At least 5 characters for rejection',
+                                      'description': 'Optional cancellation comment (empty string allowed)',
                                     },
                                 },
                             },
@@ -389,7 +389,7 @@
                           'job_role': { 'type': 'string' },
                           'name': { 'type': 'string' },
                           'team_name': { 'type': 'string' },
-                          'can_review': { 'type': 'boolean' },
+                          'can_review': { 'type': 'boolean', 'enum': [false] },
                         },
                     },
                   'templates': { 'type': 'array', 'items': { '$ref': '#/components/schemas/Template' } },
