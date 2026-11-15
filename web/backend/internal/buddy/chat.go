@@ -12,6 +12,7 @@ type ChatMessage struct {
 	ConversationID string
 	PageURL        string
 	Selection      *Selection
+	Checklist      *ChecklistContext
 }
 
 type assistant interface {
@@ -38,6 +39,9 @@ func (s *Chat) Ask(ctx context.Context, profileID string, msg ChatMessage) (Chat
 		return ChatReply{}, ErrInvalidInput
 	}
 	if msg.Selection != nil && (msg.PageURL == "" || utf8.RuneCountInString(msg.Text) > 700 || len(msg.PageURL) > 2048 || !msg.Selection.Valid()) {
+		return ChatReply{}, ErrInvalidInput
+	}
+	if msg.Checklist != nil && (msg.PageURL == "" || len(msg.PageURL) > 2048 || !msg.Checklist.Valid()) {
 		return ChatReply{}, ErrInvalidInput
 	}
 	if msg.PageURL != "" {

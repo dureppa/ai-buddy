@@ -1,5 +1,6 @@
+import { chatPageContext } from './current-task';
 import { checklistQuestion } from './checklist-question';
-import type { ExplanationContext } from './selection-context';
+import type { ChatPageContext, ExplanationContext } from './selection-context';
 import { BuddyPanel } from './BuddyPanel';
 import { ServiceActionPage } from './ServiceActionPage';
 import { OnboardingTaskPage } from './OnboardingTaskPage';
@@ -43,7 +44,7 @@ import {
 } from './demo';
 import { demoSessionKey, endDemoSession, readDemoSession, startDemoSession } from './demo-session';
 import { saveServiceQuestion } from './service-questions';
-import { materialsForTask } from './staff-data';
+import { checklistFor, materialsForTask } from './staff-data';
 import { Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
 import { Avatar, Buddy, EmptyState, Icon, Modal, Toast, type Mood } from './ui';
 
@@ -416,7 +417,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   const taskQuestionSending = useRef(false);
   const [activeTask, setActiveTask] = useState<ExplanationContext>();
   const [chatError, setChatError] = useState<string>();
-  const lastQuestion = useRef<{ text: string; context?: ExplanationContext } | undefined>(undefined);
+  const lastQuestion = useRef<{ text: string; context?: ChatPageContext } | undefined>(undefined);
   const answerMutation = useMutation({
     onMutate: (question) => {
       lastQuestion.current = question;
@@ -425,9 +426,9 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     onSettled: () => {
       taskQuestionSending.current = false;
     },
-    mutationFn: async ({ text, context }: { text: string; context?: ExplanationContext }) => {
+    mutationFn: async ({ text, context }: { text: string; context?: ChatPageContext }) => {
       if (backendEnabled) return context ? askBackend(profileId, text, context) : askBackend(profileId, text);
-      if (context?.selection.resource?.kind === 'task')
+      if (context?.selection?.resource?.kind === 'task')
         return {
           kind: 'answer' as const,
           text: 'Учебное объяснение пункта: ' + context.selection.resource.label,
@@ -489,11 +490,22 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   }, [toast]);
 
   function send(text: string) {
-    if (!text.trim() || answerMutation.isPending || historyLoading || taskQuestionSending.current) return;
+    if (
+      !text.trim() ||
+      answerMutation.isPending ||
+      historyLoading ||
+      !workspace ||
+      surveysQuery.isPending ||
+      taskQuestionSending.current
+    )
+      return;
     taskQuestionSending.current = true;
     const id = nextEntry.current++;
     setEntries((items) => [...items, { id, from: 'user', text: text.trim() }]);
-    answerMutation.mutate({ text: text.trim(), ...(activeTask ? { context: activeTask } : {}) });
+    answerMutation.mutate({
+      text: text.trim(),
+      context: chatPageContext(profileId, workspace, activeTask, !surveysQuery.isError),
+    });
   }
 
   function openBuddy() {
@@ -503,11 +515,19 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   function retryQuestion() {
     if (!lastQuestion.current || answerMutation.isPending || taskQuestionSending.current) return;
     taskQuestionSending.current = true;
-    setActiveTask(lastQuestion.current.context);
+    const context = lastQuestion.current.context;
+    setActiveTask(context?.selection ? { url: context.url, selection: context.selection } : undefined);
     answerMutation.mutate(lastQuestion.current);
   }
   function askTask(item: Task) {
-    if (answerMutation.isPending || historyLoading || taskQuestionSending.current) return;
+    if (
+      answerMutation.isPending ||
+      historyLoading ||
+      !workspace ||
+      surveysQuery.isPending ||
+      taskQuestionSending.current
+    )
+      return;
     taskQuestionSending.current = true;
     const question = checklistQuestion(profileId, item);
     const id = nextEntry.current++;
@@ -515,12 +535,16 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     setActiveTask(question.context);
     closeDetail();
     setDrawerOpen(true);
-    answerMutation.mutate(question);
+    answerMutation.mutate({
+      ...question,
+      context: chatPageContext(profileId, workspace, question.context, !surveysQuery.isError),
+    });
   }
 
   const params = new URLSearchParams(location.search);
   const task =
-    location.pathname === '/onboarding' && tasksFor(profileId).find((item) => item.id === params.get('task'));
+    location.pathname === '/onboarding' &&
+    checklistFor(localStorage, profileId).find((item) => item.id === params.get('task'));
   const person =
     location.pathname === '/team' &&
     [...teamContacts(profileId), ...teamColleagues(profileId)].find((item) => item.id === params.get('person'));
@@ -551,7 +575,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     profileId,
     name: profile.name,
     entries,
-    waiting: answerMutation.isPending || historyLoading,
+    waiting: answerMutation.isPending || historyLoading || !workspace || surveysQuery.isPending,
     confirming: confirmation.isPending,
     drafts,
     onSend: send,
@@ -574,7 +598,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
 
   const checklist = workspace && {
     workspace,
-    asking: answerMutation.isPending || historyLoading,
+    asking: answerMutation.isPending || historyLoading || surveysQuery.isPending,
     onAsk: askTask,
     onOpenBuddy: openBuddy,
     onOpen: (next: Detail) => {
@@ -841,7 +865,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                 <button
                   type="button"
                   className="button button--white"
-                  disabled={answerMutation.isPending || historyLoading}
+                  disabled={answerMutation.isPending || historyLoading || surveysQuery.isPending}
                   onClick={() => askTask(shownDetail.item)}
                 >
                   Разобрать пункт

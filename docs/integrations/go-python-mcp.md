@@ -266,3 +266,13 @@ Go-поиск учитывает русские словоформы и отде
 Пустой запрос по-прежнему ошибка, запрос только со стоп-словами даёт пустую выдачу.
 
 SDD 010 расширяет необязательный page_context полем selection: ограниченный текст/заголовок и тип ресурса. Go передаёт его в TurnRequest и сохраняет цитату в истории. Подписанный read_only распространяется на MCP delegation/resource, исключает и запрещает оба write tools. URL очищается как прежде; page/issue/record id передаётся отдельно. См. [спецификацию](../specs/010-selection-explanation.md).
+
+## Текущий веб-план в запросе чата
+
+`page_context.checklist` передаётся Go → Flask вместе с url: status=in_progress
+требует task в существующей task-схеме; completed/unavailable не содержат task.
+Go и Python валидируют границы. Snapshot не меняет subject, делегацию или бизнес-данные.
+Для общего вопроса о следующем шаге Python использует этот текущий пункт, читает
+материалы и формирует ссылку `/onboarding?task=<id>`. Серверные инструменты
+get_task_context/get_task_evidence не вызываются с локальным id. Существующие клиенты
+без snapshot совместимы. [Сценарий](../specs/current-checklist-and-dialogue.md).

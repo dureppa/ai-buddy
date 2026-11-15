@@ -134,6 +134,9 @@ func (b *Bridge) Ask(ctx context.Context, profile string, msg buddy.ChatMessage)
 			if msg.Selection != nil {
 				page["selection"] = msg.Selection
 			}
+			if msg.Checklist != nil {
+				page["checklist"] = msg.Checklist
+			}
 			payload["page_context"] = page
 		}
 		var out struct {

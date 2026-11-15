@@ -10,8 +10,9 @@ type chatRequest struct {
 	Text           string `json:"text"`
 	ConversationID string `json:"conversation_id,omitempty"`
 	PageContext    struct {
-		URL       string           `json:"url"`
-		Selection *buddy.Selection `json:"selection,omitempty"`
+		URL       string                  `json:"url"`
+		Selection *buddy.Selection        `json:"selection,omitempty"`
+		Checklist *buddy.ChecklistContext `json:"checklist,omitempty"`
 	} `json:"page_context,omitempty"`
 }
 
@@ -27,6 +28,7 @@ func (a *API) handleAskBuddy(w http.ResponseWriter, r *http.Request) {
 		ConversationID: req.ConversationID,
 		PageURL:        req.PageContext.URL,
 		Selection:      req.PageContext.Selection,
+		Checklist:      req.PageContext.Checklist,
 	}
 
 	p, _ := profileFrom(r.Context())
