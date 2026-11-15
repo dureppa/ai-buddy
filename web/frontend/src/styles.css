@@ -227,8 +227,7 @@ svg {
   display: grid;
   gap: 4px;
 }
-.sidebar nav a,
-.settings-link {
+.sidebar nav a {
   border: 0;
   background: transparent;
   text-align: left;
@@ -245,8 +244,7 @@ svg {
     background-color var(--motion),
     transform var(--motion);
 }
-.sidebar nav a:hover,
-.settings-link:hover {
+.sidebar nav a:hover {
   background: var(--background);
   color: var(--ink);
 }
@@ -255,8 +253,7 @@ svg {
   background: #e5f9e1;
   font-weight: 760;
 }
-.sidebar nav a:active,
-.settings-link:active {
+.sidebar nav a:active {
   transform: scale(0.98);
 }
 .sidebar__bottom {
