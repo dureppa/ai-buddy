@@ -97,3 +97,9 @@ Confluence page_ids через PageContext.selection. Для task агент т�
 Codex-assisted 11/18. Это измерение того snapshot, не актуального runtime
 после исправлений диалога и чек-листа. Исходные JSON и SHA не менялись;
 новых LLM-запросов и holdout при переносе отчёта не выполнялось.
+
+Заявки на доступ используют `prepare_service_action(request_access)` и
+ручное подтверждение на сайте, как Jira. После ответа с параметрами агент
+заново читает каталог текущего профиля и использует точный `resource_key`;
+прямой submit в Go-контуре запрещён. Регрессионные тесты находятся в
+`tests/test_access_actions.py`; поведение описано в [SDD 007](../specs/007-agent-access-confluence.md).

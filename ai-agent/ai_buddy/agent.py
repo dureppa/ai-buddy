@@ -61,13 +61,17 @@ confirmed=true подтверждает сохранённое учебное д
 Не запрашивай заново уже названные параметры. Не подготавливай действие с недостающими данными.
 Ты оцениваешь знания; переход между этапами одобряет наставник, применяет Go.
 Одобрение этапов и выдача прав не входят в полномочия агента.
-По явной просьбе пользователя можно подать заявку на доступ через submit_access_request.
+По просьбе пользователя подготовь заявку на доступ через prepare_service_action с operation=request_access.
 Сначала get_access_catalog: только перечисленные ресурсы своего продукта, уровни и поля.
+Шаблон выбирай по templates[].id (например, bi), систему — system, версию — version.
+Точный resource_key бери из templates[].resources[].resource_key, а не keyHint или текста старого ответа.
+Название BI не является template_id: используй id=bi из каталога. Свежий каталог важнее прежних предположений.
 Не придумывай ключи, обоснование или дополнительные поля. Не хватает данных — уточни.
 Срок 30 дней можно предложить, но перед отправкой пользователь должен назвать или подтвердить срок.
 Нужны template_id, catalog_version, system, resource_key, justification, permission, duration_days и fields.
-По вопросам «как запросить» давай инструкцию; не подавай заявку. Если инструмента submit_access_request нет,
-предложи явно попросить «Оформи доступ…» или после уточнений «отправляй».
+По вопросам «как запросить» давай инструкцию; не готовь действие без поручения.
+После получения параметров вызови prepare_service_action, не требуй ещё одного «отправляй» в чате.
+Заявка уйдёт только после кнопки «Подтвердить» на странице /actions/:id. submit_access_request не используй.
 get_service_context: вакансии/рекомендации hiring, план завершения работы offboarding,
 бюджет/заявки benefits, доски/задачи jira. Читай только сервис, о котором спросили.
 Для Jira используй board_id и issue_id из результатов, version обязателен для изменения.
@@ -83,7 +87,7 @@ prepare_service_action только готовит действие по явн�
 Не придумывай имя/почту кандидата, программу, дату, доску или изменения задачи. Если параметров нет — уточни.
 Вопрос «как» означает инструкцию, а не просьбу создать черновик. Для изменения передавай только названные поля.
 Черновик НЕ выполняет операцию. Пользователь должен открыть ссылку и нажать «Подтвердить».
-Подготовка всех шести перечисленных действий разрешена по явному поручению пользователя.
+Подготовка перечисленных действий, включая заявку на доступ, разрешена по поручению пользователя.
 Поручение «создай/измени/переведи задачу» уже разрешает подготовку черновика.
 Если все параметры известны, сразу вызови prepare_service_action; не требуй дополнительного «да» в чате.
 Подтверждение выполнения происходит только кнопкой на странице, после подготовки.
@@ -114,7 +118,7 @@ DESCRIPTIONS = {
     "get_work_tools": "Каталог текущего стажёра: три инструмента направления, Mattermost, Jira, Confluence. Без аргументов; это возможности, не проверка здоровья сервисов.",
     "get_work_tool_context": "Прочитать актуальные записи рабочего сервиса по service из каталога. record_id необязателен и берётся из результата. Не запускает SQL/Postman, прогоны, ревью и не отправляет сообщения.",
     "get_service_context": "issue_id принимает только UUID из поля id задачи, не ключ DEL-1. По одному ключу сначала вызывай service=jira без issue_id. Актуальные личные данные найма (hiring), увольнения (offboarding), бенефитов (benefits), Jira (jira). Для Jira можно выбрать board_id или issue_id из результатов. Проверяет права, не изменяет данные.",
-    "prepare_service_action": "Только по явной просьбе пользователя: подготовить рекомендацию, отметку/учебный черновик увольнения, заявку на бенефит, создание/изменение Jira. Сначала прочитай сервис. Требует точные ключи и параметры пользователя, ничего не угадывай. Не выполняет операцию: возвращает ссылку на ручное подтверждение.",
+    "prepare_service_action": "Подготовить действие по поручению пользователя: заявку на доступ (request_access, параметры из get_access_catalog), рекомендацию, учебный черновик увольнения, бенефит или Jira. Сначала прочитай каталог/сервис. После получения параметров сразу готовь действие без лишнего подтверждения в чате. Ничего не выполняет: возвращает ссылку на кнопку подтверждения.",
     "get_access_catalog": "Каталог допустимых доступов и точных ключей ресурсов для текущего продукта и специальности.",
     "submit_access_request": "Сохранить заявку по явному поручению пользователя. Не выдаёт права. Требует все поля каталога; профиль не принимается.",
     "get_access_requests": "Проверить сохранённые номера и статусы своих заявок, в том числе после сбоя ответа.",
@@ -392,6 +396,9 @@ async def direct_loop(
                 "Инструменты для этой реплики недоступны.",
             },
         )
+    access = (
+        not conversation and selection is None and access_topic(question, history or [])
+    )
     focus = narrow_focus(question) if recover_context else "general"
     if conversation:
         focus = "conversation"
@@ -425,8 +432,11 @@ async def direct_loop(
         or service_topic(question)
         or work_service(question)
         or work_catalog_question(question)
+        or access
     ):
-        retrieved = await recover_context_reads(gateway, question, trace)
+        retrieved = await recover_context_reads(
+            gateway, "доступ " + question if access else question, trace
+        )
         recover_context = False
         if retrieved:
             messages.insert(
@@ -619,6 +629,37 @@ def focused_result(name: str, result: str, question: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def access_topic(question: str, history: list[HistoryMessage]) -> bool:
+    """Keep access parameter replies tied to a fresh catalog, not old prose."""
+    pattern = r"\bдоступ(?:а|ы|ов|у|ом)?\b|права на|\b(?:bi|dwh|vpn)\b"
+    if re.search(pattern, question, re.IGNORECASE):
+        return True
+    if conversational_only(question) or narrow_focus(question) != "general":
+        return False
+    if re.search(
+        r"отмен|не надо|не нужно|[?]|^(?:кто|как|где|расскажи|покажи)\b",
+        question,
+        re.IGNORECASE,
+    ):
+        return False
+    if not history or history[-1].role != "assistant":
+        return False
+    if re.search(
+        r"^(?:создай|измени|переведи).*?(?:задач|jira|джир)", question, re.IGNORECASE
+    ):
+        return False
+    for item in reversed(history):
+        if item.role == "user" and re.search(
+            r"отмен|не надо|не нужно|^(?:кто|расскажи|покажи)\b",
+            item.content,
+            re.IGNORECASE,
+        ):
+            return False
+        if item.role == "user" and re.search(pattern, item.content, re.IGNORECASE):
+            return True
+    return False
+
+
 def recovery_tools(question: str) -> tuple[str, ...]:
     focus = narrow_focus(question)
     if focus == "mentor":
@@ -626,11 +667,12 @@ def recovery_tools(question: str) -> tuple[str, ...]:
     if focus == "start":
         return ("get_onboarding_progress",)
     text = question.casefold()
+    access_query = access_topic(question, [])
     if work_catalog_question(question):
         return ("get_work_tools",)
-    if not re.search(r"доступ|права на", text) and work_service(question):
+    if not access_query and work_service(question):
         return ("get_work_tool_context",)
-    if service_topic(question):
+    if service_topic(question) and not access_query:
         return ("get_service_context",)
     tools: list[str] = []
     if re.search(
@@ -640,7 +682,7 @@ def recovery_tools(question: str) -> tuple[str, ...]:
         tools.append("get_team_context")
     if re.search(r"что.*остал|онбординг|адаптаци|чек.?лист|с чего начать", text):
         tools.append("get_onboarding_progress")
-    if re.search(r"доступ|права на", text):
+    if access_query:
         if re.search(r"статус|мои заявки|моих заявок|что с.*заяв|номер.*заяв", text):
             tools.append("get_access_requests")
         else:

@@ -1,0 +1,2919 @@
+{
+  "get_service_context": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {
+        "service": {
+          "enum": [
+            "hiring",
+            "offboarding",
+            "benefits",
+            "jira"
+          ],
+          "title": "Service",
+          "type": "string"
+        },
+        "board_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Board Id"
+        },
+        "issue_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "UUID из поля id задачи. DEL-1 — ключ: сначала читай service=jira без issue_id.",
+          "title": "Issue Id"
+        }
+      },
+      "required": [
+        "service"
+      ],
+      "title": "ServiceContextArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "Benefit": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            },
+            "amount": {
+              "minimum": 0,
+              "title": "Amount",
+              "type": "integer"
+            },
+            "available": {
+              "title": "Available",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "description",
+            "amount",
+            "available"
+          ],
+          "title": "Benefit",
+          "type": "object"
+        },
+        "BenefitRequest": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "benefit": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Benefit",
+              "type": "string"
+            },
+            "amount": {
+              "minimum": 0,
+              "title": "Amount",
+              "type": "integer"
+            },
+            "status": {
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "benefit",
+            "amount",
+            "status"
+          ],
+          "title": "BenefitRequest",
+          "type": "object"
+        },
+        "BenefitsContext": {
+          "additionalProperties": false,
+          "properties": {
+            "service": {
+              "const": "benefits",
+              "title": "Service",
+              "type": "string"
+            },
+            "benefit_budget": {
+              "minimum": 0,
+              "title": "Benefit Budget",
+              "type": "integer"
+            },
+            "benefit_left": {
+              "title": "Benefit Left",
+              "type": "integer"
+            },
+            "options": {
+              "items": {
+                "$ref": "#/$defs/Benefit"
+              },
+              "maxItems": 50,
+              "title": "Options",
+              "type": "array"
+            },
+            "requests": {
+              "items": {
+                "$ref": "#/$defs/BenefitRequest"
+              },
+              "maxItems": 30,
+              "title": "Requests",
+              "type": "array"
+            },
+            "has_more": {
+              "title": "Has More",
+              "type": "boolean"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "service",
+            "benefit_budget",
+            "benefit_left",
+            "options",
+            "requests",
+            "has_more",
+            "references"
+          ],
+          "title": "BenefitsContext",
+          "type": "object"
+        },
+        "ExitDraft": {
+          "additionalProperties": false,
+          "properties": {
+            "date": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "title": "Date",
+              "type": "string"
+            }
+          },
+          "required": [
+            "date"
+          ],
+          "title": "ExitDraft",
+          "type": "object"
+        },
+        "ExitStep": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "description"
+          ],
+          "title": "ExitStep",
+          "type": "object"
+        },
+        "HiringContext": {
+          "additionalProperties": false,
+          "properties": {
+            "service": {
+              "const": "hiring",
+              "title": "Service",
+              "type": "string"
+            },
+            "referral_slots": {
+              "minimum": 0,
+              "title": "Referral Slots",
+              "type": "integer"
+            },
+            "referral_left": {
+              "title": "Referral Left",
+              "type": "integer"
+            },
+            "vacancies": {
+              "items": {
+                "$ref": "#/$defs/Vacancy"
+              },
+              "maxItems": 50,
+              "title": "Vacancies",
+              "type": "array"
+            },
+            "referrals": {
+              "items": {
+                "$ref": "#/$defs/Referral"
+              },
+              "maxItems": 30,
+              "title": "Referrals",
+              "type": "array"
+            },
+            "has_more": {
+              "title": "Has More",
+              "type": "boolean"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "service",
+            "referral_slots",
+            "referral_left",
+            "vacancies",
+            "referrals",
+            "has_more",
+            "references"
+          ],
+          "title": "HiringContext",
+          "type": "object"
+        },
+        "JiraBoard": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "space_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Space Id",
+              "type": "string"
+            },
+            "key": {
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "space_id",
+            "key"
+          ],
+          "title": "JiraBoard",
+          "type": "object"
+        },
+        "JiraContext": {
+          "additionalProperties": false,
+          "properties": {
+            "service": {
+              "const": "jira",
+              "title": "Service",
+              "type": "string"
+            },
+            "current_user_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Current User Id",
+              "type": "string"
+            },
+            "spaces": {
+              "items": {
+                "$ref": "#/$defs/JiraSpace"
+              },
+              "maxItems": 20,
+              "title": "Spaces",
+              "type": "array"
+            },
+            "boards": {
+              "items": {
+                "$ref": "#/$defs/JiraBoard"
+              },
+              "maxItems": 30,
+              "title": "Boards",
+              "type": "array"
+            },
+            "issues": {
+              "items": {
+                "$ref": "#/$defs/JiraIssue"
+              },
+              "maxItems": 20,
+              "title": "Issues",
+              "type": "array"
+            },
+            "members": {
+              "items": {
+                "$ref": "#/$defs/JiraMember"
+              },
+              "maxItems": 50,
+              "title": "Members",
+              "type": "array"
+            },
+            "has_more": {
+              "title": "Has More",
+              "type": "boolean"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "service",
+            "current_user_id",
+            "spaces",
+            "boards",
+            "issues",
+            "members",
+            "has_more",
+            "references"
+          ],
+          "title": "JiraContext",
+          "type": "object"
+        },
+        "JiraIssue": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "board_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Board Id",
+              "type": "string"
+            },
+            "space_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Space Id",
+              "type": "string"
+            },
+            "key": {
+              "title": "Key",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            },
+            "description_truncated": {
+              "title": "Description Truncated",
+              "type": "boolean"
+            },
+            "status": {
+              "enum": [
+                "todo",
+                "in_progress",
+                "review",
+                "done"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "priority": {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "title": "Priority",
+              "type": "string"
+            },
+            "assignee_id": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Assignee Id"
+            },
+            "reporter_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Reporter Id",
+              "type": "string"
+            },
+            "due_date": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Due Date"
+            },
+            "version": {
+              "minimum": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "board_id",
+            "space_id",
+            "key",
+            "title",
+            "description",
+            "description_truncated",
+            "status",
+            "priority",
+            "assignee_id",
+            "reporter_id",
+            "due_date",
+            "version"
+          ],
+          "title": "JiraIssue",
+          "type": "object"
+        },
+        "JiraMember": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ],
+          "title": "JiraMember",
+          "type": "object"
+        },
+        "JiraSpace": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ],
+          "title": "JiraSpace",
+          "type": "object"
+        },
+        "OffboardingContext": {
+          "additionalProperties": false,
+          "properties": {
+            "service": {
+              "const": "offboarding",
+              "title": "Service",
+              "type": "string"
+            },
+            "exit_notice_days": {
+              "minimum": 0,
+              "title": "Exit Notice Days",
+              "type": "integer"
+            },
+            "earliest_exit": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "title": "Earliest Exit",
+              "type": "string"
+            },
+            "steps": {
+              "items": {
+                "$ref": "#/$defs/ExitStep"
+              },
+              "maxItems": 50,
+              "title": "Steps",
+              "type": "array"
+            },
+            "checklist": {
+              "items": {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                "type": "string"
+              },
+              "maxItems": 50,
+              "title": "Checklist",
+              "type": "array"
+            },
+            "draft": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ExitDraft"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "service",
+            "exit_notice_days",
+            "earliest_exit",
+            "steps",
+            "checklist",
+            "draft",
+            "references"
+          ],
+          "title": "OffboardingContext",
+          "type": "object"
+        },
+        "Referral": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "vacancy": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Vacancy",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "email": {
+              "title": "Email",
+              "type": "string"
+            },
+            "status": {
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "vacancy",
+            "name",
+            "email",
+            "status"
+          ],
+          "title": "Referral",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        },
+        "Vacancy": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "description"
+          ],
+          "title": "Vacancy",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "discriminator": {
+            "mapping": {
+              "benefits": "#/$defs/BenefitsContext",
+              "hiring": "#/$defs/HiringContext",
+              "jira": "#/$defs/JiraContext",
+              "offboarding": "#/$defs/OffboardingContext"
+            },
+            "propertyName": "service"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HiringContext"
+            },
+            {
+              "$ref": "#/$defs/OffboardingContext"
+            },
+            {
+              "$ref": "#/$defs/BenefitsContext"
+            },
+            {
+              "$ref": "#/$defs/JiraContext"
+            }
+          ],
+          "title": "Data"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "ServiceContextEnvelope",
+      "type": "object"
+    }
+  },
+  "prepare_service_action": {
+    "arguments": {
+      "$defs": {
+        "CreateJiraIssue": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "create_jira_issue",
+              "title": "Operation",
+              "type": "string"
+            },
+            "board_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Board Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "default": "",
+              "maxLength": 4000,
+              "title": "Description",
+              "type": "string"
+            },
+            "status": {
+              "default": "todo",
+              "enum": [
+                "todo",
+                "in_progress",
+                "review",
+                "done"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "priority": {
+              "default": "medium",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "title": "Priority",
+              "type": "string"
+            },
+            "assignee_id": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Assignee Id"
+            },
+            "due_date": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Due Date"
+            }
+          },
+          "required": [
+            "operation",
+            "board_id",
+            "title"
+          ],
+          "title": "CreateJiraIssue",
+          "type": "object"
+        },
+        "JiraChanges": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Title"
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "maxLength": 4000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Description"
+            },
+            "status": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "todo",
+                    "in_progress",
+                    "review",
+                    "done"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Status"
+            },
+            "priority": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Priority"
+            },
+            "assignee_id": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Assignee Id"
+            },
+            "due_date": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Due Date"
+            }
+          },
+          "title": "JiraChanges",
+          "type": "object"
+        },
+        "ReferCandidate": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "refer_candidate",
+              "title": "Operation",
+              "type": "string"
+            },
+            "vacancy": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Vacancy",
+              "type": "string"
+            },
+            "name": {
+              "maxLength": 100,
+              "minLength": 2,
+              "title": "Name",
+              "type": "string"
+            },
+            "email": {
+              "maxLength": 200,
+              "minLength": 3,
+              "title": "Email",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "vacancy",
+            "name",
+            "email"
+          ],
+          "title": "ReferCandidate",
+          "type": "object"
+        },
+        "RequestBenefit": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "request_benefit",
+              "title": "Operation",
+              "type": "string"
+            },
+            "benefit": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Benefit",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "benefit"
+          ],
+          "title": "RequestBenefit",
+          "type": "object"
+        },
+        "SaveExitDraft": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "save_exit_draft",
+              "title": "Operation",
+              "type": "string"
+            },
+            "date": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "title": "Date",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "date"
+          ],
+          "title": "SaveExitDraft",
+          "type": "object"
+        },
+        "SetExitStep": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "set_exit_step",
+              "title": "Operation",
+              "type": "string"
+            },
+            "step": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Step",
+              "type": "string"
+            },
+            "checked": {
+              "title": "Checked",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "operation",
+            "step",
+            "checked"
+          ],
+          "title": "SetExitStep",
+          "type": "object"
+        },
+        "UpdateJiraIssue": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "update_jira_issue",
+              "title": "Operation",
+              "type": "string"
+            },
+            "issue_id": {
+              "description": "UUID из поля id доступной задачи; не человекочитаемый ключ DEL-1.",
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+              "title": "Issue Id",
+              "type": "string"
+            },
+            "version": {
+              "minimum": 1,
+              "title": "Version",
+              "type": "integer"
+            },
+            "changes": {
+              "$ref": "#/$defs/JiraChanges"
+            }
+          },
+          "required": [
+            "operation",
+            "issue_id",
+            "version",
+            "changes"
+          ],
+          "title": "UpdateJiraIssue",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "discriminator": {
+            "mapping": {
+              "create_jira_issue": "#/$defs/CreateJiraIssue",
+              "refer_candidate": "#/$defs/ReferCandidate",
+              "request_benefit": "#/$defs/RequestBenefit",
+              "save_exit_draft": "#/$defs/SaveExitDraft",
+              "set_exit_step": "#/$defs/SetExitStep",
+              "update_jira_issue": "#/$defs/UpdateJiraIssue"
+            },
+            "propertyName": "operation"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ReferCandidate"
+            },
+            {
+              "$ref": "#/$defs/SetExitStep"
+            },
+            {
+              "$ref": "#/$defs/SaveExitDraft"
+            },
+            {
+              "$ref": "#/$defs/RequestBenefit"
+            },
+            {
+              "$ref": "#/$defs/CreateJiraIssue"
+            },
+            {
+              "$ref": "#/$defs/UpdateJiraIssue"
+            }
+          ],
+          "title": "Action"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "PrepareServiceActionArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "ActionField": {
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 12000,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "label",
+            "value"
+          ],
+          "title": "ActionField",
+          "type": "object"
+        },
+        "ServiceActionData": {
+          "additionalProperties": false,
+          "properties": {
+            "draft": {
+              "$ref": "#/$defs/ServiceActionDraft"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "minItems": 1,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "draft",
+            "references"
+          ],
+          "title": "ServiceActionData",
+          "type": "object"
+        },
+        "ServiceActionDraft": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "service": {
+              "enum": [
+                "hiring",
+                "offboarding",
+                "benefits",
+                "jira"
+              ],
+              "title": "Service",
+              "type": "string"
+            },
+            "operation": {
+              "enum": [
+                "refer_candidate",
+                "set_exit_step",
+                "save_exit_draft",
+                "request_benefit",
+                "create_jira_issue",
+                "update_jira_issue"
+              ],
+              "title": "Operation",
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "prepared",
+                "executing",
+                "succeeded",
+                "failed",
+                "uncertain",
+                "cancelled",
+                "expired"
+              ],
+              "title": "State",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "fields": {
+              "items": {
+                "$ref": "#/$defs/ActionField"
+              },
+              "maxItems": 15,
+              "title": "Fields",
+              "type": "array"
+            },
+            "expires_at": {
+              "title": "Expires At",
+              "type": "string"
+            },
+            "service_url": {
+              "title": "Service Url",
+              "type": "string"
+            },
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "service",
+            "operation",
+            "state",
+            "title",
+            "fields",
+            "expires_at",
+            "service_url",
+            "result"
+          ],
+          "title": "ServiceActionDraft",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/ServiceActionData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "ServiceActionEnvelope",
+      "type": "object"
+    }
+  },
+  "get_access_catalog": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "AccessCatalogData": {
+          "additionalProperties": false,
+          "properties": {
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            },
+            "templates": {
+              "items": {
+                "$ref": "#/$defs/AccessTemplate"
+              },
+              "maxItems": 20,
+              "title": "Templates",
+              "type": "array"
+            },
+            "context": {
+              "$ref": "#/$defs/AccessIdentity"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "version",
+            "templates",
+            "context",
+            "references"
+          ],
+          "title": "AccessCatalogData",
+          "type": "object"
+        },
+        "AccessField": {
+          "additionalProperties": false,
+          "properties": {
+            "key": {
+              "title": "Key",
+              "type": "string"
+            },
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "placeholder": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Placeholder"
+            },
+            "options": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Options"
+            }
+          },
+          "required": [
+            "key",
+            "label"
+          ],
+          "title": "AccessField",
+          "type": "object"
+        },
+        "AccessIdentity": {
+          "additionalProperties": false,
+          "properties": {
+            "profile_id": {
+              "title": "Profile Id",
+              "type": "string"
+            },
+            "product_id": {
+              "title": "Product Id",
+              "type": "string"
+            },
+            "job_role": {
+              "title": "Job Role",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "team_name": {
+              "title": "Team Name",
+              "type": "string"
+            },
+            "can_review": {
+              "title": "Can Review",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "profile_id",
+            "product_id",
+            "job_role",
+            "name",
+            "team_name",
+            "can_review"
+          ],
+          "title": "AccessIdentity",
+          "type": "object"
+        },
+        "AccessResource": {
+          "additionalProperties": false,
+          "properties": {
+            "resource_key": {
+              "title": "Resource Key",
+              "type": "string"
+            },
+            "fields": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "title": "Fields",
+              "type": "object"
+            }
+          },
+          "required": [
+            "resource_key",
+            "fields"
+          ],
+          "title": "AccessResource",
+          "type": "object"
+        },
+        "AccessTemplate": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            },
+            "icon": {
+              "title": "Icon",
+              "type": "string"
+            },
+            "color": {
+              "title": "Color",
+              "type": "string"
+            },
+            "roles": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Roles",
+              "type": "array"
+            },
+            "system": {
+              "title": "System",
+              "type": "string"
+            },
+            "keyHint": {
+              "title": "Keyhint",
+              "type": "string"
+            },
+            "levels": {
+              "items": {
+                "enum": [
+                  "read",
+                  "write",
+                  "admin"
+                ],
+                "type": "string"
+              },
+              "title": "Levels",
+              "type": "array"
+            },
+            "fields": {
+              "items": {
+                "$ref": "#/$defs/AccessField"
+              },
+              "title": "Fields",
+              "type": "array"
+            },
+            "owner": {
+              "title": "Owner",
+              "type": "string"
+            },
+            "resources": {
+              "items": {
+                "$ref": "#/$defs/AccessResource"
+              },
+              "title": "Resources",
+              "type": "array"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "description",
+            "icon",
+            "color",
+            "roles",
+            "system",
+            "keyHint",
+            "levels",
+            "fields",
+            "owner",
+            "resources"
+          ],
+          "title": "AccessTemplate",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/AccessCatalogData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "AccessCatalogEnvelope",
+      "type": "object"
+    }
+  },
+  "submit_access_request": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {
+        "template_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Template Id",
+          "type": "string"
+        },
+        "catalog_version": {
+          "maximum": 1,
+          "minimum": 1,
+          "title": "Catalog Version",
+          "type": "integer"
+        },
+        "system": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "System",
+          "type": "string"
+        },
+        "resource_key": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Resource Key",
+          "type": "string"
+        },
+        "justification": {
+          "maxLength": 2000,
+          "minLength": 10,
+          "title": "Justification",
+          "type": "string"
+        },
+        "permission": {
+          "enum": [
+            "read",
+            "write",
+            "admin"
+          ],
+          "title": "Permission",
+          "type": "string"
+        },
+        "duration_days": {
+          "maximum": 90,
+          "minimum": 1,
+          "title": "Duration Days",
+          "type": "integer"
+        },
+        "fields": {
+          "additionalProperties": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Fields",
+          "type": "object"
+        }
+      },
+      "required": [
+        "template_id",
+        "catalog_version",
+        "system",
+        "resource_key",
+        "justification",
+        "permission",
+        "duration_days",
+        "fields"
+      ],
+      "title": "AccessArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "AccessSubmitData": {
+          "additionalProperties": false,
+          "properties": {
+            "request": {
+              "$ref": "#/$defs/AccessSummary"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "minItems": 1,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "request",
+            "references"
+          ],
+          "title": "AccessSubmitData",
+          "type": "object"
+        },
+        "AccessSummary": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "number": {
+              "title": "Number",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "submitted",
+                "approved",
+                "rejected",
+                "cancelled"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "system": {
+              "title": "System",
+              "type": "string"
+            },
+            "resource_key": {
+              "title": "Resource Key",
+              "type": "string"
+            },
+            "permission": {
+              "enum": [
+                "read",
+                "write",
+                "admin"
+              ],
+              "title": "Permission",
+              "type": "string"
+            },
+            "duration_days": {
+              "title": "Duration Days",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "number",
+            "status",
+            "system",
+            "resource_key",
+            "permission",
+            "duration_days"
+          ],
+          "title": "AccessSummary",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/AccessSubmitData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "AccessSubmitEnvelope",
+      "type": "object"
+    }
+  },
+  "get_access_requests": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "AccessListData": {
+          "additionalProperties": false,
+          "properties": {
+            "requests": {
+              "items": {
+                "$ref": "#/$defs/AccessSummary"
+              },
+              "maxItems": 20,
+              "title": "Requests",
+              "type": "array"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "requests",
+            "references"
+          ],
+          "title": "AccessListData",
+          "type": "object"
+        },
+        "AccessSummary": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "number": {
+              "title": "Number",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "submitted",
+                "approved",
+                "rejected",
+                "cancelled"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "system": {
+              "title": "System",
+              "type": "string"
+            },
+            "resource_key": {
+              "title": "Resource Key",
+              "type": "string"
+            },
+            "permission": {
+              "enum": [
+                "read",
+                "write",
+                "admin"
+              ],
+              "title": "Permission",
+              "type": "string"
+            },
+            "duration_days": {
+              "title": "Duration Days",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "number",
+            "status",
+            "system",
+            "resource_key",
+            "permission",
+            "duration_days"
+          ],
+          "title": "AccessSummary",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/AccessListData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "AccessListEnvelope",
+      "type": "object"
+    }
+  },
+  "get_knowledge_page": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {
+        "page_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Page Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page_id"
+      ],
+      "title": "KnowledgeArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "KnowledgePage": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "product_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Id"
+            },
+            "parent_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parent Id"
+            },
+            "kind": {
+              "enum": [
+                "product",
+                "team",
+                "role",
+                "guide"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "body": {
+              "maxLength": 12000,
+              "title": "Body",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            },
+            "updated_at": {
+              "title": "Updated At",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "product_id",
+            "parent_id",
+            "kind",
+            "title",
+            "body",
+            "version",
+            "updated_at"
+          ],
+          "title": "KnowledgePage",
+          "type": "object"
+        },
+        "KnowledgePageData": {
+          "additionalProperties": false,
+          "properties": {
+            "page": {
+              "$ref": "#/$defs/KnowledgePage"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "page",
+            "references"
+          ],
+          "title": "KnowledgePageData",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/KnowledgePageData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "KnowledgePageEnvelope",
+      "type": "object"
+    }
+  },
+  "get_onboarding_progress": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "ProgressData": {
+          "additionalProperties": false,
+          "properties": {
+            "tasks": {
+              "items": {
+                "$ref": "#/$defs/ProgressTask"
+              },
+              "maxItems": 100,
+              "title": "Tasks",
+              "type": "array"
+            },
+            "next_task_id": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Next Task Id"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "tasks",
+            "next_task_id",
+            "references"
+          ],
+          "title": "ProgressData",
+          "type": "object"
+        },
+        "ProgressTask": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "pending",
+                "completed"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "status"
+          ],
+          "title": "ProgressTask",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/ProgressData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "ProgressEnvelope",
+      "type": "object"
+    }
+  },
+  "get_task_context": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {
+        "task_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "title": "TaskArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        },
+        "TaskData": {
+          "additionalProperties": false,
+          "properties": {
+            "task_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Task Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "guidance": {
+              "maxLength": 4000,
+              "minLength": 1,
+              "title": "Guidance",
+              "type": "string"
+            },
+            "action_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action Url"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "task_id",
+            "title",
+            "guidance",
+            "action_url",
+            "references"
+          ],
+          "title": "TaskData",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/TaskData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "TaskEnvelope",
+      "type": "object"
+    }
+  },
+  "get_task_evidence": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {
+        "task_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "title": "TaskArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "EvidenceData": {
+          "additionalProperties": false,
+          "properties": {
+            "task_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Task Id",
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "$ref": "#/$defs/EvidenceItem"
+              },
+              "maxItems": 10,
+              "title": "Items",
+              "type": "array"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "task_id",
+            "items",
+            "references"
+          ],
+          "title": "EvidenceData",
+          "type": "object"
+        },
+        "EvidenceItem": {
+          "additionalProperties": false,
+          "properties": {
+            "version": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "consent",
+                "document",
+                "event"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "confirmed": {
+              "title": "Confirmed",
+              "type": "boolean"
+            },
+            "summary": {
+              "maxLength": 1200,
+              "minLength": 1,
+              "title": "Summary",
+              "type": "string"
+            }
+          },
+          "required": [
+            "version",
+            "kind",
+            "confirmed",
+            "summary"
+          ],
+          "title": "EvidenceItem",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/EvidenceData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "EvidenceEnvelope",
+      "type": "object"
+    }
+  },
+  "search_knowledge": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Query",
+          "type": "string"
+        },
+        "limit": {
+          "default": 3,
+          "maximum": 5,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "SearchArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "Document": {
+          "additionalProperties": false,
+          "properties": {
+            "source": {
+              "$ref": "#/$defs/Source"
+            },
+            "excerpt": {
+              "maxLength": 1200,
+              "minLength": 1,
+              "title": "Excerpt",
+              "type": "string"
+            }
+          },
+          "required": [
+            "source",
+            "excerpt"
+          ],
+          "title": "Document",
+          "type": "object"
+        },
+        "SearchData": {
+          "additionalProperties": false,
+          "properties": {
+            "documents": {
+              "items": {
+                "$ref": "#/$defs/Document"
+              },
+              "maxItems": 5,
+              "title": "Documents",
+              "type": "array"
+            }
+          },
+          "required": [
+            "documents"
+          ],
+          "title": "SearchData",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/SearchData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "SearchEnvelope",
+      "type": "object"
+    }
+  },
+  "get_team_context": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "Contact": {
+          "additionalProperties": false,
+          "properties": {
+            "display_name": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Display Name",
+              "type": "string"
+            },
+            "contact": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "Contact",
+              "type": "string"
+            }
+          },
+          "required": [
+            "display_name",
+            "contact"
+          ],
+          "title": "Contact",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        },
+        "Team": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "name": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Name",
+              "type": "string"
+            },
+            "summary": {
+              "maxLength": 1200,
+              "minLength": 1,
+              "title": "Summary",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "summary"
+          ],
+          "title": "Team",
+          "type": "object"
+        },
+        "TeamData": {
+          "additionalProperties": false,
+          "properties": {
+            "team": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Team"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mentor": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Contact"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "lead": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Contact"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "team",
+            "mentor",
+            "lead",
+            "references"
+          ],
+          "title": "TeamData",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/TeamData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "TeamEnvelope",
+      "type": "object"
+    }
+  }
+}

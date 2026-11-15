@@ -18,12 +18,13 @@ const safeUrl = z.string().refine((value) => {
 });
 export const serviceActionSchema = z.object({
   id: z.string().uuid(),
-  service: z.enum(['hiring', 'offboarding', 'benefits', 'jira']),
+  service: z.enum(['hiring', 'offboarding', 'benefits', 'jira', 'access']),
   operation: z.enum([
     'refer_candidate',
     'set_exit_step',
     'save_exit_draft',
     'request_benefit',
+    'request_access',
     'create_jira_issue',
     'update_jira_issue',
   ]),

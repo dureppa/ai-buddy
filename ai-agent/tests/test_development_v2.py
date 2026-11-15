@@ -46,6 +46,7 @@ def test_arbitrary_versions_do_not_read_files(
         "hash",
         "catalog",
         "schema",
+        "snapshot",
         "split",
         "version",
         "duplicate",
@@ -90,6 +91,10 @@ def test_current_dataset_rejects_drift_and_invalid_expectations(
     if mutation != "hash":
         manifest["development_sha256"] = hashlib.sha256(raw).hexdigest()
     (dest / "manifest.json").write_text(json.dumps(manifest))
+    schemas = json.loads((original / "tool-schemas.json").read_text())
+    if mutation == "snapshot":
+        schemas.pop("prepare_service_action")
+    (dest / "tool-schemas.json").write_text(json.dumps(schemas))
     monkeypatch.setattr(development, "DIRECTORY", tmp_path / "agent-v1")
     with pytest.raises(ValueError):
         load_development("agent-v2")

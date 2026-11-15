@@ -4,7 +4,7 @@
 [MCP-схемы](../../contracts/agent-tools.json),
 [публичные HTTP-контракты](../../contracts/openapi.yaml).
 
-Go `internal/serviceactions` подключает найм, увольнения, бенефиты и Jira.
+Go `internal/serviceactions` подключает найм, увольнения, бенефиты, Jira и доступы.
 `get_service_context` читает данные текущего профиля; `prepare_service_action`
 проверяет параметры и сохраняет подтверждение в Buddy PostgreSQL.
 Выполняющего инструмента у модели нет. Ссылка из чата открывает `/actions/:id`;
@@ -12,6 +12,7 @@ Go `internal/serviceactions` подключает найм, увольнения
 
 | Операция | API сервиса после подтверждения |
 | --- | --- |
+| request_access | POST /api/v1/portal-access/requests через существующий portal-клиент |
 | refer_candidate | POST /api/v1/me/referrals |
 | set_exit_step | PUT /api/v1/me/offboarding/checklist/{step} |
 | save_exit_draft | POST /api/v1/me/offboarding/draft |
@@ -26,11 +27,17 @@ Go `internal/serviceactions` подключает найм, увольнения
 отсутствующего поля. Описания в контексте ограничены 2000 символами с флагом,
 данные контекста ограничены 12 KiB (has_more при усечении), изменения принимаются до 4000; старое полное описание сохраняется при другом изменении.
 
+Доступы используют `get_access_catalog`, а не `get_service_context`: каталог
+ограничен профилем и содержит разрешённые ресурсы. `request_access` проверяет
+версию, ресурс и поля при подготовке и повторно при подтверждении. Все девять
+шаблонов поддерживаются одной операцией.
+
 ## Файлы
 
 - `client.go`, `context.go`: фиксированные origins, профильные JWT, ограниченный HTTP и проекция ответов.
 - `prepare.go`: закрытый набор операций, проверка доступности/бюджета/версии, неизменяемые параметры.
 - `repository.go`, миграция `11_service_actions`: владелец, дедупликация, TTL и атомарное право одной попытки.
+- `access.go`, `portal/validate_request.go`, миграция `13_access_service_actions`: подготовка и отправка доступа через общий каталог и portal-клиент.
 - `execute.go`: публичные GET/confirm/cancel, повторная проверка и сохранение результата.
 - `ai_buddy/service_schemas.py`: Pydantic-контракты; Gateway/MCP/GoHTTP сохраняют только явно заданные поля patch.
 - `ServiceActionPage.tsx`, `service-actions.ts`: Zod-клиент и страница подтверждения; никаких записей при открытии/перезагрузке.
@@ -43,6 +50,8 @@ Go: `HR_HIRING_URL`, `HR_OFFBOARDING_URL`, `HR_BENEFITS_URL`, `JIRA_API_URL`
 В Compose это `COMPOSE_JIRA_SESSION_SECRET`; server overlay сохраняет прежний
 fallback Jira. `PUBLIC_HR_ORIGIN` определяет внешние ссылки всех четырёх сервисов.
 Jira запускается профилем `jira`; серверный overlay включает его автоматически.
+Доступы используют существующие `ACCESS_API_URL` и `ACCESS_PUBLIC_URL`
+и настройки portal-клиента, новых переменных нет.
 Если сервис не запущен, возвращается unavailable без подмены demo-данными.
 
 ## Гарантии и ограничения
@@ -57,7 +66,7 @@ confirm возвращают состояние. После timeout/неодно
 
 ## Проверки
 
-`go test ./...` включает HTTP fixtures всех четырёх сервисов, шесть действий,
+`go test ./...` включает HTTP fixtures HR/Jira и доступа, семь действий,
 права владельца, отказ, потерю результата, повторное/параллельное подтверждение,
 изменённый бюджет/цену и конфликт Jira version. `TEST_DATABASE_URL` включает
 проверки настоящего PostgreSQL; CI применяет миграцию и запускает также race.

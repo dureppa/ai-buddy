@@ -44,11 +44,16 @@ def load_development(version: DatasetVersion = "agent-v1") -> Split:
     if version == "agent-v1":
         return dataset
     manifest = json.loads((directory / "manifest.json").read_text())
+    schemas = json.loads((directory / "tool-schemas.json").read_text())
     if (
         manifest["dataset_version"] != version
         or manifest["development_sha256"]
         != hashlib.sha256((directory / "development.json").read_bytes()).hexdigest()
-        or manifest["tool_schema_sha256"] != runtime_schema_hash(manifest["tool_names"])
+        or manifest["tool_schema_sha256"]
+        != hashlib.sha256(
+            json.dumps(schemas, ensure_ascii=False, sort_keys=True).encode()
+        ).hexdigest()
+        or set(schemas) != set(manifest["tool_names"])
         or manifest["label_status"] != dataset.label_status
     ):
         raise ValueError("development manifest/schema drift")

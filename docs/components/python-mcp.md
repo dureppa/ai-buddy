@@ -57,7 +57,11 @@ HTTP-адаптер: `uv run --locked pytest tests/test_go_http.py` провер
 
 [SDD 007](../specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
 get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
-Максимум — 13 tools; submit_access_request объявляется только при AccessIntent текущего turn.
+Максимум — 13 tools. В рабочем Go-контуре `submit_access_request` не выдаётся
+модели: доступ подготавливается через `prepare_service_action(request_access)`,
+а отправляется на странице подтверждения. Старая схема submit сохранена для
+совместимости тестовых adapters. Ответ с параметрами повторно читает каталог;
+разрешение на прямую запись текущего turn не требуется.
 Два новых инструмента чтения/подготовки доступны при настройке serviceactions.
 Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
 POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,

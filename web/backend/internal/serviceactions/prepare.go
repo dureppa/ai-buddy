@@ -60,6 +60,8 @@ func known(rows []any, id string) (map[string]any, bool) {
 }
 func operationService(op string) string {
 	switch op {
+	case "request_access":
+		return "access"
 	case "refer_candidate":
 		return "hiring"
 	case "set_exit_step", "save_exit_draft":
@@ -74,6 +76,7 @@ func operationService(op string) string {
 func normalize(action map[string]any) (string, map[string]any, error) {
 	op := stringValue(action, "operation")
 	allowed := map[string][]string{
+		"request_access":  {"template_id", "catalog_version", "system", "resource_key", "justification", "permission", "duration_days", "fields"},
 		"refer_candidate": {"vacancy", "name", "email"}, "set_exit_step": {"step", "checked"}, "save_exit_draft": {"date"}, "request_benefit": {"benefit"},
 		"create_jira_issue": {"board_id", "title", "description", "status", "priority", "assignee_id", "due_date"}, "update_jira_issue": {"issue_id", "version", "changes"},
 	}[op]
@@ -244,6 +247,9 @@ func (s *Service) Prepare(ctx context.Context, profile, requestID string, args m
 	return map[string]any{"draft": d, "references": []any{map[string]any{"id": "action:" + d.ID, "title": "Проверить действие: " + d.Title, "url": address, "version": "draft-v1", "is_demo": true}}}, nil
 }
 func (s *Service) plan(ctx context.Context, profile, op string, p map[string]any) (Draft, error) {
+	if op == "request_access" {
+		return s.planAccess(ctx, profile, p)
+	}
 	service := operationService(op)
 	e, err := s.endpoint(service)
 	if err != nil {

@@ -48,6 +48,31 @@ it('shows exact fields and explicit confirmation without executing on open', () 
   expect(html).toContain('только после подтверждения');
   expect(render(draft, true)).toContain('disabled');
 });
+it('renders a BI access draft with its exact parameters and manual confirmation', () => {
+  const access = serviceActionSchema.parse({
+    ...draft,
+    service: 'access',
+    operation: 'request_access',
+    title: 'Подать заявку на доступ: BI и дашборды',
+    service_url: 'https://access.example/?tab=requests',
+    fields: [
+      { label: 'Ресурс', value: 'delivery-bi' },
+      { label: 'Права', value: 'Чтение' },
+      { label: 'Срок', value: '30 дн.' },
+      { label: 'Рабочее пространство', value: 'Путь заказа' },
+    ],
+  });
+  const html = render(access);
+  expect(html).toContain('delivery-bi');
+  expect(html).toContain('30 дн.');
+  expect(html).toContain('Путь заказа');
+  expect(html).toContain('Подтвердить');
+  expect(html).toContain('Отменить');
+  expect(html).toContain('tab=requests');
+  const done = render({ ...access, state: 'succeeded', result: 'Заявка ДОС-000042 сохранена.' });
+  expect(done).toContain('ДОС-000042');
+  expect(done).not.toContain('>Подтвердить<');
+});
 it.each(['executing', 'succeeded', 'failed', 'uncertain', 'cancelled', 'expired'] as const)(
   'disables confirmation in %s',
   (state) => {

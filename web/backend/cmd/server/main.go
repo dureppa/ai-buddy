@@ -96,6 +96,7 @@ func runContext(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("service actions: %w", err)
 	}
+	actions.Access = portalService
 	st := store.New(pool)
 	tokens := buddy.NewTokens(cfg.SessionSecret, cfg.SessionTTL)
 	onboarding := buddy.NewOnboarding(st)

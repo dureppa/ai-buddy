@@ -594,6 +594,7 @@ components:
           - offboarding
           - benefits
           - jira
+          - access
           title: Service
           type: string
         operation:
@@ -602,6 +603,7 @@ components:
           - set_exit_step
           - save_exit_draft
           - request_benefit
+          - request_access
           - create_jira_issue
           - update_jira_issue
           title: Operation

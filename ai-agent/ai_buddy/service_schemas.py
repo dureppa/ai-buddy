@@ -4,9 +4,9 @@ from typing import Annotated, Literal
 
 from pydantic import Field, field_validator, model_validator
 
-from ai_buddy.schemas import ClosedModel, Identifier, Source, safe_url
+from ai_buddy.schemas import AccessArguments, ClosedModel, Identifier, Source, safe_url
 
-ServiceName = Literal["hiring", "offboarding", "benefits", "jira"]
+ServiceName = Literal["hiring", "offboarding", "benefits", "jira", "access"]
 UUIDString = Annotated[
     str,
     Field(
@@ -17,7 +17,7 @@ DateString = Annotated[str, Field(pattern=r"^\d{4}-\d{2}-\d{2}$")]
 
 
 class ServiceContextArguments(ClosedModel):
-    service: ServiceName
+    service: Literal["hiring", "offboarding", "benefits", "jira"]
     board_id: Identifier | None = None
     issue_id: UUIDString | None = Field(
         default=None,
@@ -177,6 +177,10 @@ class RequestBenefit(ClosedModel):
     benefit: Identifier
 
 
+class RequestAccess(AccessArguments):
+    operation: Literal["request_access"]
+
+
 class CreateJiraIssue(ClosedModel):
     operation: Literal["create_jira_issue"]
     board_id: Identifier
@@ -221,6 +225,7 @@ class PrepareServiceActionArguments(ClosedModel):
         | SetExitStep
         | SaveExitDraft
         | RequestBenefit
+        | RequestAccess
         | CreateJiraIssue
         | UpdateJiraIssue,
         Field(discriminator="operation"),
@@ -240,6 +245,7 @@ class ServiceActionDraft(ClosedModel):
         "set_exit_step",
         "save_exit_draft",
         "request_benefit",
+        "request_access",
         "create_jira_issue",
         "update_jira_issue",
     ]

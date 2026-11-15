@@ -64,7 +64,12 @@ func (s *Service) Confirm(ctx context.Context, profile, id string) (Draft, error
 		return publicDraft(d), err
 	}
 	state, message := "succeeded", "Сервис подтвердил сохранение."
-	if err = s.execute(ctx, profile, d, p); err != nil {
+	if d.Operation == "request_access" {
+		message, err = s.executeAccess(ctx, profile, d, p)
+	} else {
+		err = s.execute(ctx, profile, d, p)
+	}
+	if err != nil {
 		state = "uncertain"
 		message = "Не удалось подтвердить результат. Проверь сервис; повторно действие не отправляется."
 		if errors.Is(err, ErrInvalid) || errors.Is(err, ErrConflict) || errors.Is(err, ErrForbidden) || errors.Is(err, ErrNotFound) {

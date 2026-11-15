@@ -54,16 +54,13 @@ func TestAccessGrantIsBoundToCurrentTurn(t *testing.T) {
 			Token string   `json:"api_token"`
 		}
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &result))
-		if intent {
-			require.Contains(t, result.Tools, "submit_access_request")
-		} else {
-			require.NotContains(t, result.Tools, "submit_access_request")
-		}
+		require.NotContains(t, result.Tools, "submit_access_request")
+		require.Contains(t, result.Tools, "get_access_catalog")
 		claims, err := b.claims(result.Token, "mcp-resource")
 		require.NoError(t, err)
 		require.Equal(t, intent, claims.AccessIntent)
 		require.True(t, claims.ExpiresAt.After(time.Now()))
-		if !intent {
+		{
 			r = httptest.NewRequest("POST", "/internal/v1/ai/access/requests", strings.NewReader("{}"))
 			r.Header.Set("Authorization", "Bearer "+result.Token)
 			r.Header.Set("X-Request-ID", claims.RequestID)

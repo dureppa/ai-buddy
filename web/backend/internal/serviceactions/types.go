@@ -7,6 +7,8 @@ import (
 	"errors"
 	"net/http"
 	"time"
+
+	"github.com/dureppa/ai-buddy/web/backend/internal/portal"
 )
 
 var ErrInvalid = errors.New("invalid service action")
@@ -48,6 +50,7 @@ type Config struct {
 	HRSecret, JiraSecret                string
 }
 type Service struct {
+	Access *portal.Service
 	Store  Repository
 	Config Config
 	Client *http.Client
