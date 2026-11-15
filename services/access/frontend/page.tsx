@@ -11,6 +11,7 @@ import {
   type RequestInput,
 } from './model';
 import { accessClient, type LiveTemplate } from './api';
+import { newOperationKey } from './operation-key';
 import './style.css';
 
 function Dialog({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
@@ -322,7 +323,7 @@ function Portal({ account }: { account: AccountId }) {
     () => new URLSearchParams(window.location.search).get('request') || undefined,
   );
   const [status, setStatus] = useState('all');
-  const operationKey = useRef(crypto.randomUUID());
+  const [operationKey, setOperationKey] = useState(newOperationKey);
   const [revision, setRevision] = useState(0);
   useEffect(() => {
     let active = true;
@@ -359,8 +360,8 @@ function Portal({ account }: { account: AccountId }) {
     };
   }, []);
   async function submit(input: RequestInput) {
-    await api.submit(input, operationKey.current);
-    operationKey.current = crypto.randomUUID();
+    await api.submit(input, operationKey);
+    setOperationKey(newOperationKey());
     setTemplate(undefined);
     setTab('requests');
     setStatus('all');
@@ -467,7 +468,7 @@ function Portal({ account }: { account: AccountId }) {
                   key={item.id}
                   disabled={!isProfileId(account) || pending}
                   onClick={() => {
-                    operationKey.current = crypto.randomUUID();
+                    setOperationKey(newOperationKey());
                     setTemplate(item);
                     setNotice('');
                   }}

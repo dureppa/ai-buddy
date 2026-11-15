@@ -49,3 +49,8 @@ Corporate Vitest покрывает API/валидацию/ошибки и ве�
 portal покрывают роли, чужие ресурсы, поля, решения, повторы, конкурентную отправку,
 HTTP и сбой БД; Go bridge — делегацию записи. Python — MCP-схемы и сохранённый
 receipt. Всё входит в frontend/python/go jobs CI, PostgreSQL через TEST_DATABASE_URL.
+
+Для HTTP-демо ключи Idempotency-Key создаются в `operation-key.ts` через
+crypto.getRandomValues (без secure-context randomUUID). Ключ хранится в состоянии
+формы, сохраняется при ошибке/повторе и меняется после успеха или выбора новой формы.
+`page.test.tsx` проверяет загрузку без randomUUID и цикл отправки/повтора.
