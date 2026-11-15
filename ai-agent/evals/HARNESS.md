@@ -1,6 +1,6 @@
 # Общий development eval-harness
 
-Реализованы `evals.harness` и `evals.review`. Только agent-v1 development: 20 кейсов, из них 18 исполнимы и 2 явно blocked. CLI не имеет параметра holdout и не загружает его. Исходные gold-файлы и разметка не менялись. Human approval набора по-прежнему не выполнен.
+Реализованы `evals.harness` и `evals.review`. Две явно выбираемые версии development: agent-v1 (20 кейсов, 18 исполнимы и 2 blocked) и [agent-v2](agent-v2/README.md) (25 текущих кейсов). CLI не имеет параметра holdout и не загружает его. Исходный agent-v1 и holdout не меняются; миграция ожиданий документирована в agent-v2. Human approval набора по-прежнему не выполнен.
 
 ## Запуск
 
@@ -11,7 +11,7 @@ API-ключ и реальные service/MCP-настройки в отчёт н
 внутри harness всегда синтетические. `.env` автоматически не загружается.
 
 ```bash
-uv run --locked python -m evals.harness --provider deepseek --model deepseek-flash --allow-live-llm
+uv run --locked python -m evals.harness --provider deepseek --model deepseek-flash --dataset agent-v2 --allow-live-llm
 ```
 
 Это реальные запросы к выбранной LLM, возможна тарификация. В этом блоке они
@@ -34,8 +34,8 @@ Backend harness выдаёт синтетические fixtures соответ�
 `current-tools.json` содержит синтетические контрактные примеры всех 13 tools.
 `tests/test_current_harness.py` проводит их через Flask/DeepSeek wire format/SDK
 с mock LLM. Это не новый размеченный golden-набор и не результат живой LLM.
-CLI по-прежнему использует прежний agent-v1; кейсов новых действий в нём нет.
-Разблокировка dev-17/18 требует отдельного пересмотра ожидаемого stage-контракта.
+CLI по умолчанию сохраняет agent-v1 для совместимости; --dataset agent-v2 выбирает текущие fixtures и дополнительные действия.
+В agent-v1 dev-17/18 остаются blocked. В agent-v2 они явно заменены проверками текущих progress/task/evidence схем, без объявления полного stage-контракта реализованным.
 Новые routing/действия могут давать расхождения со старой разметкой: их надо
 анализировать, а не ослаблять эталоны. Нельзя выдавать 18 кейсов за приёмку всех tools.
 
@@ -53,7 +53,7 @@ reasoning/thinking не сохраняются. HTTP capture подменяет�
 
 Автоматически проверяются HTTP/code, реальные names/counts/args/order, фактически возвращённые источники и URL, ID/версии/хеш assessment и обязательность review. SDK context cleanup классифицирует вложенные ошибки так же, как production boundary, сохраняя FORBIDDEN/MCP_TIMEOUT. Перечисление источника в fixture без реального tool call не даёт права цитировать его.
 
-`structural_pass` — только структурная часть; `semantic=unassessed`, `passed=null` до предметной проверки. Обычный 503 не является правильным ответом. Dev-06/16 — ожидаемые инъецированные отказы, их нужно показывать отдельно. Blocked-кейсы не исполняются и остаются в полном знаменателе 20.
+`structural_pass` — только структурная часть; `semantic=unassessed`, `passed=null` до предметной проверки. Обычный 503 не является правильным ответом. Dev-06/16 — ожидаемые инъецированные отказы, их нужно показывать отдельно. Blocked-кейсы agent-v1 не исполняются и остаются в полном знаменателе 20. В agent-v2 все 25 используют реализованные схемы, что не означает модельного успеха.
 
 ## Проверка фактов и ограничений
 
@@ -61,7 +61,7 @@ reasoning/thinking не сохраняются. HTTP capture подменяет�
 uv run --locked python -m evals.review evals/reports/development-<timestamp>.json evals/reports/review-<name>.json
 ```
 
-Review связан с SHA всего raw-отчёта и каждого ответа. Для каждого факта: supported/missing/contradicted/unclear, дословная quote и основание из реально наблюдённого tool result либо применимого project rule. Ответ не может служить доказательством собственного корпоративного утверждения. Для error/assessment отдельно разрешены наблюдённые структурные поля результата. Неверные цитаты/указатели/неполные списки критериев отвергаются.
+Отчёт сохраняет dataset_version и SHA выбранного development. Review загружает только ту же версию development и отвергает несовпадение hash; старые отчёты без версии считаются agent-v1. Review связан с SHA всего raw-отчёта и каждого ответа. Для каждого факта: supported/missing/contradicted/unclear, дословная quote и основание из реально наблюдённого tool result либо применимого project rule. Ответ не может служить доказательством собственного корпоративного утверждения. Для error/assessment отдельно разрешены наблюдённые структурные поля результата. Неверные цитаты/указатели/неполные списки критериев отвергаются.
 
 Все ограничения и каждый реальный search query получают отдельную оценку; дополнительные неподтверждённые утверждения фиксируются дословно. Отчёт не перезаписывается: создаётся reviewed-копия с hash review. Для `reviewer=codex_assisted` поле assisted_passed отделено от человеческого passed; human_reviewed=0, release_accepted=false. Это явный LLM-assisted разбор, **не независимый откалиброванный judge и не одобрение наставника**. Даже правильные цитаты и assisted-review не гарантируют отсутствие остальных ошибок.
 

@@ -50,3 +50,11 @@ uv run --locked flask --app ai_buddy:create_app run --host 127.0.0.1 --port 8001
 Режим пояснения получает PageContext.selection, читает конкретный материал через прежние MCP tools и отвечает краткими пунктами. Write-tools исключены, неподдерживаемый вызов отвергается. Пустой поиск допускает явно общее объяснение термина; правила обычного чата и проверки цитат сохраняются.
 
 [Сценарий и ограничения](../specs/010-selection-explanation.md).
+
+## Development и уточнение
+
+[Agent-v2](../../ai-agent/evals/agent-v2/README.md) сохраняет 25 development-кейсов с 11 контрактами исходного snapshot. Новые get_work_tools/get_work_tool_context из SDD 009 не объявляются покрытыми этим историческим набором. Manifest фиксирует свой набор схем, отчёт отдельно фиксирует весь текущий runtime-каталог.
+
+Runtime onboarding-v5.1-clarify прямо просит значения недостающих параметров, сохраняет уточнение после recovery и исправляет только цитаты при repair. На сайте изменение доступно после успешного деплоя Python; fixtures не подключают данные Go/UI. [Сохранённые trials](../../ai-agent/evals/reports/development-v2-20261115.md) относятся к snapshots до реорганизации; их hashes/ответы не переписываются.
+
+[Спецификация уточнения и development](../specs/010-agent-clarification-and-development.md).

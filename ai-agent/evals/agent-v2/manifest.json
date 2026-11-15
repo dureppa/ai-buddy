@@ -1,0 +1,23 @@
+{
+  "dataset_version": "agent-v2",
+  "split": "development",
+  "case_count": 25,
+  "development_sha256": "f008d324ceb436adda17a7e5ba078a8ac934c5bf3253596e23cb5a5cc6690c54",
+  "tool_schema_sha256": "9e5093d841ecd4d1aef42b40f86b2ee8e0ec3220672fc0a5f0b39f55c38d8011",
+  "label_status": "draft_requires_team_review",
+  "review_status": "pending_team_and_mentor",
+  "holdout_created": false,
+  "tool_names": [
+    "get_access_catalog",
+    "get_access_requests",
+    "get_knowledge_page",
+    "get_onboarding_progress",
+    "get_service_context",
+    "get_task_context",
+    "get_task_evidence",
+    "get_team_context",
+    "prepare_service_action",
+    "search_knowledge",
+    "submit_access_request"
+  ]
+}
