@@ -294,7 +294,7 @@ paths:
   /notifications:
     get:
       operationId: listNotifications
-      summary: Получить системные карточки для веб-чата
+      summary: Получить уведомления текущего стажёра
       responses:
         '200':
           description: Уведомления текущего стажёра.
@@ -304,6 +304,82 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Notification'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
+  /notifications/read:
+    post:
+      operationId: markNotificationsRead
+      summary: Отметить показанные уведомления текущего стажёра прочитанными
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items: {type: string, format: uuid}
+      responses:
+        '204':
+          description: Уведомления отмечены. Повторные или чужие ID не меняют состояние.
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /onboarding/surveys:
+    get:
+      operationId: listCompletedSurveys
+      summary: Прочитать этапы заполненных анкет текущего стажёра
+      responses:
+        '200':
+          description: Список заполненных этапов.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SurveyStage'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /onboarding/surveys/{stage}:
+    put:
+      operationId: submitInternshipSurvey
+      summary: Сохранить анкету по этапу стажировки
+      parameters:
+        - in: path
+          name: stage
+          required: true
+          schema:
+            $ref: '#/components/schemas/SurveyStage'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answers]
+              additionalProperties: false
+              properties:
+                answers:
+                  type: object
+                  description: >-
+                    Обязательны mentor, hr_bp, buddy, frequency и два вопроса этапа
+                    (tasks/access, feedback/goals или outcomes/usefulness). Значения от '1' до '5'.
+                    У mentor, hr_bp и buddy также допустимо 'na'. comment необязателен, до 1000 символов.
+                  required: [mentor, hr_bp, buddy, frequency]
+                  minProperties: 6
+                  maxProperties: 7
+                  additionalProperties: {type: string, maxLength: 1000}
+      responses:
+        '204':
+          description: Анкета сохранена. При повторной отправке остаются первые ответы.
+        '400':
+          $ref: '#/components/responses/InvalidInput'
         '401':
           $ref: '#/components/responses/Unauthenticated'
 
@@ -732,16 +808,18 @@ components:
           const: submitted
     Notification:
       type: object
-      required: [id, title, text, action]
+      required: [id, kind, title, text, action_title, action_url, read]
       properties:
-        id:
-          type: string
-        title:
-          type: string
-        text:
-          type: string
-        action:
-          $ref: '#/components/schemas/Reference'
+        id: {type: string, format: uuid}
+        kind: {type: string}
+        title: {type: string}
+        text: {type: string}
+        action_title: {type: string}
+        action_url: {type: string}
+        read: {type: boolean}
+    SurveyStage:
+      type: string
+      enum: [first, midpoint, final]
 
     TaskReview:
       type: object

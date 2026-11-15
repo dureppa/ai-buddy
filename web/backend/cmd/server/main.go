@@ -160,7 +160,7 @@ func runContext(ctx context.Context) error {
 		bridge.DemoMode = cfg.DemoMode
 		chat = buddy.NewChat(bridge)
 	}
-	api := httpapi.NewAPI(sessions, onboarding, access, notifications, chat).WithPortal(portalService).WithServiceActions(actions)
+	api := httpapi.NewAPI(sessions, onboarding, access, notifications, chat).WithPortal(portalService).WithServiceActions(actions).WithSurveys(st)
 
 	if cfg.DemoMode && os.Getenv("WORK_TOOLS_ENABLED") == "true" && os.Getenv("WORK_TOOLS_EXTERNAL") == "true" {
 		catalog, err := worktools.NewExternal(os.Getenv("WORK_TOOLS_PUBLIC_URL"), os.Getenv("WORK_TOOL_DELEGATION_SECRET"))

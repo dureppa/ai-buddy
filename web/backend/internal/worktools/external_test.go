@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dureppa/ai-buddy/web/backend/internal/buddy"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 )
@@ -43,4 +44,43 @@ func TestExternalSearchUsesScopedToolAPI(t *testing.T) {
 	require.Len(t, results, 1)
 	require.Contains(t, results[0].(map[string]any)["excerpt"], "Запись внешней БД")
 	require.Equal(t, "https://tools.example.com/work-tools/grafana#record", results[0].(map[string]any)["source"].(map[string]any)["url"])
+}
+
+func TestExternalCatalogRejectsUnavailableOrUnscopedRecords(t *testing.T) {
+	const secret = "work-tool-test-delegation-secret"
+	_, err := NewExternal("https://tools.example.com/not-an-origin", secret)
+	require.ErrorContains(t, err, "WORK_TOOLS_PUBLIC_URL")
+	_, err = NewExternal("https://tools.example.com", "short")
+	require.ErrorContains(t, err, "WORK_TOOL_DELEGATION_SECRET")
+
+	catalog, err := NewExternal("https://tools.example.com", secret)
+	require.NoError(t, err)
+	for _, tt := range []struct {
+		name   string
+		status int
+		body   string
+		want   error
+	}{
+		{"removed page", 404, "", buddy.ErrNotFound},
+		{"unavailable service", 503, "", buddy.ErrUnavailable},
+		{"trailing JSON", 200, `{"records":[]}{}`, buddy.ErrUnavailable},
+		{"missing records", 200, `{}`, buddy.ErrUnavailable},
+		{"oversized response", 200, strings.Repeat(" ", (2<<20)+1), buddy.ErrUnavailable},
+		{"other team", 200, `{"records":[{"team":"delivery","id":"record","title":"Ошибки"}]}`, buddy.ErrUnavailable},
+		{"missing title", 200, `{"records":[{"team":"travel","id":"record","title":" "}]}`, buddy.ErrUnavailable},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			catalog.external.Transport = roundTrip(func(*http.Request) (*http.Response, error) {
+				return &http.Response{StatusCode: tt.status, Body: io.NopCloser(strings.NewReader(tt.body))}, nil
+			})
+			out, err := catalog.Read(t.Context(), "travel", "grafana")
+			require.ErrorIs(t, err, tt.want)
+			require.Empty(t, out.Records)
+		})
+	}
+	catalog.external.Transport = roundTrip(func(*http.Request) (*http.Response, error) {
+		return nil, io.ErrUnexpectedEOF
+	})
+	_, err = catalog.Read(t.Context(), "travel", "grafana")
+	require.ErrorIs(t, err, buddy.ErrUnavailable)
 }

@@ -95,12 +95,6 @@ ON CONFLICT (id) DO NOTHING;
 SELECT setval('access_request_number_seq',
     GREATEST((SELECT last_value FROM access_request_number_seq), 1), true);
 
-INSERT INTO notifications (profile_id, kind, title, body, action_title, action_url) VALUES
-    ('sasha', 'equator', 'Экватор стажировки',
-     'Половина стажировки позади! Поделись впечатлениями — это поможет сделать программу лучше.',
-     'Пройти опрос', 'https://forms.example.com/equator-survey')
-ON CONFLICT (profile_id, kind) DO NOTHING;
-
 INSERT INTO page_guides (url, title, guidance) VALUES
     ('http://localhost:5173/tools', 'Инструменты и доступы',
      'Выбери карточку нужного сервиса, например Grafana. В подробностях нажми «Подготовить заявку», а затем подтверди её в чате.')
