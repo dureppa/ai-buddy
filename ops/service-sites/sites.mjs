@@ -35,6 +35,7 @@ for (const [id, port] of Object.entries(ports)) {
       strictPort: true,
       fs: { allow: [root, repo] },
       proxy: {
+        '/buddy-api': { target: 'http://127.0.0.1:8080', rewrite: (path) => path.replace(/^\/buddy-api/, '/api') },
         ...(id === 'work-tools' ? { '/api/v1/work-tools': 'http://127.0.0.1:5192' } : {}),
         '/api':
           (id === 'access' && 'http://127.0.0.1:8190') ||

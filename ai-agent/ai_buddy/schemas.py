@@ -3,7 +3,14 @@ from typing import Annotated, Literal
 from urllib.parse import urlsplit
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    field_validator,
+    model_validator,
+)
 
 Identifier = Annotated[
     str, Field(min_length=1, max_length=128, pattern=r"^[^\s\x00-\x1f\x7f]+$")
@@ -36,7 +43,88 @@ class HistoryMessage(ClosedModel):
     content: ShortText
 
 
+class SelectionResource(ClosedModel):
+    kind: Literal["task", "confluence", "work_tool", "jira", "service"]
+    id: Annotated[str, Field(max_length=128, pattern=r"^[A-Za-z0-9_.:-]*$")] = ""
+    service: Annotated[str, Field(max_length=32)] = ""
+    label: Annotated[str, Field(max_length=200)] = ""
+    description: Annotated[str, Field(max_length=800)] = ""
+    page_ids: Annotated[
+        list[
+            Annotated[
+                str, Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
+            ]
+        ],
+        Field(max_length=3),
+    ] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def valid_resource(self) -> "SelectionResource":
+        if len(set(self.page_ids)) != len(self.page_ids):
+            raise ValueError("duplicate page ids")
+        work = {
+            "mattermost",
+            "redash",
+            "trino",
+            "trisigma",
+            "bitbucket",
+            "paas",
+            "grafana",
+            "tms",
+            "postman",
+            "test-stand",
+            "figma",
+            "design-system",
+            "design-review",
+        }
+        services = {
+            "absences",
+            "trips",
+            "hiring",
+            "offboarding",
+            "consents",
+            "benefits",
+            "documents",
+            "events",
+            "access",
+        }
+        if "\0" in self.label + self.description or (
+            self.kind != "task" and (self.description or self.page_ids)
+        ):
+            raise ValueError("invalid resource text")
+        if self.kind == "service":
+            valid = not self.id and self.service in services
+        elif self.kind == "work_tool":
+            valid = bool(self.id) and self.service in work
+        else:
+            valid = bool(self.id) and not self.service
+            if self.kind == "task":
+                valid = valid and bool(self.label.strip())
+            if self.kind == "jira":
+                valid = valid and bool(
+                    re.fullmatch(
+                        r"[a-fA-F0-9]{8}(?:-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}", self.id
+                    )
+                )
+        if not valid:
+            raise ValueError("invalid selection resource")
+        return self
+
+
+class Selection(ClosedModel):
+    text: Annotated[str, Field(min_length=1, max_length=1200)]
+    title: Annotated[str, Field(max_length=200)]
+    resource: SelectionResource | None = None
+
+    @model_validator(mode="after")
+    def valid_selection(self) -> "Selection":
+        if not self.text.strip() or "\0" in self.text + self.title:
+            raise ValueError("invalid selection")
+        return self
+
+
 class PageContext(ClosedModel):
+    selection: Selection | None = None
     url: Annotated[str, Field(min_length=1, max_length=2048)]
 
     @field_validator("url")
@@ -71,6 +159,16 @@ class TurnRequest(ClosedModel):
     )
     page_context: PageContext | None = None
     hr_today: HRDay | None = None
+
+    @model_validator(mode="after")
+    def selection_question(self) -> "TurnRequest":
+        if (
+            self.page_context
+            and self.page_context.selection
+            and len(self.message) > 700
+        ):
+            raise ValueError("selection question too long")
+        return self
 
     @field_validator("message")
     @classmethod

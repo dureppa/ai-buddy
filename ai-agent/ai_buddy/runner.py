@@ -39,6 +39,9 @@ class DirectRunner:
                     if context.hr_today
                     else None,
                     page_url=context.page_context.url if context.page_context else None,
+                    selection=context.page_context.selection
+                    if context.page_context
+                    else None,
                 )
             finalize(state)
             ids = set(CITATION.findall(state.answer))

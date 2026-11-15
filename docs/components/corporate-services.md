@@ -74,3 +74,9 @@ ServiceSession.tsx получает текущий аккаунт из обще�
 запросы не выполняются; чужой профиль по умолчанию не используется.
 
 Confluence на 5191 добавлен в общую сборку/hr-web. Ссылка находится в «Инструментах и доступах», рядом с Jira. Портал доступов на 5190 теперь использует Go/PostgreSQL; [описание](access-portal.md).
+
+## Пояснение выделенного текста
+
+ServiceSession подключает общую SelectionAssistant для текущего стажёра, портал доступов — только для intern-аккаунта. Confluence, Jira и WorkToolPage размечают идентификаторы записей. /buddy-api/ направляется в Go Buddy отдельно от API сервиса; путь настроен в sites.mjs и ops/docker/hr-web.conf.
+
+[Сценарий и ограничения](../specs/010-selection-explanation.md).

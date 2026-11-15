@@ -301,3 +301,9 @@ GET /internal/v1/ai/work-tools и POST /internal/v1/ai/work-tools/context исп
 тот же resource-token, X-Request-ID и проверенный TeamID. Новых профилей/URL в
 аргументах нет. Клиент проверяет team ответа, ограничивает размер/время,
 не следует redirect и не использует env proxy. [SDD 009](../specs/009-agent-role-tools.md).
+
+## Пояснение выделенного текста
+
+buddy/selection.go проверяет контекст выделения, а HistoryText сохраняет цитату и название с вопросом. Bridge передаёт selection в Flask и подписывает read_only в delegation/resource JWT. Режим запрещает submit_access_request и prepare_service_action, включая прямой вызов resource API.
+
+[Сценарий и ограничения](../specs/010-selection-explanation.md).
