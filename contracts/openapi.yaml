@@ -663,6 +663,8 @@ components:
           required: [url]
           additionalProperties: false
           properties:
+            selection:
+              $ref: '#/components/schemas/Selection'
             url:
               type: string
               format: uri
@@ -756,3 +758,140 @@ components:
           description: Version-bound result of the private Python assessment contract
         reviewed_by: {type: [string, 'null']}
         review_note: {type: string}
+    Selection:
+      additionalProperties: false
+      properties:
+        text:
+          maxLength: 1200
+          minLength: 1
+          title: Text
+          type: string
+          pattern: .*\S.*
+        title:
+          maxLength: 200
+          title: Title
+          type: string
+        resource:
+          anyOf:
+          - $ref: '#/components/schemas/SelectionResource'
+          - type: 'null'
+          default: null
+      required:
+      - text
+      - title
+      title: Selection
+      type: object
+    SelectionResource:
+      description: Непроверенный контекст, не источник прав. Допустимые поля зависят от
+        kind.
+      oneOf:
+      - type: object
+        additionalProperties: false
+        required:
+        - kind
+        - id
+        - label
+        properties:
+          kind:
+            const: task
+          label:
+            type: string
+            minLength: 1
+            maxLength: 200
+            pattern: .*\S.*
+          id:
+            type: string
+            minLength: 1
+            maxLength: 128
+            pattern: ^[A-Za-z0-9_.:-]+$
+          description:
+            type: string
+            maxLength: 800
+          page_ids:
+            type: array
+            maxItems: 3
+            uniqueItems: true
+            items:
+              type: string
+              minLength: 1
+              maxLength: 128
+              pattern: ^[A-Za-z0-9_.:-]+$
+      - type: object
+        additionalProperties: false
+        required:
+        - kind
+        - id
+        properties:
+          kind:
+            const: confluence
+          label: &id001
+            type: string
+            maxLength: 200
+          id:
+            type: string
+            minLength: 1
+            maxLength: 128
+            pattern: ^[A-Za-z0-9_.:-]+$
+      - type: object
+        additionalProperties: false
+        required:
+        - kind
+        - id
+        - service
+        properties:
+          kind:
+            const: work_tool
+          label: *id001
+          id:
+            type: string
+            minLength: 1
+            maxLength: 128
+            pattern: ^[A-Za-z0-9_.:-]+$
+          service:
+            enum:
+            - mattermost
+            - redash
+            - trino
+            - trisigma
+            - bitbucket
+            - paas
+            - grafana
+            - tms
+            - postman
+            - test-stand
+            - figma
+            - design-system
+            - design-review
+      - type: object
+        additionalProperties: false
+        required:
+        - kind
+        - id
+        properties:
+          kind:
+            const: jira
+          label: *id001
+          id:
+            type: string
+            format: uuid
+            pattern: ^[a-fA-F0-9]{8}(-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}$
+      - type: object
+        additionalProperties: false
+        required:
+        - kind
+        - service
+        properties:
+          kind:
+            const: service
+          label: *id001
+          service:
+            enum:
+            - absences
+            - trips
+            - hiring
+            - offboarding
+            - consents
+            - benefits
+            - documents
+            - events
+            - access

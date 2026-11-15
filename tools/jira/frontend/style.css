@@ -338,3 +338,23 @@
     min-height: 300px;
   }
 }
+
+.jira-issue-context {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  background: #f5f7fa;
+  user-select: text;
+}
+.jira-issue-context h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+.jira-issue-context p {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+.jira-card {
+  user-select: text;
+}

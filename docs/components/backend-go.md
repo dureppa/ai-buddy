@@ -286,6 +286,12 @@ GET /internal/v1/ai/work-tools и POST /internal/v1/ai/work-tools/context исп
 аргументах нет. Клиент проверяет team ответа, ограничивает размер/время,
 не следует redirect и не использует env proxy. [SDD 009](../specs/009-agent-role-tools.md).
 
+## Пояснение выделенного текста
+
+buddy/selection.go проверяет контекст выделения, а HistoryText сохраняет цитату и название с вопросом. Bridge передаёт selection в Flask и подписывает read_only в delegation/resource JWT. Режим запрещает submit_access_request и prepare_service_action, включая прямой вызов resource API.
+
+[Сценарий и ограничения](../specs/010-selection-explanation.md).
+
 ## Назначения карточек чата
 
 [SDD 011](../specs/011-chat-navigation.md): internal/ai/navigation.go строит URL конкретного задания по task_id/action_url и настроенным публичным адресам, исправляет источники старой истории только по однозначным задачам владельца. papers/documents используют один Documents evidence. Неизвестное evidence не ссылается на согласия. Форматы API/MCP не расширены; новый экран задания читает существующий GET /api/v1/onboarding. Вкладка своих access-заявок задаётся tab=requests.

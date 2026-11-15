@@ -1,3 +1,5 @@
+import { taskSelectionResource } from './task-selection';
+import { SelectionAssistant } from './SelectionAssistant';
 import { ServiceActionPage } from './ServiceActionPage';
 import { OnboardingTaskPage } from './OnboardingTaskPage';
 import { accountCookieValue } from './service-session';
@@ -34,7 +36,7 @@ import { Avatar, Buddy, EmptyState, Icon, Modal, Toast, type Mood } from './ui';
 import { corporateLinks } from './corporate-links';
 import { toolProfileUrl, workToolsOrigin, toolsFor } from './tool-links';
 import { CorporateDirectory, accessPortalUrl } from './CorporateDirectory';
-import { WorkToolPage } from './WorkToolPage';
+import { WorkToolPage } from '../../../tools/shared/frontend/WorkToolPage';
 import { ProductGuide } from './ProductGuide';
 
 const searchItems = [
@@ -478,6 +480,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
 
   return (
     <div className="shell">
+      <SelectionAssistant profileId={profileId} />
       <a href="#main-content" className="skip-link">
         Перейти к содержимому
       </a>
@@ -726,7 +729,10 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           onClose={closeDetail}
         >
           {shownDetail.kind === 'task' && (
-            <div className="detail-content">
+            <div
+              className="detail-content"
+              data-agent-resource={JSON.stringify(taskSelectionResource(profileId, shownDetail.item))}
+            >
               <TaskMaterialList profileId={profileId} taskId={shownDetail.item.id} />
               <p>{shownDetail.item.details}</p>
               <dl>

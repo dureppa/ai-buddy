@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { pageSchema } from './work-tool-data';
 import { useWorkToolTransport } from './work-tool-transport';
-import type { ProfileId } from './demo-accounts';
+import type { ProfileId } from '../../../web/frontend/src/demo-accounts';
 import { toolViews } from './WorkToolViews';
 import './work-tools.css';
 
@@ -62,7 +62,15 @@ export function WorkToolPage({ profileId }: { profileId: ProfileId }) {
           </aside>
           <div className="work-tool__main">
             {selected && Workspace ? (
-              <article id={selected.id}>
+              <article
+                id={selected.id}
+                data-agent-resource={JSON.stringify({
+                  kind: 'work_tool',
+                  service,
+                  id: selected.id,
+                  label: [...selected.title].slice(0, 200).join(''),
+                })}
+              >
                 <div className="work-tool__path">
                   {page.area} {selected.fields.Задача && ' / ' + selected.fields.Задача}
                 </div>

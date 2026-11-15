@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ProfileId } from './data';
 import type { BuddyReply } from './demo';
+import type { ExplanationContext } from './selection-context';
 
 export const backendEnabled = import.meta.env.VITE_API_ENABLED === 'true';
 const sessionSchema = z.object({ access_token: z.string().min(1), profile_id: z.string() });
@@ -24,13 +25,14 @@ const historySchema = z.object({
     }),
   ),
 });
-const sessions = new Map<ProfileId, Promise<string>>();
+const sessions = new Map<string, Promise<string>>();
 
-export async function sessionToken(profile: ProfileId): Promise<string> {
-  const existing = sessions.get(profile);
+export async function sessionToken(profile: ProfileId, prefix = '/api'): Promise<string> {
+  const key = prefix + ':' + profile;
+  const existing = sessions.get(key);
   if (existing) return existing;
   const pending = (async () => {
-    const response = await fetch('/api/v1/demo/sessions', {
+    const response = await fetch(prefix + '/v1/demo/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ profile_id: profile }),
@@ -40,25 +42,30 @@ export async function sessionToken(profile: ProfileId): Promise<string> {
     if (session.profile_id !== profile) throw new Error('Профиль сессии не совпадает.');
     return session.access_token;
   })();
-  sessions.set(profile, pending);
+  sessions.set(key, pending);
   try {
     return await pending;
   } catch (error) {
-    sessions.delete(profile);
+    sessions.delete(key);
     throw error;
   }
 }
 
-export async function apiFetch(profile: ProfileId, path: string, init: RequestInit = {}): Promise<Response> {
+export async function apiFetch(
+  profile: ProfileId,
+  path: string,
+  init: RequestInit = {},
+  prefix = '/api',
+): Promise<Response> {
   const response = await fetch(path, {
     ...init,
     headers: {
       ...init.headers,
-      Authorization: 'Bearer ' + (await sessionToken(profile)),
+      Authorization: 'Bearer ' + (await sessionToken(profile, prefix)),
       'Content-Type': 'application/json',
     },
   });
-  if (response.status === 401) sessions.delete(profile);
+  if (response.status === 401) sessions.delete(prefix + ':' + profile);
   if (!response.ok) throw new Error('Сервис временно недоступен. Попробуйте ещё раз.');
   return response;
 }
@@ -80,4 +87,29 @@ export async function readBackendConversation(profile: ProfileId) {
   if (!conversation) return [];
   const response = await apiFetch(profile, '/api/v1/chat/conversations/' + encodeURIComponent(conversation));
   return historySchema.parse(await response.json()).messages;
+}
+
+export async function askSelectionBackend(
+  profile: ProfileId,
+  text: string,
+  pageContext: ExplanationContext,
+  conversationId?: string,
+  signal?: AbortSignal,
+  prefix = '/api',
+) {
+  const response = await apiFetch(
+    profile,
+    prefix + '/v1/chat/messages',
+    {
+      method: 'POST',
+      signal,
+      body: JSON.stringify({
+        text,
+        page_context: pageContext,
+        ...(conversationId ? { conversation_id: conversationId } : {}),
+      }),
+    },
+    prefix,
+  );
+  return replySchema.parse(await response.json());
 }

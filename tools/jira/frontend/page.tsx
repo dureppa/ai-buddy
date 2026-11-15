@@ -177,7 +177,16 @@ export function JiraPage({ profile }: { profile: keyof typeof profiles }) {
                     {issues
                       .filter((i) => i.status === status)
                       .map((issue) => (
-                        <button className="jira-card" key={issue.id} onClick={() => open(issue)}>
+                        <button
+                          data-agent-resource={JSON.stringify({
+                            kind: 'jira',
+                            id: issue.id,
+                            label: [...(issue.key + ' · ' + issue.title)].slice(0, 200).join(''),
+                          })}
+                          className="jira-card"
+                          key={issue.id}
+                          onClick={() => open(issue)}
+                        >
                           <span className={'jira-priority jira-priority--' + issue.priority}>
                             {priorities[issue.priority]}
                           </span>
@@ -269,6 +278,15 @@ export function IssueEditor({
   return (
     <dialog
       ref={dialog}
+      data-agent-resource={
+        issue === 'new'
+          ? undefined
+          : JSON.stringify({
+              kind: 'jira',
+              id: issue.id,
+              label: [...(issue.key + ' · ' + issue.title)].slice(0, 200).join(''),
+            })
+      }
       className="jira-editor"
       aria-labelledby="jira-editor-title"
       onCancel={(e) => {
@@ -282,6 +300,12 @@ export function IssueEditor({
           ✕
         </button>
       </div>
+      {issue !== 'new' && (
+        <section className="jira-issue-context">
+          <h3>{issue.title}</h3>
+          <p>{issue.description}</p>
+        </section>
+      )}
       <form onSubmit={(e) => void submit(e)}>
         <fieldset disabled={pending}>
           <label>

@@ -34,4 +34,8 @@
 - [Пробелы ответов](ai/answer-gaps.md), [контроль качества](ai/quality-control.md)
 - [Инструменты направлений](specs/009-agent-role-tools.md), [проверка прогона](ai/role-tools-check.md)
 
+- [Уточнить у агента по выделению](specs/010-selection-explanation.md): боковая панель, контекст задачи/сервиса и чтение источников.
+
+- [Проверка пояснений выделения](ai/selection-explanation-check.md): UI, контракты, LLM и границы измерения.
+
 - [Ссылки и действия чата](specs/011-chat-navigation.md), [проверка переходов](ai/chat-navigation-audit.md).
