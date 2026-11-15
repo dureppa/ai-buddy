@@ -262,6 +262,11 @@ function SelectionAssistantSession({ profileId, apiPrefix = '/api', enabled = ba
                           text={entry.answer.text}
                           references={entry.answer.references}
                           profileId={profileId}
+                          buddyOrigin={
+                            apiPrefix === '/buddy-api'
+                              ? (import.meta.env.VITE_BUDDY_URL ?? 'http://127.0.0.1:5173/')
+                              : undefined
+                          }
                         />
                       ))}
                   </div>

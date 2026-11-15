@@ -17,7 +17,7 @@ export function safeChatUrl(value: string): boolean {
   }
 }
 
-export function chatDestination(value: string, profile?: ProfileId): string | null {
+export function chatDestination(value: string, profile?: ProfileId, buddyOrigin?: string): string | null {
   if (!safeChatUrl(value)) return null;
   let target = value;
   const url = new URL(value, 'https://buddy.invalid');
@@ -50,6 +50,12 @@ export function chatDestination(value: string, profile?: ProfileId): string | nu
     ];
     if (known.some((base) => safeChatUrl(base) && new URL(base, 'https://buddy.invalid').origin === destination.origin))
       return toolProfileUrl(target, profile);
+  }
+  if (target.startsWith('/') && buddyOrigin !== undefined) {
+    if (!safeChatUrl(buddyOrigin) || buddyOrigin.startsWith('/')) return null;
+    const base = new URL(buddyOrigin);
+    if (base.pathname !== '/' || base.search || base.hash) return null;
+    return new URL(target, base).toString();
   }
   return target;
 }

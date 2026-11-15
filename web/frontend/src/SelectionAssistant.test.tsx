@@ -51,6 +51,7 @@ afterEach(async () => {
   vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 function select(element = content) {
   const range = document.createRange();
@@ -326,4 +327,13 @@ it('keeps the current profile on a corporate source opened from the explanation 
     expected.toString(),
   );
   expect(mocks.ask).toHaveBeenCalledTimes(1);
+});
+
+it('opens relative Buddy references from an external service in the configured application', async () => {
+  vi.stubEnv('VITE_BUDDY_URL', 'https://buddy.example');
+  await act(async () => root.render(<SelectionAssistant profileId="olga" apiPrefix="/buddy-api" />));
+  mocks.ask.mockResolvedValue({ ...answer, references: [{ title: 'Команда', url: '/team' }] });
+  await open();
+  expect(document.querySelector('aside a')?.getAttribute('href')).toBe('https://buddy.example/team');
+  expect(mocks.ask.mock.calls[0][5]).toBe('/buddy-api');
 });

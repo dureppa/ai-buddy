@@ -43,7 +43,7 @@ export function cleanAnswer(text: string, references: Reference[]): string {
     .join('');
 }
 
-function inline(text: string, references: Reference[], profile?: ProfileId): ReactNode[] {
+function inline(text: string, references: Reference[], profile?: ProfileId, buddyOrigin?: string): ReactNode[] {
   const tokens = text.split(/(\*\*[^*\n]+\*\*|`[^`\n]+`|\[[^\]\n]+\]\([^\s)]+\))/g);
   return tokens.map((token, index) => {
     if (token.startsWith('**') && token.endsWith('**')) return <strong key={index}>{token.slice(2, -2)}</strong>;
@@ -51,9 +51,14 @@ function inline(text: string, references: Reference[], profile?: ProfileId): Rea
     const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(token);
     if (link)
       return safeUrl(link[2]) &&
-        chatDestination(link[2], profile) &&
+        chatDestination(link[2], profile, buddyOrigin) &&
         references.some((reference) => reference.url === link[2]) ? (
-        <a key={index} href={chatDestination(link[2], profile) ?? undefined} target="_blank" rel="noopener noreferrer">
+        <a
+          key={index}
+          href={chatDestination(link[2], profile, buddyOrigin) ?? undefined}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {link[1]}
         </a>
       ) : (
@@ -67,10 +72,12 @@ export function AgentAnswer({
   text,
   references = [],
   profileId,
+  buddyOrigin,
 }: {
   text: string;
   references?: Reference[];
   profileId?: ProfileId;
+  buddyOrigin?: string;
 }) {
   const unique = references.filter(
     (reference, index) => safeUrl(reference.url) && references.findIndex((r) => r.url === reference.url) === index,
@@ -98,7 +105,7 @@ export function AgentAnswer({
     if (/^#{1,6}\s/.test(line)) {
       blocks.push(
         <p key={blocks.length} className="agent-answer__heading">
-          <strong>{inline(line.replace(/^#{1,6}\s+/, ''), unique, profileId)}</strong>
+          <strong>{inline(line.replace(/^#{1,6}\s+/, ''), unique, profileId, buddyOrigin)}</strong>
         </p>,
       );
       index++;
@@ -110,7 +117,9 @@ export function AgentAnswer({
       const items: ReactNode[] = [];
       const pattern = ordered ? /^\s*\d+[.)]\s+/ : /^\s*[-*]\s+/;
       while (index < lines.length && pattern.test(lines[index]))
-        items.push(<li key={items.length}>{inline(lines[index++].replace(pattern, ''), unique, profileId)}</li>);
+        items.push(
+          <li key={items.length}>{inline(lines[index++].replace(pattern, ''), unique, profileId, buddyOrigin)}</li>,
+        );
       blocks.push(
         ordered ? (
           <ol key={blocks.length} start={list[2] === '1' ? undefined : Number(list[2])}>
@@ -125,7 +134,9 @@ export function AgentAnswer({
     const paragraph: ReactNode[] = [];
     do {
       if (paragraph.length) paragraph.push(<br key={'break-' + index} />);
-      paragraph.push(<Fragment key={'line-' + index}>{inline(lines[index++], unique, profileId)}</Fragment>);
+      paragraph.push(
+        <Fragment key={'line-' + index}>{inline(lines[index++], unique, profileId, buddyOrigin)}</Fragment>,
+      );
     } while (
       index < lines.length &&
       lines[index].trim() &&
@@ -139,7 +150,7 @@ export function AgentAnswer({
       {unique.length > 0 && (
         <div className="agent-sources" aria-label="Источники ответа">
           {unique.map((reference) =>
-            chatDestination(reference.url, profileId) === null ? (
+            chatDestination(reference.url, profileId, buddyOrigin) === null ? (
               <span className="agent-source" key={reference.url} aria-disabled="true">
                 {reference.title} — ссылка пока недоступна
               </span>
@@ -147,7 +158,7 @@ export function AgentAnswer({
               <a
                 className="agent-source"
                 key={reference.url}
-                href={chatDestination(reference.url, profileId) ?? undefined}
+                href={chatDestination(reference.url, profileId, buddyOrigin) ?? undefined}
                 target="_blank"
                 rel="noopener noreferrer"
               >

@@ -111,3 +111,34 @@ it.each(['constructor', '__proto__', 'toString'])(
   'rejects unsupported article identity %s without inherited object keys',
   (id) => expect(chatDestination('/resources?article=' + id)).toBeNull(),
 );
+
+it.each(['/team', '/onboarding/tasks/equipment?view=guide#step', '/actions/demo'])(
+  'opens %s from an external panel in the configured Buddy origin',
+  (path) => {
+    expect(chatDestination(path, 'olga', 'https://buddy.example')).toBe('https://buddy.example' + path);
+  },
+);
+it.each([
+  'javascript:alert(1)',
+  '/buddy',
+  'https://u:p@host/',
+  'https://buddy.example/prefix',
+  'https://buddy.example/?secret=x',
+  'https://buddy.example/#fragment',
+  '',
+])('rejects invalid Buddy origin %s for relative references', (origin) => {
+  expect(chatDestination('/team', 'olga', origin)).toBeNull();
+});
+it('uses the Buddy origin for verified inline links and cards without changing external citations', () => {
+  const html = renderToStaticMarkup(
+    <AgentAnswer
+      buddyOrigin="https://buddy.example"
+      text="[Команда](/team)"
+      references={[{ title: 'Команда', url: '/team' }]}
+    />,
+  );
+  expect(html.match(/href="https:\/\/buddy.example\/team"/g)).toHaveLength(2);
+  expect(chatDestination('https://research.example/guide', 'olga', 'https://buddy.example')).toBe(
+    'https://research.example/guide',
+  );
+});
