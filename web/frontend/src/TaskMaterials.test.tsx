@@ -158,6 +158,48 @@ async function search(value: string) {
 }
 
 it.each(['mentor', 'manager'] as const)(
+  'keeps the material form and its fields when file selection is cancelled as %s',
+  async (staff) => {
+    await mount(staff, '/staff');
+    await click(button('Материалы для стажёров'));
+    await click(button('Добавить материал'));
+    const formDialog = dialog();
+    const title = formDialog.querySelector<HTMLInputElement>('input[name="title"]')!;
+    const description = formDialog.querySelector<HTMLTextAreaElement>('textarea[name="description"]')!;
+    title.value = 'Материалы первой недели';
+    description.value = 'Памятка для стажёра';
+    const source = formDialog.querySelectorAll('select')[1];
+    await act(async () => {
+      source.value = 'file';
+      source.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    const input = formDialog.querySelector<HTMLInputElement>('input[type="file"]')!;
+
+    await act(async () => input.dispatchEvent(new Event('cancel', { bubbles: true })));
+    expect(dialog()).toBe(formDialog);
+    expect(title.value).toBe('Материалы первой недели');
+    expect(description.value).toBe('Памятка для стажёра');
+    expect(input.files?.length).toBe(0);
+    expect(publishedForIntern(localStorage, 'olga')).toHaveLength(0);
+
+    const files = [new File(['Памятка'], 'guide.txt', { type: 'text/plain' })];
+    Object.defineProperty(input, 'files', { configurable: true, value: files });
+    await act(async () => input.dispatchEvent(new Event('change', { bubbles: true })));
+    await act(async () => input.dispatchEvent(new Event('cancel', { bubbles: true })));
+    expect(dialog()).toBe(formDialog);
+    expect(input.files?.[0]).toBe(files[0]);
+    expect(title.value).toBe('Материалы первой недели');
+
+    // Escape while the dialog itself is active must still dismiss it.
+    await act(async () => formDialog.dispatchEvent(new Event('cancel', { cancelable: true })));
+    expect(container.querySelector('dialog[open]')).toBeNull();
+    await click(button('Добавить материал'));
+    await click(button('Закрыть', dialog()));
+    expect(container.querySelector('dialog[open]')).toBeNull();
+  },
+);
+
+it.each(['mentor', 'manager'] as const)(
   'attaches materials immediately from groups and search as %s and shows them to the intern',
   async (staff) => {
     saveMaterial(localStorage, 'mentor', report);
