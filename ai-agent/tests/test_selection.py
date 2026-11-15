@@ -150,6 +150,10 @@ def test_explicit_selection_reads(
             names = {item["function"]["name"] for item in tools}
             assert not names & {"prepare_service_action", "submit_access_request"}
             if resource["kind"] == "task":
+                assert {"get_team_context", "get_work_tools"} <= {
+                    name for name, _, _ in session.calls
+                }
+                assert "четыре короткие части" in str(messages)
                 assert not names & {"get_task_context", "get_task_evidence"}
             assert "local-task" in str(messages) if resource["kind"] == "task" else True
             suffix = " [" + next(iter(trace.sources)) + "]" if trace.sources else ""
@@ -347,6 +351,8 @@ def test_attached_confluence_pages_are_read_for_local_task() -> None:
         assert [item["tool"] for item in values] == [
             "get_knowledge_page",
             "search_knowledge",
+            "get_team_context",
+            "get_work_tools",
         ]
         assert session.calls[0][1] == {"page_id": "guide-access"}
 

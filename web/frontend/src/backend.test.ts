@@ -103,3 +103,30 @@ it('uses Buddy API on external services and keeps explanation conversations sepa
   expect(fetch.mock.calls[1][1].signal).toBe(controller.signal);
   expect(localStorage.setItem).not.toHaveBeenCalled();
 });
+
+it('sends checklist context alongside the question in the primary conversation', async () => {
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(Response.json({ access_token: 'context-token', profile_id: 'olga' }))
+    .mockResolvedValueOnce(
+      Response.json({
+        conversation_id: '11111111-1111-4111-8111-111111111111',
+        kind: 'answer',
+        text: 'Ответ',
+        references: [],
+      }),
+    );
+  vi.stubGlobal('fetch', fetcher);
+  vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => {} });
+  const api = await import('./backend');
+  const context = {
+    url: 'http://localhost/onboarding',
+    selection: {
+      title: 'Пункт',
+      text: 'Команда',
+      resource: { kind: 'task' as const, id: 'meet-team', label: 'Команда', description: 'Описание' },
+    },
+  };
+  await api.askBackend('olga', 'Объясни пункт', context);
+  expect(JSON.parse(fetcher.mock.calls[1][1].body)).toMatchObject({ text: 'Объясни пункт', page_context: context });
+});

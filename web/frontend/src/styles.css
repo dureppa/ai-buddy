@@ -2503,3 +2503,21 @@ svg {
 .agent-answer__text ul {
   list-style: disc;
 }
+
+.task-ask {
+  flex: none;
+  font-size: 12px;
+  margin: 8px 0;
+}
+@media (max-width: 700px) {
+  .task-row {
+    flex-wrap: wrap;
+  }
+  .task-row .task-link {
+    flex: 1;
+    min-width: 0;
+  }
+  .task-ask {
+    margin: 0 0 10px 32px;
+  }
+}
