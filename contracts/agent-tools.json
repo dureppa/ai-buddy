@@ -39,6 +39,7 @@
             }
           ],
           "default": null,
+          "description": "UUID из поля id задачи. DEL-1 — ключ: сначала читай service=jira без issue_id.",
           "title": "Issue Id"
         }
       },
@@ -1068,6 +1069,7 @@
               "type": "string"
             },
             "issue_id": {
+              "description": "UUID из поля id доступной задачи; не человекочитаемый ключ DEL-1.",
               "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
               "title": "Issue Id",
               "type": "string"
