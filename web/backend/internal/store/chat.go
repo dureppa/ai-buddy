@@ -55,7 +55,7 @@ func (s *Store) ChatTurn(ctx context.Context, profile string, msg buddy.ChatMess
 		return buddy.ChatReply{}, err
 	}
 	slices.Reverse(history)
-	_, err = tx.Exec(ctx, `INSERT INTO messages(conversation_id,sender,content,page_url) VALUES($1,'user',$2,NULLIF($3,''))`, conversation, msg.Text, msg.PageURL)
+	_, err = tx.Exec(ctx, `INSERT INTO messages(conversation_id,sender,content,page_url) VALUES($1,'user',$2,NULLIF($3,''))`, conversation, msg.HistoryText(), msg.PageURL)
 	if err != nil {
 		return buddy.ChatReply{}, err
 	}

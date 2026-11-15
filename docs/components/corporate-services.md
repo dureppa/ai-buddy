@@ -93,3 +93,9 @@ Confluence на 5191 добавлен в общую сборку/hr-web. Ссы�
 демосессии и читает записи через публичные HTTP-маршруты.
 
 Тесты Go лежат в каталогах сервисов рядом с `main.go`. `just service-go-check` проверяет все девять модулей. При заданном `TEST_DATABASE_URL` тесты проверяют операции и изоляцию на PostgreSQL.
+
+## Пояснение выделенного текста
+
+ServiceSession подключает общую SelectionAssistant для текущего стажёра, портал доступов — только для intern-аккаунта. Confluence, Jira и WorkToolPage размечают идентификаторы записей. /buddy-api/ направляется в Go Buddy отдельно от API сервиса; путь настроен в sites.mjs и ops/docker/hr-web.conf.
+
+[Сценарий и ограничения](../specs/010-selection-explanation.md).

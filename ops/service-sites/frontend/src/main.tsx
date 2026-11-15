@@ -70,7 +70,9 @@ createRoot(root).render(
           ) : __CORPORATE_SERVICE__ === 'jira' ? (
             <JiraPage profile={profileId} />
           ) : (
-            <Page profileId={profileId} />
+            <div data-agent-resource={JSON.stringify({ kind: 'service', service: service?.id, label: service?.title })}>
+              <Page profileId={profileId} />
+            </div>
           )
         }
       </ServiceSession>
