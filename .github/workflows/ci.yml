@@ -84,21 +84,8 @@ jobs:
             psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
           psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f web/backend/seeds/demo.sql
-      - working-directory: corporate-services/access
-        run: go test -race ./...
-      - working-directory: tools
-        run: go test -race ./...
-      - working-directory: tools/jira
-        run: |
-          test -z "$(gofmt -l .)"
-          go vet ./...
-          go test -race ./...
-      - working-directory: corporate-services/consents
-        run: go test -race ./...
-      - working-directory: corporate-services/documents
-        run: go test -race ./...
-      - working-directory: corporate-services/events
-        run: go test -race ./...
+      - name: Run Go tests for corporate services and tools
+        run: sh ops/checks/service-go.sh
       - working-directory: web/backend
         run: |
           unformatted=$(gofmt -l .)
@@ -112,7 +99,7 @@ jobs:
       - name: Verify all external services without Buddy
         run: |
           sh ops/checks/external-services.sh
-          sh ops/checks/check-access-migration.sh
+          sh corporate-services/access/check-migration.sh
 
   repository:
     name: repository

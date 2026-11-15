@@ -12,6 +12,12 @@ GRANT CONNECT ON DATABASE buddy_access TO buddy_access;
 SQL
 
 psql -d buddy_access -v ON_ERROR_STOP=1 -f /data/schema.sql
+psql -d buddy_access -v ON_ERROR_STOP=1 <<'SQL'
+GRANT SELECT ON teams, profiles TO buddy_access;
+GRANT SELECT, INSERT ON portal_resources TO buddy_access;
+GRANT SELECT, INSERT, UPDATE ON portal_access_requests TO buddy_access;
+GRANT USAGE ON SEQUENCE portal_access_requests_number_seq TO buddy_access;
+SQL
 ready=$(psql -Atc "SELECT to_regclass('public.portal_access_requests') IS NOT NULL")
 done=$(psql -d buddy_access -Atc "SELECT EXISTS(SELECT 1 FROM access_migrations WHERE name='legacy-import')")
 if [ "$ready" != t ] || [ "$done" = t ]; then

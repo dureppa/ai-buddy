@@ -51,7 +51,7 @@ typecheck: frontend-typecheck python-check go-check
 
 build: frontend-build
 
-check: tools-check jira-check frontend-check python-check go-check hr-consents-check repository-check compose-check
+check: service-go-check frontend-check python-check go-check repository-check compose-check
 
 jira-check:
 	cd tools/jira && test -z "$(gofmt -l .)" && go vet ./... && go test -race ./...
@@ -61,3 +61,6 @@ tools-check:
 
 external-check:
 	sh ops/checks/external-services.sh
+
+service-go-check:
+	sh ops/checks/service-go.sh

@@ -43,8 +43,4 @@ CREATE TABLE IF NOT EXISTS portal_access_requests (
 CREATE UNIQUE INDEX IF NOT EXISTS portal_active_access ON portal_access_requests(profile_id,template_id,resource_key,permission,scope_key) WHERE status IN ('submitted','approved');
 CREATE INDEX IF NOT EXISTS portal_requests_product ON portal_access_requests(product_id,created_at DESC);
 CREATE TABLE IF NOT EXISTS access_migrations (name text PRIMARY KEY);
-GRANT SELECT ON teams, profiles TO buddy_access;
-GRANT SELECT, INSERT ON portal_resources TO buddy_access;
-GRANT SELECT, INSERT, UPDATE ON portal_access_requests TO buddy_access;
-GRANT USAGE ON SEQUENCE portal_access_requests_number_seq TO buddy_access;
 COMMIT;
