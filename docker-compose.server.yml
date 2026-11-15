@@ -46,6 +46,9 @@ services:
   hr-events:
     restart: unless-stopped
 
+  access:
+    restart: unless-stopped
+    ports: !override []
   confluence:
     restart: unless-stopped
     ports: !override []

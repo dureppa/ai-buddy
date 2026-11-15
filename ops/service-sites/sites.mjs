@@ -36,7 +36,10 @@ for (const [id, port] of Object.entries(ports)) {
       fs: { allow: [root, repo] },
       proxy: {
         ...(id === 'work-tools' ? { '/api/v1/work-tools': 'http://127.0.0.1:5192' } : {}),
-        '/api': id === 'confluence' ? 'http://127.0.0.1:8191' : 'http://127.0.0.1:8080',
+        '/api':
+          (id === 'access' && 'http://127.0.0.1:8190') ||
+          (id === 'confluence' && 'http://127.0.0.1:8191') ||
+          'http://127.0.0.1:8080',
         '/jira-api': { target: 'http://127.0.0.1:8189', rewrite: (path) => path.replace(/^\/jira-api/, '/api') },
         ...(hrApiPorts[id]
           ? {

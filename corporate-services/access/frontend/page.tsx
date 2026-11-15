@@ -290,16 +290,24 @@ function subscribeSession(onChange: () => void) {
   };
 }
 export function AccessPortal() {
-  const account = useSyncExternalStore(
+  const [selectedProfile, setSelectedProfile] = useState<AccountId>();
+  const buddyAccount = useSyncExternalStore(
     subscribeSession,
     () => readAccessAccount(document.cookie),
     () => null,
   );
+  const account = buddyAccount ?? selectedProfile;
   if (!account)
     return (
       <main className="access-app access-main">
-        <h1>Войди в AI Buddy</h1>
-        <p>Открой сервис из своего рабочего пространства после входа в AI Buddy.</p>
+        <h1>Войти в управление доступами</h1>
+        {Object.keys(profiles)
+          .filter(isProfileId)
+          .map((id) => (
+            <button key={id} type="button" onClick={() => setSelectedProfile(id)}>
+              {profiles[id].fullName}
+            </button>
+          ))}
       </main>
     );
   return <Portal key={account} account={account} />;

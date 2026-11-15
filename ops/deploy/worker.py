@@ -31,6 +31,7 @@ SERVICES = (
     "hr-documents",
     "hr-events",
     "jira",
+    "access",
     "confluence",
     "tool-grafana",
 )
@@ -356,6 +357,12 @@ def deploy(root: Path, sha: str) -> None:
             )
             backups.mkdir(parents=True, exist_ok=True, mode=0o700)
             write_json(backups / "images.json", snapshot)
+            if (release / "corporate-services/access/migrate.sh").is_file() and not (
+                previous_path / "corporate-services/access/migrate.sh"
+            ).is_file():
+                # Quiesce the legacy writer before copying its requests.
+                switched = True
+                run([*COMPOSE, "stop", "go"], previous_path)
             backup_database(previous_path, backups)
             auth_configs(release, root)
             status(root, sha, "starting")
