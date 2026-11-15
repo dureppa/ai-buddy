@@ -180,9 +180,27 @@ export const workToolsOrigin = import.meta.env.VITE_WORK_TOOLS_URL?.replace(/\/$
 export function toolsFor(profileId: ProfileId): Tool[] {
   const knowledge = new URL(confluenceService.url);
   if (!knowledge.searchParams.has('page')) knowledge.searchParams.set('page', 'team-' + profiles[profileId].productId);
-  const guides = [...roleTools[profileId], mattermost];
-  const links = backendEnabled
-    ? guides.map((tool) => ({ ...tool, url: workToolsOrigin + '/work-tools/' + tool.id, action: 'Открыть сервис' }))
-    : guides;
-  return [...links.slice(0, -1), jiraService, { ...confluenceService, url: knowledge.toString() }, links.at(-1)!];
+  const ownIds = new Set(roleTools[profileId].map((tool) => tool.id));
+  const otherGuides = Object.values(roleTools)
+    .flat()
+    .filter((tool) => !ownIds.has(tool.id));
+  // Code review is occasional work for analysts and designers.
+  if (profileId === 'olga' || profileId === 'maria') {
+    otherGuides.sort((a, b) => Number(a.id === 'bitbucket') - Number(b.id === 'bitbucket'));
+  }
+  const guides = [...roleTools[profileId], mattermost, ...otherGuides].map((tool) => {
+    const guide =
+      ownIds.has(tool.id) || tool.id === 'mattermost'
+        ? tool
+        : {
+            ...tool,
+            description: tool.category + '. Материалы и рабочее пространство своей команды.',
+            instruction:
+              'Найди пространство своей команды по ссылке из задачи или уточни его у наставника. Доступность данных проверяет сервис.',
+          };
+    return backendEnabled
+      ? { ...guide, url: workToolsOrigin + '/work-tools/' + tool.id, action: 'Открыть сервис' }
+      : guide;
+  });
+  return [...guides.slice(0, 3), jiraService, { ...confluenceService, url: knowledge.toString() }, ...guides.slice(3)];
 }

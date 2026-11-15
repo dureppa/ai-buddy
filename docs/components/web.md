@@ -92,3 +92,6 @@ SelectionAssistant.tsx и selection-context.ts добавляют кнопку �
 [SDD 011](../specs/011-chat-navigation.md), [аудит назначений](../ai/chat-navigation-audit.md). chat-links.ts преобразует только известные legacy article URL, сохраняет query/якорь и demo-profile для известных сервисов. AgentAnswer использует те же назначения для карточек и встроенных проверенных ссылок.
 
 OnboardingTaskPage и onboarding-task.ts открывают конкретное задание Go через существующий GET /api/v1/onboarding; экран читает инструкцию/статус и не завершает задачу. Ошибка или неизвестный id не подменяются локальным заданием. ServiceSession и портал принимают проверенный demo-profile из ссылки, cookie Buddy имеет приоритет. Это не заменяет серверную сессию или ACL. «Мои заявки» открывает вкладку requests.
+
+Все 15 инструментов видны каждому профилю и ранжируются по специальности.
+[Порядок и границы](../specs/role-tool-ranking.md).

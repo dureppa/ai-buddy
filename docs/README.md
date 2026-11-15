@@ -39,3 +39,6 @@
 - [Проверка пояснений выделения](ai/selection-explanation-check.md): UI, контракты, LLM и границы измерения.
 
 - [Ссылки и действия чата](specs/011-chat-navigation.md), [проверка переходов](ai/chat-navigation-audit.md).
+
+Все 15 инструментов видны каждому профилю и ранжируются по специальности.
+[Порядок и границы](specs/role-tool-ranking.md).
