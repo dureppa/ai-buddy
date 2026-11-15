@@ -538,6 +538,20 @@ it('stops and resumes the start-screen animation when the reduced-motion prefere
   expect(deleteProgram).toHaveBeenCalledWith(program);
 });
 
+it('opens settings from the profile button and leaves service feedback in the sidebar', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  await mount('/home');
+  const feedback = await button('Задать вопрос по работе сервиса');
+  const sidebarButtons = feedback.closest('aside')?.querySelectorAll('button') ?? [];
+  expect([...sidebarButtons].map((item) => item.textContent?.trim())).toEqual(['Задать вопрос по работе сервиса']);
+
+  await click(await button('Профиль'));
+  const settings = await waitForElement(() =>
+    container.querySelector<HTMLDialogElement>('dialog[open][aria-label="Настройки"]'),
+  );
+  expect(settings.textContent).toContain('Выйти из аккаунта');
+});
+
 it('saves a valid service question for the active profile and blocks an empty submission', async () => {
   localStorage.setItem(demoSessionKey, 'olga');
   await mount('/home');
