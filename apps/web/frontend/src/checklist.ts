@@ -1091,3 +1091,7 @@ export function homeTasks(profileId: ProfileId): Task[] {
   if (stageId === 'midpoint') return list.filter((task) => task.id === 'equator-prep' || task.id === 'equator-meeting');
   return list.filter((task) => task.id === 'graduation' || task.id === 'internship-survey');
 }
+
+export function homeSectionTitle(profileId: ProfileId): string {
+  return profiles[profileId].stageId === 'final' ? 'Итоги адаптации' : 'Ближайшие задачи';
+}
