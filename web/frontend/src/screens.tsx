@@ -490,7 +490,12 @@ export function Team({ profileId, onOpen }: { profileId: ProfileId; onOpen: Open
 export function Tools({ profileId, onOpen }: { profileId: ProfileId; onOpen: OpenDetail }) {
   return (
     <>
-      <PageIntro title="Инструменты" text="Рабочие сервисы для твоих задач и команды." tone="blue" icon="grid" />
+      <PageIntro
+        title="Инструменты"
+        text="Все рабочие сервисы. Сначала — наиболее полезные для твоей специальности."
+        tone="blue"
+        icon="grid"
+      />
       <div className="tile-grid">
         {toolsFor(profileId).map((tool) => {
           const isLink = 'url' in tool;
