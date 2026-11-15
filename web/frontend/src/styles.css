@@ -935,19 +935,21 @@ svg {
     transform var(--motion),
     border-color var(--motion);
 }
-.task-check:hover {
+button.task-check:hover {
   border-color: #49865a;
   color: #8cb896;
 }
-.task-check:active {
+button.task-check:active {
   transform: scale(0.88);
 }
-.task-check[aria-checked='true'] {
+.task-check[aria-checked='true'],
+.task-check[data-checked='true'] {
   background: #daf5d8;
   border-color: #8ad48a;
   color: #256236;
 }
-.task-check[aria-checked='true'] svg {
+.task-check[aria-checked='true'] svg,
+.task-check[data-checked='true'] svg {
   animation: hop 220ms both;
 }
 .task-link {

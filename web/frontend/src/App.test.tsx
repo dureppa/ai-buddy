@@ -753,6 +753,9 @@ it.each(Object.entries(profiles).map(([id, profile]) => ({ id: id as ProfileId, 
       surveys.final.title,
     ]);
     expect([...rows].every((row) => !row.querySelector('[role="checkbox"], .task-ask'))).toBe(true);
+    expect([...rows].every((row) => row.querySelector('.task-check')?.getAttribute('data-checked') === 'false')).toBe(
+      true,
+    );
 
     const bell = await button('Уведомления');
     expect(bell.querySelector('span')).not.toBeNull();
@@ -776,6 +779,21 @@ it.each(Object.entries(profiles).map(([id, profile]) => ({ id: id as ProfileId, 
     expect(Object.keys(JSON.parse(saved ?? '{}'))).toEqual(
       surveys[profile.stageId].questions.filter((question) => 'options' in question).map((question) => question.id),
     );
+    const completedRow = container.querySelector('.task-row--survey.task-row--done');
+    expect(completedRow?.textContent).toContain(surveys[profile.stageId].title);
+    expect(completedRow?.querySelector('.task-check')?.getAttribute('data-checked')).toBe('true');
+    expect(container.querySelectorAll('.task-row--survey .task-check[data-checked="false"]')).toHaveLength(2);
+
+    await act(async () => root.unmount());
+    client.clear();
+    root = createRoot(container);
+    await mount('/onboarding');
+    const restoredCheck = await waitForElement(() =>
+      container.querySelector('.task-row--survey.task-row--done .task-check[data-checked="true"]'),
+    );
+    expect(restoredCheck.closest('.task-row')?.textContent).toContain(surveys[profile.stageId].title);
+    expect(restoredCheck.tagName).toBe('SPAN');
+    expect(restoredCheck.getAttribute('role')).toBeNull();
   },
 );
 
@@ -856,11 +874,15 @@ it('keeps survey answers when going back or retrying and marks the task only aft
   await waitForElement(() => container.querySelector('dialog [role="alert"]'));
   expect(comment.value).toBe('Комментарий');
   expect(container.querySelector('.task-row--survey.task-row--done')).toBeNull();
+  expect(container.querySelector('.task-row--survey .task-check[data-checked="true"]')).toBeNull();
 
   await click(await button('Отправить ответы'));
   const toast = await waitForElement(() => container.querySelector('.toast--top-right'));
   expect(toast.textContent).toContain('Ответы получены, спасибо за прохождение!');
   expect(container.querySelector('.task-row--survey.task-row--done')?.textContent).toContain(surveys.midpoint.title);
+  expect(container.querySelector('.task-row--survey.task-row--done .task-check')?.getAttribute('data-checked')).toBe(
+    'true',
+  );
   expect(container.querySelector('dialog')).toBeNull();
   vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Текущий пункт после анкеты' });
   const visibleCurrent = await waitForElement(() =>
@@ -892,6 +914,9 @@ it('keeps survey answers when going back or retrying and marks the task only aft
     [...container.querySelectorAll('dialog p')].find((p) => p.textContent === 'Опрос уже заполнен.'),
   );
   expect(attempts).toBe(2);
+  expect(container.querySelector('.task-row--survey.task-row--done .task-check')?.getAttribute('data-checked')).toBe(
+    'true',
+  );
 });
 
 it('opens the shared panel and asks once about the exact checklist item without completing it', async () => {
