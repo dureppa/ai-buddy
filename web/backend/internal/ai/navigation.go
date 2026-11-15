@@ -30,7 +30,16 @@ func (b *Bridge) taskDestination(task string, data map[string]any) string {
 		}
 		return "/tools"
 	}
-	if action, ok := data["action_url"].(string); ok && action != "" {
+	var action string
+	switch value := data["action_url"].(type) {
+	case string:
+		action = value
+	case *string:
+		if value != nil {
+			action = *value
+		}
+	}
+	if action != "" {
 		parsed, err := url.Parse(action)
 		if err == nil && strings.HasPrefix(action, "/") && !strings.HasPrefix(action, "//") && parsed.Path == "/resources" && parsed.Query().Get("article") != "" {
 			return taskPage(task)

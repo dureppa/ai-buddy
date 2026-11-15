@@ -118,6 +118,11 @@ export function toggleTask(storage: StoragePort, profile: ProfileId, taskId: str
   return writeWorkspace(storage, profile, { ...workspace, completed });
 }
 
+export function completeTask(storage: StoragePort, profile: ProfileId, taskId: string): Workspace {
+  const workspace = readWorkspace(storage, profile);
+  return workspace.completed.includes(taskId) ? workspace : toggleTask(storage, profile, taskId);
+}
+
 export function mayRequest(profile: ProfileId, service: Service) {
   return service.state === 'requestable' && !(profile === 'sasha' && service.id === 'grafana');
 }
@@ -142,6 +147,13 @@ export function confirmAccess(storage: StoragePort, profile: ProfileId, draft: A
   };
   const updated = writeWorkspace(storage, profile, { ...workspace, requests: [...workspace.requests, request] });
   return { workspace: updated, request };
+}
+
+export function absenceServiceLink(text: string): { label: string; to: string } | undefined {
+  const question = text.toLowerCase().replaceAll('ё', 'е');
+  if (!/отгул|отпуск|отсутстви/.test(question) || !/оформ|подать|заявк|откр|взять|хочу|нужен/.test(question))
+    return undefined;
+  return { label: 'Открыть «Отсутствия»', to: serviceUrl('absences') };
 }
 
 export function answerBuddy(

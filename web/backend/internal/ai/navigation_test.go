@@ -9,14 +9,17 @@ import (
 	"testing"
 )
 
-type navigationRepo struct{ fakeRepo }
+type navigationRepo struct {
+	fakeRepo
+	action *string
+}
 
-func (navigationRepo) ReadAI(_ context.Context, _ string, _ string, args map[string]any) (map[string]any, error) {
+func (repo navigationRepo) ReadAI(_ context.Context, _ string, _ string, args map[string]any) (map[string]any, error) {
 	id, ok := args["task_id"].(string)
 	if !ok || id == "ghost" {
 		return nil, buddy.ErrNotFound
 	}
-	return map[string]any{"task_id": id, "title": "Задание", "guidance": "Инструкция", "action_url": nil, "references": []any{map[string]any{"id": "task:" + id, "url": "/onboarding", "title": "Задание"}}}, nil
+	return map[string]any{"task_id": id, "title": "Задание", "guidance": "Инструкция", "action_url": repo.action, "references": []any{map[string]any{"id": "task:" + id, "url": "/onboarding", "title": "Задание"}}}, nil
 }
 func TestTaskLinksUseServiceOrSpecificTaskPage(t *testing.T) {
 	b, _ := newBridge(t, "http://127.0.0.1:8001")
@@ -134,6 +137,35 @@ func TestOwnedConversationRepairsKnownTaskCardsWithoutGuessing(t *testing.T) {
 			require.Equal(t, want, refs[3].URL)
 			require.Equal(t, "/onboarding", refs[1].URL)
 			require.Equal(t, "/team", refs[2].URL)
+		})
+	}
+}
+
+func TestTaskRouteAcceptsNullableActionURLFromStore(t *testing.T) {
+	external := "https://docs.example/guide?page=1#step"
+	legacy := "/resources?article=equipment"
+	unsafe := "javascript:alert(1)"
+	for _, tc := range []struct {
+		name   string
+		action *string
+		want   string
+	}{
+		{"stored external", &external, external},
+		{"stored legacy", &legacy, "/onboarding/tasks/custom"},
+		{"stored nil", nil, "/onboarding/tasks/custom"},
+		{"stored unsafe", &unsafe, "/onboarding/tasks/custom"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b, _ := newBridge(t, "http://127.0.0.1:8001")
+			b.Store = &navigationRepo{action: tc.action}
+			mux := http.NewServeMux()
+			b.Register(mux)
+			token, err := b.token("olga", "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "mcp-resource")
+			require.NoError(t, err)
+			response := call(mux, "POST", "/internal/v1/ai/onboarding/task-context", token, `{"task_id":"custom"}`)
+			require.Equal(t, 200, response.Code)
+			require.Contains(t, response.Body.String(), `"action_url":"`+tc.want+`"`)
+			require.Contains(t, response.Body.String(), `"url":"`+tc.want+`"`)
 		})
 	}
 }
