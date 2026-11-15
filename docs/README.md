@@ -33,3 +33,5 @@
 - [Чек-лист сдачи](submission-checklist.md)
 - [Пробелы ответов](ai/answer-gaps.md), [контроль качества](ai/quality-control.md)
 - [Инструменты направлений](specs/009-agent-role-tools.md), [проверка прогона](ai/role-tools-check.md)
+
+- [Ссылки и действия чата](specs/011-chat-navigation.md), [проверка переходов](ai/chat-navigation-audit.md).

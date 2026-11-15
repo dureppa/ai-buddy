@@ -285,3 +285,7 @@ GET /internal/v1/ai/work-tools и POST /internal/v1/ai/work-tools/context исп
 тот же resource-token, X-Request-ID и проверенный TeamID. Новых профилей/URL в
 аргументах нет. Клиент проверяет team ответа, ограничивает размер/время,
 не следует redirect и не использует env proxy. [SDD 009](../specs/009-agent-role-tools.md).
+
+## Назначения карточек чата
+
+[SDD 011](../specs/011-chat-navigation.md): internal/ai/navigation.go строит URL конкретного задания по task_id/action_url и настроенным публичным адресам, исправляет источники старой истории только по однозначным задачам владельца. papers/documents используют один Documents evidence. Неизвестное evidence не ссылается на согласия. Форматы API/MCP не расширены; новый экран задания читает существующий GET /api/v1/onboarding. Вкладка своих access-заявок задаётся tab=requests.

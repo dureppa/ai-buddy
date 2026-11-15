@@ -1,6 +1,6 @@
 import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { isProfileId, profiles, type ProfileId } from '../../../../web/frontend/src/demo-accounts';
-import { readServiceProfile } from '../../../../web/frontend/src/service-session';
+import { readServiceProfile, readServiceProfileQuery } from '../../../../web/frontend/src/service-session';
 
 function subscribe(onChange: () => void) {
   window.addEventListener('focus', onChange);
@@ -24,7 +24,8 @@ export function ServiceSession({
     () => readServiceProfile(document.cookie),
     () => null,
   );
-  const profile = buddyProfile ?? selected;
+  const linkedProfile = typeof window === 'undefined' ? null : readServiceProfileQuery(window.location.search);
+  const profile = buddyProfile ?? linkedProfile ?? selected;
   if (!profile && standaloneTitle) {
     return (
       <main className="hr-page">

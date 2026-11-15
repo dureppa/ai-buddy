@@ -16,15 +16,16 @@ func (b *Bridge) evidence(ctx context.Context, profile string, args map[string]a
 		return nil, err
 	}
 	items := []any{}
-	refURL := b.PublicConsentURL
+	refURL := taskPage(task)
 	switch task {
 	case "consent-news":
+		refURL = b.PublicConsentURL
 		read, err := b.consentEvidence(ctx, profile)
 		if err != nil {
 			return nil, err
 		}
 		items = read
-	case "documents":
+	case "papers", "documents":
 		refURL = b.PublicDocumentsURL
 		read, err := b.guideEvidence(ctx, profile, b.DocumentsURL, "/api/v1/me/documents", "done", "памятка прочитана", "памятка ещё не прочитана")
 		if err != nil {

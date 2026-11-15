@@ -359,14 +359,7 @@ func (b *Bridge) read(tool string) http.HandlerFunc {
 			return
 		}
 		if tool == "get_task_context" {
-			switch args["task_id"] {
-			case "consent-news":
-				data["action_url"] = b.PublicConsentURL
-			case "documents":
-				data["action_url"] = b.PublicDocumentsURL
-			case "events":
-				data["action_url"] = b.PublicEventsURL
-			}
+			b.taskLinks(args["task_id"].(string), data)
 		}
 		if tool == "search_knowledge" {
 			if documents, ok := data["documents"].([]any); ok {
@@ -395,5 +388,9 @@ func (b *Bridge) read(tool string) http.HandlerFunc {
 }
 
 func (b *Bridge) Conversation(ctx context.Context, profile, id string) ([]buddy.HistoryMessage, error) {
-	return b.Store.Conversation(ctx, profile, id)
+	messages, err := b.Store.Conversation(ctx, profile, id)
+	if err == nil {
+		b.conversationTaskLinks(ctx, profile, messages)
+	}
+	return messages, err
 }

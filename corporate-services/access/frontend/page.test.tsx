@@ -38,6 +38,7 @@ let root: Root;
 let container: HTMLDivElement;
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  window.history.replaceState({}, '', '/');
   const crypto = globalThis.crypto;
   vi.stubGlobal('crypto', { getRandomValues: crypto.getRandomValues.bind(crypto) });
   document.cookie = 'ai_buddy_account=olga; Path=/';
@@ -61,6 +62,7 @@ afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
   document.cookie = 'ai_buddy_account=; Max-Age=0; Path=/';
+  window.history.replaceState({}, '', '/');
   vi.unstubAllGlobals();
 });
 async function mount() {
@@ -133,4 +135,18 @@ it('keeps the operation key on retry and rotates it for a new form after success
   await submitForm();
   await hasText('Заявка сохранена.');
   expect(api.submit.mock.calls[2][1]).not.toBe(first);
+});
+
+it('opens the requests tab from a chat link without a Buddy cookie or business write', async () => {
+  document.cookie = 'ai_buddy_account=; Max-Age=0; Path=/';
+  window.history.replaceState({}, '', '/?profile=olga&tab=requests');
+  api.list.mockResolvedValue([record]);
+  await mount();
+  await hasText(record.number);
+  expect(accessClient).toHaveBeenCalledWith('olga');
+  expect(api.submit).not.toHaveBeenCalled();
+  expect(api.cancel).not.toHaveBeenCalled();
+  expect(container.querySelector('[aria-selected="true"]')?.textContent ?? container.textContent).toContain(
+    'Мои заявки',
+  );
 });
