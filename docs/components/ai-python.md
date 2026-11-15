@@ -89,3 +89,11 @@ Confluence page_ids через PageContext.selection. Для task агент т�
 поддержке не требуют корпоративного поиска. Составные рабочие вопросы, источники,
 права и подтверждение операций сохраняют прежние проверки.
 [Спецификация](../specs/current-checklist-and-dialogue.md).
+
+## Сохранённый development snapshot после PR #67
+
+[Отчёт DeepSeek от 15 ноября](../../ai-agent/evals/reports/deepseek-development-20261115.md)
+сохраняет trial agent-v1: 18 выполнены, 2 blocked, structural 12/18,
+Codex-assisted 11/18. Это измерение того snapshot, не актуального runtime
+после исправлений диалога и чек-листа. Исходные JSON и SHA не менялись;
+новых LLM-запросов и holdout при переносе отчёта не выполнялось.
