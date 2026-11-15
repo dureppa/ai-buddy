@@ -37,11 +37,11 @@ ACCESS_PUBLIC_URL — ссылки в источниках агента (на с
 Cookie Buddy выбирает демопрофиль; API получает настоящую серверную демосессию.
 Это демонстрационный вход, не production-аутентификация.
 
-- `services/access/frontend/api.ts`: сессия, HTTP, Zod и ошибки без локального fallback.
+- `corporate-services/access/frontend/api.ts`: сессия, HTTP, Zod и ошибки без локального fallback.
 - `page.tsx/style.css`: каталог, форма, сводка и личные заявки; обновление каждые 15 секунд/при фокусе.
 - `catalog.ts`: типы и рекомендации, импорт общей конфигурации Go.
 - `model.ts`: схема формы; старые локальные helpers оставлены для совместимости тестов, UI их не использует.
-- `services/backend-go/internal/portal`: бизнес-операции, API и scoped knowledge.
+- `web/backend/internal/portal`: бизнес-операции, API и scoped knowledge.
 
 ## Проверки
 

@@ -243,7 +243,7 @@ Go сохраняет пользовательское сообщение до �
 
 ## 9. Ссылки для реализации
 
-- [HTTP/данные Python](../../services/ai-python/ai_buddy/schemas.py), [MCP-клиент](../../services/ai-python/ai_buddy/mcp_client.py), [Flask](../../services/ai-python/ai_buddy/app.py), [настройки](../../services/ai-python/ai_buddy/config.py).
+- [HTTP/данные Python](../../ai-agent/ai_buddy/schemas.py), [MCP-клиент](../../ai-agent/ai_buddy/mcp_client.py), [Flask](../../ai-agent/ai_buddy/app.py), [настройки](../../ai-agent/ai_buddy/config.py).
 - [JSON-примеры и схемы](go-python-mcp.examples.json), [assessment](knowledge-assessment.md), [готовность сценария](../../openspec/changes/implement-python-agent/scenario-status.md).
 - [Широкий будущий каталог MCP](../../openspec/changes/implement-python-agent/mcp-contracts.md) задаёт будущие возможности, а не список уже подключённых tools; прежние указания о размещении `/mcp` на Go этой инструкцией заменены для нового адаптера.
 

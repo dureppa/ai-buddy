@@ -32,11 +32,16 @@ Workflow опрашивает status до готовности или явной
 идемпотентен; повтор running не создаёт второй worker. Неизвестный SHA не
 интерпретируется как успех. Статусы и server logs не содержат ключей или пароля.
 
-Установка: scripts/deploy/install.sh подготавливает root-owned dispatcher и
+Установка: ops/deploy/install.sh подготавливает root-owned dispatcher и
 worker, а также отдельный authorized_keys entry. Путь проекта и публичный SSH-ключ
 передаются аргументами; адрес сервера и реальные ключи в Git не хранятся.
 Оба Python-скрипта используют стандартную библиотеку сервера; нужны python3,
 Docker Compose, tar/openssl и существующие .env/.deploy auth файлы.
+
+Перед первым серверным релизом с каталогами `ops/` и `ai-agent/`
+установи обновлённый worker командой `ops/deploy/install.sh`. Установленный
+ранее worker ожидает прежние пути. Обновлённый worker принимает оба формата
+архива и умеет восстановить nginx-конфигурацию предыдущего релиза при откате.
 
 Источники: [workflow_run](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run),
 [Actions secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).

@@ -1,0 +1,16 @@
+{
+  "name": "@ai-buddy/corporate-services",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.4.3"
+  },
+  "scripts": {
+    "dev": "node sites.mjs dev",
+    "build": "tsc -p frontend/tsconfig.json && node sites.mjs build",
+    "typecheck": "tsc -p frontend/tsconfig.json",
+    "test": "vitest run --root ../.. ops/service-sites/frontend tools/jira/frontend corporate-services/access/frontend tools/confluence/frontend"
+  }
+}

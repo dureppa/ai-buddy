@@ -57,8 +57,8 @@ Go-бэкенд предоставит API веб-приложению и рас
 
 - PostgreSQL **13+** — используется встроенный `gen_random_uuid()`.
 - Файлы миграций, сидов и кода в **UTF-8** (в номере заявки кириллическая `Д`).
-- Версии Go и библиотек зафиксированы в [go.mod](../../services/backend-go/go.mod),
-  [go.sum](../../services/backend-go/go.sum) и [стеке проекта](../stack.md):
+- Версии Go и библиотек зафиксированы в [go.mod](../../web/backend/go.mod),
+  [go.sum](../../web/backend/go.sum) и [стеке проекта](../stack.md):
   `pgx/v5 v5.12.0` (драйвер БД), `golang-jwt/jwt/v5 v5.3.1` (аутентификация),
   `testify v1.11.1` (тесты). Официальный MCP Go SDK пока отсутствует в go.mod; версию нужно закрепить при реализации MCP.
 - Отдельный CLI для миграций не используется: файлы применяются через `psql` или GUI-клиент.
@@ -75,7 +75,7 @@ Go-бэкенд предоставит API веб-приложению и рас
 ## Карта файлов
 
 ```text
-services/backend-go/
+web/backend/
 ├── migrations/
 │   ├── 01_identity.up.sql / .down.sql
 │   ├── 02_onboarding.up.sql / .down.sql
@@ -138,7 +138,7 @@ services/backend-go/
 ## Демонстрационные данные
 
 `seeds/demo.sql` идемпотентен (`ON CONFLICT DO NOTHING`), выполняется в одной транзакции
-и согласован с `apps/web/frontend/src/data.ts`.
+и согласован с `web/frontend/src/data.ts`.
 
 ### Профили и права
 
@@ -203,11 +203,11 @@ done
 ```bash
 export DATABASE_URL="postgres://aibuddy:aibuddy@localhost:5432/aibuddy?sslmode=disable"
 
-for f in services/backend-go/migrations/*.up.sql; do
+for f in web/backend/migrations/*.up.sql; do
   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -1 -f "$f" || break
 done
 
-for f in $(ls -1r services/backend-go/migrations/*.down.sql); do
+for f in $(ls -1r web/backend/migrations/*.down.sql); do
   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -1 -f "$f" || break
 done
 ```
@@ -215,7 +215,7 @@ done
 Сид содержит собственные `BEGIN`/`COMMIT`, поэтому флаг `-1` для него не используется:
 
 ```bash
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f services/backend-go/seeds/demo.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f web/backend/seeds/demo.sql
 ```
 
 Откат удаляет таблицы вместе с данными — выполнять только на демонстрационной базе.
@@ -225,14 +225,14 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f services/backend-go/seeds/demo.sql
 
 ### Автоматические тесты
 ```bash
-cd services/backend-go
+cd web/backend
 go test -race ./...
 ```
 Три уровня тестов: Unit (buddy) с fake-хранилищами, HTTP (httpapi) через httptest, Интеграционные (store) против реальной БД aibuddy_test.
 
 ### Ручная проверка API
 ```bash
-cd services/backend-go
+cd web/backend
 go run ./cmd/server
 ```
 В другом терминале:

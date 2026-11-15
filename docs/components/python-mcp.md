@@ -21,7 +21,7 @@ ActiveContext допускает до 11 grants. В локальном demo вы
 
 В [Docker Compose](docker-compose.md) MCP запускается в режиме demo и использует синтетический корпус.
 
-Из `services/ai-python`, после `uv sync --locked`:
+Из `ai-agent`, после `uv sync --locked`:
 
 ```bash
 MCP_DEMO_ENABLED=true MCP_DEMO_TOKEN=local-demo-token MCP_DEMO_PROFILE=alex uv run --locked python -m ai_buddy.mcp_server
@@ -45,7 +45,7 @@ Ollama и установленная модель нужны отдельно. �
 
 ## Режим Go HTTP
 
-После реализации Go API по инструкции запусти MCP из services/ai-python:
+После реализации Go API по инструкции запусти MCP из ai-agent:
 
 ```bash
 MCP_BACKEND=go_http GO_API_URL=http://127.0.0.1:8080 MCP_ADAPTER_SERVICE_TOKEN=replace-with-shared-adapter-secret uv run --locked python -m ai_buddy.mcp_server

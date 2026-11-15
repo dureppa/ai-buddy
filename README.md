@@ -19,6 +19,17 @@
 - [Шаблон pull request](.github/pull_request_template.md)
 - [Маршрут демо](docs/demo.md)
 
+## Структура репозитория
+
+| Путь | Что внутри |
+| --- | --- |
+| `web/frontend/`, `web/backend/` | Веб Buddy и Go API |
+| `extension/` | Расширение Chromium |
+| `corporate-services/` | Девять разделов каталога, включая управление доступами |
+| `tools/jira/`, `tools/confluence/` | Jira и Confluence. API остальных инструментов пока подключается в `web/backend/internal/worktools/` |
+| `ai-agent/` | Python-сервис, MCP и оценка ответов |
+| `ops/` | Сборка демосайтов, Docker, nginx и развёртывание |
+
 ## Запуск через Docker Compose
 
 Из корня репозитория с запущенным Docker:
@@ -27,7 +38,7 @@
 docker compose up -d --build --wait --wait-timeout 900
 ```
 
-Открой [AI Buddy](http://127.0.0.1:5173/). PostgreSQL, Go, веб, Flask, Python MCP и Ollama поднимаются из одной конфигурации. Веб-чат использует прежние демоданные. Для прямой проверки Python-агента выполни `sh docker/check-agent.sh`. Чтобы добавить шесть корпоративных сайтов и их Go API, запусти ту же команду с `docker compose --profile hr`. [Настройки, проверка и остановка](docs/components/docker-compose.md)
+Открой [AI Buddy](http://127.0.0.1:5173/). PostgreSQL, Go, веб, Flask и Python MCP поднимаются из одной конфигурации. Веб-чат использует прежние демоданные. Для прямой проверки Python-агента выполни `sh ops/docker/check-agent.sh`. Чтобы добавить корпоративные сайты и их Go API, запусти ту же команду с `docker compose --profile hr`. [Настройки, проверка и остановка](docs/components/docker-compose.md)
 
 ## Фронтенд
 
@@ -40,21 +51,21 @@ npm run dev --workspace=@ai-buddy/web
 
 В кабинете наставник и руководитель видят прогресс стажёра своей команды и могут опубликовать для него ссылку или файл. Публикации сохраняются в браузере и видны стажёру в «Корпоративных сервисах».
 
-Расширение собирается командой `npm run build --workspace=@ai-buddy/extension`, после чего каталог `apps/extension/dist/` можно загрузить в Chromium как unpacked extension. После установки питомец появляется справа внизу на обычных веб-страницах, а при наведении показывает действие «Задать вопрос». Chrome запрашивает доступ к сайтам при установке расширения один раз.
+Расширение собирается командой `npm run build --workspace=@ai-buddy/extension`, после чего каталог `extension/dist/` можно загрузить в Chromium как unpacked extension. После установки питомец появляется справа внизу на обычных веб-страницах, а при наведении показывает действие «Задать вопрос». Chrome запрашивает доступ к сайтам при установке расширения один раз.
 
 Полный локальный набор проверок запускается командой `just check`. Отдельные проверки frontend, Python и Go доступны через `just frontend-check`, `just python-check` и `just go-check`.
 
-`npm run test:coverage --workspace=@ai-buddy/web` запускает тесты веб-приложения, проверяет порог покрытия строк 85% и записывает отчёт в `apps/web/coverage/lcov.info`. В CI отчёт доступен в артефакте `web-coverage`.
+`npm run test:coverage --workspace=@ai-buddy/web` запускает тесты веб-приложения, проверяет порог покрытия строк 85% и записывает отчёт в `web/coverage/lcov.info`. В CI отчёт доступен в артефакте `web-coverage`.
 
 ## Корпоративные демосайты
 
-В разделе «Корпоративные сервисы» и поиске есть ссылки на шесть внешних демосайтов. Запусти внешние сайты во втором терминале.
+В разделе «Корпоративные сервисы» и поиске есть ссылки на девять внешних демосайтов. Запусти внешние сайты во втором терминале.
 
 ```bash
 npm run dev --workspace=@ai-buddy/corporate-services
 ```
 
-Сайты открываются на портах `5181–5188`. Каждый показывает синтетический демопрофиль. Для других адресов скопируй `apps/web/frontend/.env.example` и `apps/corporate-services/frontend/.env.example` в `.env` рядом с примерами. Команда `npm run build --workspace=@ai-buddy/corporate-services` создаёт отдельную сборку для каждого сайта в `apps/corporate-services/dist/`. [Карта адресов и запуск одного сайта](docs/components/corporate-services.md)
+Сайты открываются на портах `5181–5188`. Каждый показывает синтетический демопрофиль. Для других адресов скопируй `web/frontend/.env.example` и `ops/service-sites/frontend/.env.example` в `.env` рядом с примерами. Команда `npm run build --workspace=@ai-buddy/corporate-services` создаёт отдельную сборку для каждого сайта в `ops/service-sites/dist/`. [Карта адресов и запуск одного сайта](docs/components/corporate-services.md)
 
 ### Jira: доски и задачи
 

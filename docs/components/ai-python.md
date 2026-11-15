@@ -34,7 +34,7 @@ Flask умеет выполнять реальный прямой цикл че�
 
 [Docker Compose](docker-compose.md) поднимает Flask вместе с Ollama и Python MCP в деморежиме.
 
-Из services/ai-python:
+Из ai-agent:
 
 ```bash
 uv sync --locked
@@ -50,7 +50,7 @@ OLLAMA_NO_CLOUD=1 ollama serve
 AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-service-token MCP_URL=http://127.0.0.1:8002/mcp uv run --locked flask --app ai_buddy:create_app run --host 127.0.0.1 --port 8001
 ```
 
-Это development server. Production WSGI-развёртывание ещё не настроено. Настройки перечислены в [.env.example](../../services/ai-python/.env.example); значения токенов там примерные. uv создаёт .venv; команда `uv sync --locked --no-dev` достаточна для runtime без LangChain.
+Это development server. Production WSGI-развёртывание ещё не настроено. Настройки перечислены в [.env.example](../../ai-agent/.env.example); значения токенов там примерные. uv создаёт .venv; команда `uv sync --locked --no-dev` достаточна для runtime без LangChain.
 
 Без AI_AGENT_ENABLED=true сохраняется 503/AI_UNAVAILABLE. При отсутствии конфигурации выбранной модели — 503/NOT_READY. GET /health/live проверяет процесс; GET /health/ready проверяет локальную конфигурацию и наличие runner, без сетевых вызовов. Даже ready=true не обещает, что модель установлена или MCP доступен: это проверяется запросом/smoke.
 
@@ -109,9 +109,9 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 
 ## Живая проверка
 
-`uv run --locked python -m experiments.flask_smoke` требует установленную локальную модель и работающий Ollama. Используются настоящий Flask test client, native Ollama и SDK Streamable HTTP на синтетическом ASGI MCP; внешний Go MCP для этой команды не нужен. Сервер-мок активируется только в CLI, не подставляется приложением автоматически. Команда сохраняет [flask-smoke.json](../../services/ai-python/experiments/flask-smoke.json): наставник 9,233 с, пустые знания 4,658 с, исключение заражённого документа 3,406 с; везде 200. Прогрев 19,637 с вынесен отдельно. Это не Go/UI/e2e и не доказательство готовности полного онбординга.
+`uv run --locked python -m experiments.flask_smoke` требует установленную локальную модель и работающий Ollama. Используются настоящий Flask test client, native Ollama и SDK Streamable HTTP на синтетическом ASGI MCP; внешний Go MCP для этой команды не нужен. Сервер-мок активируется только в CLI, не подставляется приложением автоматически. Команда сохраняет [flask-smoke.json](../../ai-agent/experiments/flask-smoke.json): наставник 9,233 с, пустые знания 4,658 с, исключение заражённого документа 3,406 с; везде 200. Прогрев 19,637 с вынесен отдельно. Это не Go/UI/e2e и не доказательство готовности полного онбординга.
 
-[OpenSpec runtime-среза](../../openspec/changes/implement-python-agent/flask-runner-scope.md), [сравнение оркестрации и ограничения](../../services/ai-python/experiments/safety-fix.md), [Ollama chat API](https://docs.ollama.com/api/chat), [таймауты HTTPX](https://www.python-httpx.org/advanced/timeouts/).
+[OpenSpec runtime-среза](../../openspec/changes/implement-python-agent/flask-runner-scope.md), [сравнение оркестрации и ограничения](../../ai-agent/experiments/safety-fix.md), [Ollama chat API](https://docs.ollama.com/api/chat), [таймауты HTTPX](https://www.python-httpx.org/advanced/timeouts/).
 
 Для подключения коллегой: [Go → Python и два MCP-инструмента](../integrations/go-python-mcp.md), [схемы и примеры JSON](../integrations/go-python-mcp.examples.json).
 
@@ -119,7 +119,7 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 
 [Контракт assessment для Go](../integrations/knowledge-assessment.md), [JSON Schema и примеры](../integrations/knowledge-assessment.examples.json). GET /health/ready/assessments проверяет конфигурацию этого режима без зависимости от MCP_URL; результат оценки не завершает этап.
 
-[Черновой эталонный набор](../../services/ai-python/evals/README.md): 6 development и 2 candidate holdout. Разметка требует проверки команды. [Live-прогон](../../services/ai-python/experiments/assessment-quality.md) v3: 0/4 модельных случаев прошли, два rule guards прошли отдельно. При ошибке нужен ручной review. Общий [agent-v1 — 20/10](../../services/ai-python/evals/agent-v1/README.md) подготовлен как кандидат с audit и явными blocked-кейсами. Его разметка и модельная приёмка ещё не завершены; coverage не доказывает смысловую точность.
+[Черновой эталонный набор](../../ai-agent/evals/README.md): 6 development и 2 candidate holdout. Разметка требует проверки команды. [Live-прогон](../../ai-agent/experiments/assessment-quality.md) v3: 0/4 модельных случаев прошли, два rule guards прошли отдельно. При ошибке нужен ручной review. Общий [agent-v1 — 20/10](../../ai-agent/evals/agent-v1/README.md) подготовлен как кандидат с audit и явными blocked-кейсами. Его разметка и модельная приёмка ещё не завершены; coverage не доказывает смысловую точность.
 
 Проверка общего набора без LLM: `uv run --locked python -m evals.golden`; schema audit не является измерением качества. [Исследование дополнительного контроля](../ai/quality-control.md): поддержка утверждений evidence, калиброванный judge, release gate и последующий разбор traces. Runtime/новые внешние SDK этим блоком не меняются.
 
@@ -130,11 +130,11 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 ## Общий development eval
 
 Harness поддерживает текущие DeepSeek/Ollama transport и 11 MCP tools с
-синтетическими ответами; [runbook](../../services/ai-python/evals/HARNESS.md).
+синтетическими ответами; [runbook](../../ai-agent/evals/HARNESS.md).
 Живой CLI требует --allow-live-llm. Контрактные тесты новых tools не расширяют
 старый golden agent-v1 автоматически и не являются оценкой качества LLM.
 
-[Harness](../../services/ai-python/evals/HARNESS.md) выполняет реальные Flask/Ollama/SDK MCP пути на сценарных fixtures, без Go и без holdout. [Отчёты](../../services/ai-python/evals/reports/README.md) разделяют структурные проверки, Codex-assisted review и человеческую приёмку. Assessment-v4 выбирает готовые ID фрагментов ответа; public HTTP-результат и правило наставника сохраняются.
+[Harness](../../ai-agent/evals/HARNESS.md) выполняет реальные Flask/Ollama/SDK MCP пути на сценарных fixtures, без Go и без holdout. [Отчёты](../../ai-agent/evals/reports/README.md) разделяют структурные проверки, Codex-assisted review и человеческую приёмку. Assessment-v4 выбирает готовые ID фрагментов ответа; public HTTP-результат и правило наставника сохраняются.
 
 Внутренний маршрут `POST /internal/v1/team-guide` принимает бриф команды с токеном сервиса и возвращает три карточки, используя настроенного поставщика модели. [Спецификация путеводителя](../specs/product-guide.md).
 

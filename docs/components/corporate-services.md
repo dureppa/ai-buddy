@@ -4,7 +4,7 @@
 
 ## Согласия через настоящий API
 
-При VITE_API_ENABLED=true страница согласий использует `services/hr/consents/frontend/ConsentApi.tsx` и Go HR API,
+При VITE_API_ENABLED=true страница согласий использует `corporate-services/consents/frontend/ConsentApi.tsx` и Go HR API,
 а не localStorage. Аккаунт определяется автоматически по активной сессии Buddy. /api проксируется
 в Go для демосессии; /hr-api на каждом из этих сайтов идёт в API именно этого сервиса. Ошибка не подменяется локальными
 данными. Повтор установки того же значения не меняет updated_at; поле становится
@@ -16,9 +16,9 @@
 карточки действий, текущий аккаунт и счётчик. Боковая панель
 показывает текущее состояние API; при ошибке счётчик неизвестен.
 
-AI Buddy открывает восемь самостоятельных сайтов по карточкам и результатам поиска. Документы и мероприятия хранят отметки в своих базах `hr_documents` и `hr_events`. При включённом API страница пишет только в свой Go-сервис. Без API остаётся прежнее сохранение в `localStorage` этого сайта. Экран и данные каждого сайта лежат в `services/hr/<сервис>/frontend`, рядом с Go-кодом этого сервиса. Общие стили, демоадаптер и сборка восьми сайтов остаются в npm workspace `apps/corporate-services`.
+AI Buddy открывает восемь самостоятельных сайтов по карточкам и результатам поиска. Документы и мероприятия хранят отметки в своих базах `hr_documents` и `hr_events`. При включённом API страница пишет только в свой Go-сервис. Без API остаётся прежнее сохранение в `localStorage` этого сайта. Экран и данные каждого сайта лежат в `corporate-services/<сервис>/frontend`, рядом с Go-кодом этого сервиса. Общие стили, демоадаптер и сборка восьми сайтов остаются в npm workspace `ops/service-sites`.
 
-| Сайт | Адрес по умолчанию | Переменная в `apps/web/frontend/.env` | Сборка в `apps/corporate-services/dist/` |
+| Сайт | Адрес по умолчанию | Переменная в `web/frontend/.env` | Сборка в `ops/service-sites/dist/` |
 | --- | --- | --- | --- |
 | Отсутствия | http://localhost:5181/ | `VITE_ABSENCES_URL` | `absences/` |
 | Командировки | http://localhost:5182/ | `VITE_TRIPS_URL` | `trips/` |
@@ -38,7 +38,7 @@ npm run dev --workspace=@ai-buddy/corporate-services
 Для одного сайта передай его идентификатор, например `npm run dev --workspace=@ai-buddy/corporate-services -- absences`. Сборка всех сайтов выполняется командой `npm run build --workspace=@ai-buddy/corporate-services`. Каждый каталог сборки можно опубликовать отдельно. Сайты не содержат ссылки возврата в AI Buddy.
 
 - `sites.mjs` запускает и собирает сайты по карте `frontend/service-ports.json`.
-- `frontend/src/main.tsx` выбирает страницу для конкретной сборки. Сами экраны лежат в `services/hr/<сервис>/frontend`, общая оболочка HR-страниц — в `HrPages.tsx`.
+- `frontend/src/main.tsx` выбирает страницу для конкретной сборки. Сами экраны лежат в `corporate-services/<сервис>/frontend`, общая оболочка HR-страниц — в `HrPages.tsx`.
 - `hr-demo.ts` проверяет действия и хранит демозаписи в `localStorage` текущего сайта. `hr-profiles.json` содержит синтетические начальные настройки.
 - `npm test --workspace=@ai-buddy/corporate-services` запускает проверки правил, истории и профилей. CI выполняет их в общей job `frontend`.
 
@@ -63,7 +63,7 @@ npm run dev --workspace=@ai-buddy/corporate-services
 
 ## Самостоятельный инструмент Jira
 
-Jira доступна из «Инструментов и доступов» и не входит в каталог корпоративных сервисов. На порту 5189 собирается отдельный [трекер задач](jira.md) из services/jira/frontend; backend и БД запускаются профилем jira. Он всегда использует API, не localStorage.
+Jira доступна из «Инструментов и доступов» и не входит в каталог корпоративных сервисов. На порту 5189 собирается отдельный [трекер задач](jira.md) из tools/jira/frontend; backend и БД запускаются профилем jira. Он всегда использует API, не localStorage.
 
 ## Управление доступами
 

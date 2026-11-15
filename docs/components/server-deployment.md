@@ -9,7 +9,7 @@ HR-сайты на 5181–5191. Приватные Go/Python/PostgreSQL API не
 AI/MCP/delegation secrets, PUBLIC_HR_ORIGIN=http://<server>,
 PUBLIC_WEB_ORIGIN=http://<server>. Docker собирает ссылки для браузера по этим
 origins. Веса локальной LLM не используются. Сборки на сервере 4 ГБ выполняются
-строго по одному сервису скриптом docker/build-server.sh: BuildKit Bake может
+строго по одному сервису скриптом ops/docker/build-server.sh: BuildKit Bake может
 игнорировать COMPOSE_PARALLEL_LIMIT для независимых целей сборки.
 
 `docker-compose.server.yml` открывает только веб-сайты и монтирует подготовленные
@@ -24,7 +24,7 @@ Bearer в Authorization. Без Basic/cookie закрыты и страницы,
 Запуск:
 
 ```bash
-sh docker/build-server.sh
+sh ops/docker/build-server.sh
 ```
 
 Приёмка: `config --quiet` не выводит секреты; nginx config test; без авторизации
