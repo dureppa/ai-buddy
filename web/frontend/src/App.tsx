@@ -648,16 +648,6 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
         <div className="sidebar__bottom">
           <button
             type="button"
-            className="settings-link"
-            onClick={() => {
-              setNavOpen(false);
-              setDetail({ kind: 'settings' });
-            }}
-          >
-            <Icon name="settings" size={20} /> Настройки
-          </button>
-          <button
-            type="button"
             className="sidebar-question"
             onClick={() => {
               setNavOpen(false);
