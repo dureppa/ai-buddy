@@ -257,7 +257,13 @@ function SelectionAssistantSession({ profileId, apiPrefix = '/api', enabled = ba
                     className={entry.question ? 'selection-assistant__question' : 'selection-assistant__answer'}
                   >
                     {entry.question ||
-                      (entry.answer && <AgentAnswer text={entry.answer.text} references={entry.answer.references} />)}
+                      (entry.answer && (
+                        <AgentAnswer
+                          text={entry.answer.text}
+                          references={entry.answer.references}
+                          profileId={profileId}
+                        />
+                      ))}
                   </div>
                 ))}
                 {panel.waiting && (
