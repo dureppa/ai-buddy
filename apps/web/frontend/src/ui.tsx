@@ -74,6 +74,7 @@ const iconPaths = {
   arrow: 'M4 12h15m-6-6 6 6-6 6',
   diagonal: 'M6 18 18 6M8 6h10v10',
   check: 'm5 12 4 4L19 6',
+  plus: 'M12 5v14M5 12h14',
   file: 'M6 2h8l4 4v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm8 0v5h5M8 13h8m-8 4h6',
   monitor: 'M3 4h18v13H3zm9 13v4m-5 0h10',
   book: 'M2 3h6a4 4 0 0 1 4 4v14a4 4 0 0 0-4-3H2zm20 0h-6a4 4 0 0 0-4 4v14a4 4 0 0 1 4-3h6z',

@@ -6,7 +6,14 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from './App';
 import { demoSessionKey } from './demo-session';
-import { materialsForTask, saveMaterial, setTaskMaterials, type MaterialInput } from './staff-data';
+import {
+  checklistEditsKey,
+  materialsForTask,
+  publishedForIntern,
+  saveMaterial,
+  setTaskMaterials,
+  type MaterialInput,
+} from './staff-data';
 import type { AccountId } from './demo-accounts';
 
 vi.mock('./backend', async (importOriginal) => ({
@@ -96,9 +103,9 @@ function expectSuccessToast(message: string) {
   expect(toast?.parentElement).toBe(container.querySelector('.staff-workspace'));
 }
 
-function picker() {
+function dialog() {
   const dialog = container.querySelector<HTMLDialogElement>('dialog[open]');
-  if (!dialog) throw new Error('Панель выбора материалов закрыта');
+  if (!dialog) throw new Error('Диалог закрыт');
   return dialog;
 }
 
@@ -126,8 +133,22 @@ async function openInternTask() {
   await click(currentTaskButton());
 }
 
+function catalog() {
+  const panel = container.querySelector<HTMLElement>('.material-picker');
+  if (!panel) throw new Error('Каталог материалов закрыт');
+  return panel;
+}
+
+async function chooseGroup(group: string) {
+  const select = catalog().querySelector('select')!;
+  await act(async () => {
+    select.value = group;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+}
+
 async function search(value: string) {
-  const input = picker().querySelector('input[type="search"]');
+  const input = catalog().querySelector('input[type="search"]');
   if (!input) throw new Error('Поле поиска материалов не найдено');
   await act(async () => {
     const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
@@ -137,44 +158,41 @@ async function search(value: string) {
 }
 
 it.each(['mentor', 'manager'] as const)(
-  'selects materials from several groups as %s and shows them to the intern',
+  'attaches materials immediately from groups and search as %s and shows them to the intern',
   async (staff) => {
     saveMaterial(localStorage, 'mentor', report);
     saveMaterial(localStorage, 'travel-mentor', { ...report, title: 'Отчёт другой команды', audience: ['sasha'] });
     await mount(staff, '/staff');
     await openStaffTask();
     expect(container.textContent).not.toContain(documentTitle);
-    await click(button('Добавить материалы'));
+    await click(button('Прикрепить материал'));
+    expect(button('Свернуть каталог')?.getAttribute('aria-controls')).toBe(catalog().id);
+    expect(container.querySelector('[aria-label="Материалы пункта"]')?.contains(catalog())).toBe(true);
+    expect(container.querySelector('dialog')).toBeNull();
+    expect(button('Прикрепить ' + documentTitle, catalog())).toBeUndefined();
 
-    expect(picker().querySelector('[aria-label="Группы материалов"]')?.textContent).toContain('Документы');
-    expect(picker().textContent).not.toContain(documentTitle);
-    expect(button('Сохранить материалы', picker())?.disabled).toBe(true);
-
-    await click(button('Чаты · 1', picker()));
-    await click(button('Добавить ' + chat, picker()));
-    expect(picker().textContent).not.toContain(documentTitle);
-    await click(button('Все группы', picker()));
-    await click(button('Документы · 1', picker()));
-    expect(button('Добавить ' + documentTitle, picker())).toBeTruthy();
-    expect(picker().textContent).not.toContain(chat);
+    await chooseGroup('Чаты');
+    await click(button('Прикрепить ' + chat, catalog()));
+    expectSuccessToast('Материал прикреплён.');
+    expect(catalog().textContent).toContain('Прикреплён');
+    expect(catalog().textContent).not.toContain(documentTitle);
+    expect(button('Прикрепить ' + chat, catalog())).toBeUndefined();
+    expect(materialsForTask(localStorage, 'olga', task.id).map(({ title }) => title)).toEqual([chat]);
 
     await search('ДРУГОЙ КОМАНДЫ');
-    expect(picker().textContent).toContain('Материалы не найдены.');
+    expect(catalog().textContent).toContain('Материалы не найдены.');
     await search('  УЧЕБНЫЙ  ');
-    await click(button('Добавить ' + documentTitle, picker()));
-    await search('для всех сотрудников');
-    expect(button('Убрать ' + chat, picker())).toBeTruthy();
+    await click(button('Прикрепить ' + documentTitle, catalog()));
+    expect(materialsForTask(localStorage, 'olga', task.id).map(({ title }) => title)).toEqual([chat, documentTitle]);
+    expect(container.querySelector('[aria-label="Прикреплённые материалы"]')?.textContent).toContain(documentTitle);
 
-    await click(button('Выбрано (2)', picker()));
-    const selection = picker().querySelector('[aria-label="Выбранные материалы"]');
-    expect(selection?.textContent).toContain(documentTitle);
-    expect(selection?.textContent).toContain(chat);
-    expect(materialsForTask(localStorage, 'olga', task.id)).toEqual([]);
-    await click(button('Сохранить материалы', picker()));
-
-    expect(container.querySelector('dialog')).toBeNull();
-    expectSuccessToast('Материалы пункта сохранены.');
-    expect(button('Изменить материалы')).toBeTruthy();
+    await chooseGroup('Документы');
+    expect(catalog().textContent).not.toContain(chat);
+    expect(catalog().textContent).toContain(documentTitle);
+    expect(catalog().textContent).toContain('Прикреплён');
+    await click(button('Свернуть каталог'));
+    expect(container.querySelector('.material-picker')).toBeNull();
+    expect(button('Открепить ' + documentTitle)).toBeTruthy();
 
     await openInternTask();
     const attached = container.querySelector('.task-materials');
@@ -192,54 +210,68 @@ it.each(['mentor', 'manager'] as const)(
   },
 );
 
-it('discards unsaved changes on cancel and Escape, then saves removal of the last attachment', async () => {
+it('detaches the last attachment directly and makes it possible to add again', async () => {
   setTaskMaterials(localStorage, 'mentor', task.id, ['baseline-delivery-chat']);
   await mount('mentor', '/staff');
   await openStaffTask();
-  expect(container.querySelector('.checklist-materials')?.textContent).toContain(chat);
+  await click(button('Прикрепить материал'));
+  await chooseGroup('Чаты');
+  expect(catalog().textContent).toContain('Прикреплён');
 
-  for (const close of [
-    () => click(button('Отмена', picker())),
-    () => act(async () => picker().dispatchEvent(new Event('cancel', { cancelable: true }))),
-  ]) {
-    await click(button('Изменить материалы'));
-    await click(button('Выбрано (1)', picker()));
-    await click(button('Убрать ' + chat, picker()));
-    expect(picker().textContent).toContain('Материалы пока не выбраны.');
-    await close();
-    expect(container.querySelector('dialog')).toBeNull();
-    expect(container.querySelector('.checklist-materials')?.textContent).toContain(chat);
-  }
-
-  await click(button('Изменить материалы'));
-  await click(button('Выбрано (1)', picker()));
-  await click(button('Убрать ' + chat, picker()));
-  await click(button('Сохранить материалы', picker()));
-  expect(button('Добавить материалы')).toBeTruthy();
+  await click(button('Открепить ' + chat));
+  expectSuccessToast('Материал откреплён.');
+  expect(container.textContent).toContain('К этому пункту пока не прикреплены материалы.');
+  expect(button('Прикрепить ' + chat, catalog())).toBeTruthy();
   expect(materialsForTask(localStorage, 'olga', task.id)).toEqual([]);
   await openInternTask();
   expect(container.querySelector('dialog[open]')).toBeTruthy();
   expect(container.querySelector('.task-materials')).toBeNull();
 });
 
-it('keeps the draft available when writing the new selection fails', async () => {
+it.each(['Прикрепить', 'Открепить'] as const)(
+  'keeps the saved state and can retry %s after a write fails',
+  async (action) => {
+    const attaching = action === 'Прикрепить';
+    if (!attaching) setTaskMaterials(localStorage, 'mentor', task.id, ['baseline-delivery-chat']);
+    await mount('mentor', '/staff');
+    await openStaffTask();
+    if (attaching) {
+      await click(button('Прикрепить материал'));
+      await chooseGroup('Чаты');
+    }
+    writeStorage.mockImplementationOnce(() => {
+      throw new Error('Хранилище недоступно.');
+    });
+
+    await click(button(action + ' ' + chat));
+    const scope = attaching ? catalog() : container.querySelector('[aria-label="Материалы пункта"]');
+    expect(scope?.querySelector('[role="alert"]')?.textContent).toBe('Хранилище недоступно.');
+    expect(container.querySelector('.toast')).toBeNull();
+    expect(materialsForTask(localStorage, 'olga', task.id).map(({ title }) => title)).toEqual(attaching ? [] : [chat]);
+
+    await click(button(action + ' ' + chat));
+    expect(scope?.querySelector('[role="alert"]')).toBeNull();
+    expect(materialsForTask(localStorage, 'olga', task.id).map(({ title }) => title)).toEqual(attaching ? [chat] : []);
+    expectSuccessToast(attaching ? 'Материал прикреплён.' : 'Материал откреплён.');
+  },
+);
+
+it('preserves a recent attachment from another tab and refreshes on checklist storage events', async () => {
+  saveMaterial(localStorage, 'mentor', report);
+  const [saved] = publishedForIntern(localStorage, 'olga');
   await mount('mentor', '/staff');
   await openStaffTask();
-  await click(button('Добавить материалы'));
-  await click(button('Чаты · 1', picker()));
-  await click(button('Добавить ' + chat, picker()));
-  writeStorage.mockImplementationOnce(() => {
-    throw new Error('Хранилище недоступно.');
-  });
+  await click(button('Прикрепить материал'));
+  await chooseGroup('Чаты');
 
-  await click(button('Сохранить материалы', picker()));
-  expect(picker().querySelector('[role="alert"]')?.textContent).toBe('Хранилище недоступно.');
-  expect(container.querySelector('.toast')).toBeNull();
-  expect(button('Выбрано (1)', picker())).toBeTruthy();
-  expect(materialsForTask(localStorage, 'olga', task.id)).toEqual([]);
-  await click(button('Сохранить материалы', picker()));
-  expect(container.querySelector('dialog')).toBeNull();
-  expect(materialsForTask(localStorage, 'olga', task.id).map(({ title }) => title)).toEqual([chat]);
+  setTaskMaterials(localStorage, 'manager', task.id, [saved.id]);
+  await click(button('Прикрепить ' + chat, catalog()));
+  expect(materialsForTask(localStorage, 'olga', task.id).map(({ title }) => title)).toEqual([documentTitle, chat]);
+
+  setTaskMaterials(localStorage, 'manager', task.id, [saved.id]);
+  await act(async () => window.dispatchEvent(new StorageEvent('storage', { key: checklistEditsKey })));
+  expect(button('Открепить ' + chat)).toBeUndefined();
+  expect(button('Прикрепить ' + chat, catalog())).toBeTruthy();
 });
 
 it('switches adaptation tabs by keyboard and keeps the task filter selected', async () => {
@@ -272,7 +304,7 @@ it('shows checklist confirmations across navigation and expires the newest toast
   vi.useFakeTimers();
   await click(button('Добавить пункт'));
 
-  const form = picker().querySelector('form')!;
+  const form = dialog().querySelector('form')!;
   form.querySelector<HTMLInputElement>('input[name="title"]')!.value = 'Проверить отчёт';
   form.querySelector<HTMLTextAreaElement>('textarea[name="summary"]')!.value = 'Учебное задание';
   await click(button('Добавить в чек-лист', form));
@@ -298,7 +330,7 @@ it('shows publication, edit and removal confirmations in the same corner', async
   await click(button('Материалы для стажёров'));
   await click(button('Добавить материал'));
 
-  const form = picker().querySelector('form')!;
+  const form = dialog().querySelector('form')!;
   form.querySelector<HTMLInputElement>('input[name="title"]')!.value = 'Гайд по аналитике';
   form.querySelector<HTMLTextAreaElement>('textarea[name="description"]')!.value = 'Учебный материал';
   form.querySelector<HTMLInputElement>('input[name="url"]')!.value = 'https://example.com/guide';
@@ -306,12 +338,12 @@ it('shows publication, edit and removal confirmations in the same corner', async
   expectSuccessToast('Материал опубликован.');
 
   await click(button('Редактировать'));
-  const edit = picker().querySelector('form')!;
+  const edit = dialog().querySelector('form')!;
   edit.querySelector<HTMLInputElement>('input[name="title"]')!.value = 'Новый гайд по аналитике';
   await click(button('Сохранить изменения', edit));
   expectSuccessToast('Изменения сохранены.');
 
   await click(button('Удалить'));
-  await click(button('Удалить публикацию', picker()));
+  await click(button('Удалить публикацию', dialog()));
   expectSuccessToast('Материал удалён.');
 });

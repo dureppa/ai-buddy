@@ -4,10 +4,12 @@ import { readDemoSession } from './demo-session';
 import {
   addChecklistItem,
   baselineFor,
+  checklistEditsKey,
   groupByName,
   internMaterials,
   internOverview,
   materialGroupChoices,
+  materialsForTask,
   materialsKey,
   maxMaterialBytes,
   readMaterials,
@@ -417,7 +419,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
 
   useEffect(() => {
     function refresh(event: StorageEvent) {
-      if (event.key === null || event.key.startsWith('ai-buddy.workspace.'))
+      if (event.key === null || event.key === checklistEditsKey || event.key.startsWith('ai-buddy.workspace.'))
         setInterns(internOverview(localStorage, id));
       if (event.key === null || event.key === materialsKey) setMaterials(readMaterials(localStorage));
     }
@@ -528,10 +530,12 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
                 setInterns(internOverview(localStorage, id));
                 setNotice({ message: 'Пункт добавлен в чек-лист.' });
               }}
-              onSaveMaterials={(taskId, materialIds) => {
+              onChangeMaterial={(taskId, materialId, attach) => {
+                const savedIds = materialsForTask(localStorage, current.id, taskId).map((material) => material.id);
+                const materialIds = attach ? [...savedIds, materialId] : savedIds.filter((id) => id !== materialId);
                 setTaskMaterials(localStorage, id, taskId, materialIds);
                 setInterns(internOverview(localStorage, id));
-                setNotice({ message: 'Материалы пункта сохранены.' });
+                setNotice({ message: attach ? 'Материал прикреплён.' : 'Материал откреплён.' });
               }}
               onRemove={(taskId) => {
                 removeChecklistItem(localStorage, id, taskId);
