@@ -325,6 +325,7 @@ def deploy(root: Path, sha: str) -> None:
         snapshot: dict[str, str] = {}
         old_auth: dict[str, bytes] = {}
         switched = False
+        first_access_release = False
         try:
             if current_file.exists():
                 previous = read_json(current_file)
@@ -357,9 +358,12 @@ def deploy(root: Path, sha: str) -> None:
             )
             backups.mkdir(parents=True, exist_ok=True, mode=0o700)
             write_json(backups / "images.json", snapshot)
-            if (release / "corporate-services/access/migrate.sh").is_file() and not (
+            first_access_release = (
+                release / "corporate-services/access/migrate.sh"
+            ).is_file() and not (
                 previous_path / "corporate-services/access/migrate.sh"
-            ).is_file():
+            ).is_file()
+            if first_access_release:
                 # Quiesce the legacy writer before copying its requests.
                 switched = True
                 run([*COMPOSE, "stop", "go"], previous_path)
@@ -388,6 +392,21 @@ def deploy(root: Path, sha: str) -> None:
         except Exception:
             status(root, sha, "rolling_back")
             try:
+                if first_access_release and switched:
+                    run([*COMPOSE, "stop", "go", "access"], release)
+                    run(
+                        [
+                            *COMPOSE,
+                            "run",
+                            "--rm",
+                            "--no-deps",
+                            "--entrypoint",
+                            "sh",
+                            "access-migrate",
+                            "/data/rollback.sh",
+                        ],
+                        release,
+                    )
                 for name, identifier in snapshot.items():
                     run(["docker", "tag", identifier, name], previous_path)
                 for name, contents in old_auth.items():

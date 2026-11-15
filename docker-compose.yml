@@ -23,13 +23,12 @@ x-hr: &hr
     timeout: 3s
     retries: 20
   depends_on:
-    db:
-      condition: service_healthy
+    hr-databases:
+      condition: service_completed_successfully
 
 x-hr-env: &hr-env
   <<: *database-env
-  PGADMIN_USER: aibuddy
-  PGADMIN_PASSWORD: ${COMPOSE_DB_PASSWORD:-local-aibuddy-secret}
+  DEMO_MODE: "true"
   SESSION_SECRET: ${COMPOSE_SESSION_SECRET:-local-demo-session-change-for-shared-host}
   TZ: Europe/Moscow
 
@@ -205,6 +204,26 @@ services:
       retries: 15
 
 
+  hr-databases:
+    image: postgres:17-alpine
+    profiles: [hr]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      <<: *database-env
+      HR_ABSENCES_DB_PASSWORD: ${COMPOSE_HR_ABSENCES_DB_PASSWORD:-local-hr-absences-db-password}
+      HR_TRIPS_DB_PASSWORD: ${COMPOSE_HR_TRIPS_DB_PASSWORD:-local-hr-trips-db-password}
+      HR_HIRING_DB_PASSWORD: ${COMPOSE_HR_HIRING_DB_PASSWORD:-local-hr-hiring-db-password}
+      HR_OFFBOARDING_DB_PASSWORD: ${COMPOSE_HR_OFFBOARDING_DB_PASSWORD:-local-hr-offboarding-db-password}
+      HR_CONSENTS_DB_PASSWORD: ${COMPOSE_HR_CONSENTS_DB_PASSWORD:-local-hr-consents-db-password}
+      HR_BENEFITS_DB_PASSWORD: ${COMPOSE_HR_BENEFITS_DB_PASSWORD:-local-hr-benefits-db-password}
+      HR_DOCUMENTS_DB_PASSWORD: ${COMPOSE_HR_DOCUMENTS_DB_PASSWORD:-local-hr-documents-db-password}
+      HR_EVENTS_DB_PASSWORD: ${COMPOSE_HR_EVENTS_DB_PASSWORD:-local-hr-events-db-password}
+    volumes:
+      - ./corporate-services/prepare-databases.sh:/prepare-hr.sh:ro
+    entrypoint: [sh, /prepare-hr.sh]
+
   hr-absences:
     <<: *hr
     build:
@@ -218,7 +237,8 @@ services:
       HTTP_ADDR: ":8181"
       HR_HEALTH_PATH: /api/v1/me/absence-summary
       PGUSER: hr_absences
-      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGPASSWORD: ${COMPOSE_HR_ABSENCES_DB_PASSWORD:-local-hr-absences-db-password}
+      HR_DEMO_SIGNING_SECRET: ${COMPOSE_HR_ABSENCES_SESSION_SECRET:-local-hr-absences-session-secret-change-me}
       PGDATABASE: hr_absences
     ports:
       - "127.0.0.1:8181:8181"
@@ -236,7 +256,8 @@ services:
       HTTP_ADDR: ":8182"
       HR_HEALTH_PATH: /api/v1/me/travel-summary
       PGUSER: hr_trips
-      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGPASSWORD: ${COMPOSE_HR_TRIPS_DB_PASSWORD:-local-hr-trips-db-password}
+      HR_DEMO_SIGNING_SECRET: ${COMPOSE_HR_TRIPS_SESSION_SECRET:-local-hr-trips-session-secret-change-me}
       PGDATABASE: hr_trips
     ports:
       - "127.0.0.1:8182:8182"
@@ -254,7 +275,8 @@ services:
       HTTP_ADDR: ":8183"
       HR_HEALTH_PATH: /api/v1/me/referral-summary
       PGUSER: hr_hiring
-      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGPASSWORD: ${COMPOSE_HR_HIRING_DB_PASSWORD:-local-hr-hiring-db-password}
+      HR_DEMO_SIGNING_SECRET: ${COMPOSE_HR_HIRING_SESSION_SECRET:-local-hr-hiring-session-secret-change-me}
       PGDATABASE: hr_hiring
     ports:
       - "127.0.0.1:8183:8183"
@@ -272,7 +294,8 @@ services:
       HTTP_ADDR: ":8184"
       HR_HEALTH_PATH: /api/v1/me/offboarding
       PGUSER: hr_offboarding
-      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGPASSWORD: ${COMPOSE_HR_OFFBOARDING_DB_PASSWORD:-local-hr-offboarding-db-password}
+      HR_DEMO_SIGNING_SECRET: ${COMPOSE_HR_OFFBOARDING_SESSION_SECRET:-local-hr-offboarding-session-secret-change-me}
       PGDATABASE: hr_offboarding
     ports:
       - "127.0.0.1:8184:8184"
@@ -290,7 +313,8 @@ services:
       HTTP_ADDR: ":8185"
       HR_HEALTH_PATH: /api/v1/me/consents
       PGUSER: hr_consents
-      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGPASSWORD: ${COMPOSE_HR_CONSENTS_DB_PASSWORD:-local-hr-consents-db-password}
+      HR_DEMO_SIGNING_SECRET: ${COMPOSE_HR_CONSENTS_SESSION_SECRET:-local-hr-consents-session-secret-change-me}
       PGDATABASE: hr_consents
     ports:
       - "127.0.0.1:8185:8185"
@@ -308,7 +332,8 @@ services:
       HTTP_ADDR: ":8186"
       HR_HEALTH_PATH: /api/v1/me/benefit-summary
       PGUSER: hr_benefits
-      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGPASSWORD: ${COMPOSE_HR_BENEFITS_DB_PASSWORD:-local-hr-benefits-db-password}
+      HR_DEMO_SIGNING_SECRET: ${COMPOSE_HR_BENEFITS_SESSION_SECRET:-local-hr-benefits-session-secret-change-me}
       PGDATABASE: hr_benefits
     ports:
       - "127.0.0.1:8186:8186"
@@ -326,7 +351,8 @@ services:
       HTTP_ADDR: ":8187"
       HR_HEALTH_PATH: /api/v1/me/documents
       PGUSER: hr_documents
-      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGPASSWORD: ${COMPOSE_HR_DOCUMENTS_DB_PASSWORD:-local-hr-documents-db-password}
+      HR_DEMO_SIGNING_SECRET: ${COMPOSE_HR_DOCUMENTS_SESSION_SECRET:-local-hr-documents-session-secret-change-me}
       PGDATABASE: hr_documents
     ports:
       - "127.0.0.1:8187:8187"
@@ -344,7 +370,8 @@ services:
       HTTP_ADDR: ":8188"
       HR_HEALTH_PATH: /api/v1/me/events
       PGUSER: hr_events
-      PGPASSWORD: ${COMPOSE_HR_DB_PASSWORD:-local-hr-secret}
+      PGPASSWORD: ${COMPOSE_HR_EVENTS_DB_PASSWORD:-local-hr-events-db-password}
+      HR_DEMO_SIGNING_SECRET: ${COMPOSE_HR_EVENTS_SESSION_SECRET:-local-hr-events-session-secret-change-me}
       PGDATABASE: hr_events
     ports:
       - "127.0.0.1:8188:8188"

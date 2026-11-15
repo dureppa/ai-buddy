@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import { z } from 'zod';
-import { apiFetch } from './backend';
-import type { ProfileId } from './demo-accounts';
+import { apiFetch } from '../../../web/frontend/src/backend';
+import type { ProfileId } from '../../../web/frontend/src/demo-accounts';
 
 export const WorkToolTransport = createContext(apiFetch);
 export const useWorkToolTransport = () => useContext(WorkToolTransport);

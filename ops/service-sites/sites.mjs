@@ -38,6 +38,7 @@ for (const [id, port] of Object.entries(ports)) {
         '/buddy-api': { target: 'http://127.0.0.1:8080', rewrite: (path) => path.replace(/^\/buddy-api/, '/api') },
         ...(id === 'work-tools' ? { '/api/v1/work-tools': 'http://127.0.0.1:5192' } : {}),
         '/api':
+          (hrApiPorts[id] && 'http://127.0.0.1:' + hrApiPorts[id]) ||
           (id === 'access' && 'http://127.0.0.1:8190') ||
           (id === 'confluence' && 'http://127.0.0.1:8191') ||
           'http://127.0.0.1:8080',

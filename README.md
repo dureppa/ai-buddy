@@ -18,6 +18,18 @@
 
 Остальные зависимости зафиксированы в [docs/stack.md](docs/stack.md), `web/backend/go.mod`, `ai-agent/uv.lock` и `package-lock.json`.
 
+## Структура
+
+`web/` содержит интерфейс и Go API Buddy, `ai-agent/` — Flask и MCP,
+`extension/` — расширение Chromium. Девять корпоративных сервисов лежат
+в `corporate-services/`, пятнадцать инструментов — в `tools/`.
+У каждого свой Go-процесс и своя база PostgreSQL. Общие сборка и проверки
+находятся в `ops/`.
+
+Тесты Go лежат рядом с проверяемым кодом. `just service-go-check` проверяет
+внешние модули, а `just external-check` запускает все 24 API в Docker.
+[Как устроены проверки](docs/engineering.md).
+
 ## Запуск для проверки
 
 Нужны Docker и ключ DeepSeek. Свой ключ в репозиторий не входит: жюри подставляет отдельный ключ в переменную окружения.
