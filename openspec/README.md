@@ -1,6 +1,6 @@
 # OpenSpec агента AI Buddy
 
-Обновлено 13 ноября 2026. Активное предложение [implement-python-agent](changes/implement-python-agent/proposal.md) описывает онбординг, с которым работает агент. Реализован ограниченный Python runtime: Flask, прямой локальный Ollama-цикл, read-only MCP, отдельный assessment endpoint и тесты; полный онбординг и Go-интеграция ещё не завершены.
+Актуальные поведение и запуск описаны в [архитектуре](../docs/architecture.md) и [спецификациях](../docs/specs/). Этот каталог хранит предложение `implement-python-agent` от 13 ноября 2026 и не заменяет их. Не копируй из него команды запуска.
 
 1. [Границы](changes/implement-python-agent/proposal.md).
 2. [Источники, решения команды и допущения](changes/implement-python-agent/sources-and-assumptions.md).
