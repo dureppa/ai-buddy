@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stages, tasksFor } from './checklist';
+import { homeSectionTitle, homeTasks, stages, tasksFor } from './checklist';
 import type { ProfileId } from './demo-accounts';
 
 const profiles = ['olga', 'sasha', 'timur', 'maria'] as const satisfies readonly ProfileId[];
@@ -44,5 +44,14 @@ describe('internship checklist', () => {
     expect(tasksFor('timur').find((task) => task.id === 'zbp')?.title).toBe('Zero Bug Policy');
     expect(tasksFor('maria').find((task) => task.id === 'sniffer')?.title).toBe('Figma и инспектор макетов');
     expect(tasksFor('olga').some((task) => task.title.includes('Подписать документы'))).toBe(false);
+  });
+
+  it('shows upcoming tasks on the home page until the final stage', () => {
+    expect(homeSectionTitle('olga')).toBe('Ближайшие задачи');
+    expect(homeSectionTitle('timur')).toBe('Ближайшие задачи');
+    expect(homeSectionTitle('sasha')).toBe('Ближайшие задачи');
+    expect(homeTasks('sasha').map((task) => task.id)).toEqual(['equator-prep', 'equator-meeting']);
+    expect(homeSectionTitle('maria')).toBe('Итоги адаптации');
+    expect(homeTasks('maria').map((task) => task.id)).toEqual(['graduation', 'internship-survey']);
   });
 });
