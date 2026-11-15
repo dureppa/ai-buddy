@@ -63,3 +63,9 @@ docker compose --profile hr down
 `docker compose --profile hr --profile jira up --build -d` добавляет самостоятельную БД, миграции и API Jira. UI на 5189, API внутри сети на 8189. [Настройки и ограничения CD](jira.md).
 
 Портал доступов входит в hr-web на 5190, Confluence — на 5191. Оба используют Go API и PostgreSQL Buddy после миграции 09. [Доступы](access-portal.md), [база знаний](confluence.md).
+
+
+Для запуска внешней части используй профили `hr` и `jira` и явно перечисли
+`hr-web`, `access`, `confluence`, `jira`, нужные `hr-*` и `tool-*`.
+Веб-адреса корпоративных сервисов используют порты 5181–5190,
+Confluence — 5191, остальные учебные инструменты — 5192.

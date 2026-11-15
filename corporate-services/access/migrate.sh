@@ -41,6 +41,9 @@ INSERT INTO teams SELECT * FROM legacy_teams ON CONFLICT(id) DO UPDATE SET name=
 INSERT INTO profiles SELECT * FROM legacy_profiles ON CONFLICT(id) DO UPDATE
   SET display_name=excluded.display_name,team_id=excluded.team_id,job_role=excluded.job_role;
 INSERT INTO portal_resources SELECT * FROM legacy_resources ON CONFLICT DO NOTHING;
+UPDATE portal_access_requests r
+SET status=x.status, decision_by=x.decision_by, decision_note=x.decision_note, decided_at=x.decided_at
+FROM legacy_requests x WHERE r.id=x.id;
 INSERT INTO portal_access_requests OVERRIDING SYSTEM VALUE SELECT * FROM legacy_requests ON CONFLICT(id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('portal_access_requests','number'),
   COALESCE(MAX(number), 1), MAX(number) IS NOT NULL) FROM portal_access_requests;

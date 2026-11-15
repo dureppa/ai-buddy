@@ -1,3 +1,4 @@
+import type { ProfileId } from '../../../web/frontend/src/demo-accounts';
 import { z } from 'zod';
 
 export const pageSchema = z.object({
@@ -15,3 +16,5 @@ export const pageSchema = z.object({
 });
 
 export type ToolRecord = z.infer<typeof pageSchema>['records'][number];
+
+export type Props = { record: ToolRecord; profileId: ProfileId };

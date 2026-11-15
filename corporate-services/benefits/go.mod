@@ -1,6 +1,6 @@
 module github.com/dureppa/ai-buddy/corporate-services/benefits
 
-go 1.25.0
+go 1.26.11
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -14,3 +14,7 @@ require (
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/text v0.41.0 // indirect
 )
+
+require github.com/dureppa/ai-buddy/tools v0.0.0
+
+replace github.com/dureppa/ai-buddy/tools => ../../tools

@@ -24,8 +24,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm exec -- prettier --check web/frontend extension/frontend ops/service-sites/frontend ops/service-sites/sites.mjs corporate-services/*/frontend tools/jira/frontend corporate-services/access/frontend tools/confluence/frontend eslint.config.mjs prettier.config.mjs
-      - run: npm exec -- eslint web/frontend extension/frontend ops/service-sites/frontend ops/service-sites/sites.mjs corporate-services/*/frontend tools/jira/frontend corporate-services/access/frontend tools/confluence/frontend
+      - run: npm exec -- prettier --check web/frontend extension/frontend ops/service-sites/frontend ops/service-sites/sites.mjs corporate-services/*/frontend tools/*/frontend eslint.config.mjs prettier.config.mjs
+      - run: npm exec -- eslint web/frontend extension/frontend ops/service-sites/frontend ops/service-sites/sites.mjs corporate-services/*/frontend tools/*/frontend
       - run: npm run typecheck --workspaces
       - run: npm run test:coverage --workspace=@ai-buddy/web
       - run: npm test --workspace=@ai-buddy/extension --workspace=@ai-buddy/corporate-services
@@ -109,13 +109,10 @@ jobs:
           go test -coverprofile=coverage.out -covermode=atomic ./...
           go tool cover -func=coverage.out
 
-      - name: Verify external tools without Buddy
+      - name: Verify all external services without Buddy
         run: |
-          docker compose -p ci-work-tools --profile hr build tool-grafana hr-web
-          trap 'docker compose -p ci-work-tools --profile hr down --volumes' EXIT
-          tools=$(docker compose -p ci-work-tools --profile hr config --services | sed -n '/^tool-/p')
-          docker compose -p ci-work-tools --profile hr up -d --no-build --wait --wait-timeout 180 hr-web $tools
-          python3 ops/checks/check-work-tools.py
+          sh ops/checks/external-services.sh
+          sh ops/checks/check-access-migration.sh
 
   repository:
     name: repository

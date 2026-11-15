@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { pageSchema } from './work-tool-data';
 import { useWorkToolTransport } from './work-tool-transport';
-import type { ProfileId } from './demo-accounts';
+import type { ProfileId } from '../../../web/frontend/src/demo-accounts';
 import { toolViews } from './WorkToolViews';
 import './work-tools.css';
 
