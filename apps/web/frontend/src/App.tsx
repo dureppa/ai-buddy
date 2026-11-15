@@ -68,9 +68,26 @@ function TaskMaterialList({ profileId, taskId }: { profileId: ProfileId; taskId:
             <small>
               {material.group} · {material.author}
             </small>
-            <a href={material.source.href} target="_blank" rel="noreferrer">
-              {material.source.kind === 'file' ? material.source.name : material.source.href}
-            </a>
+            {material.source.kind === 'file' ? (
+              <a
+                className="text-link task-material__link"
+                href={material.source.href}
+                download={material.source.name}
+                aria-label={'Скачать файл ' + material.source.name}
+              >
+                Скачать файл <Icon name="file" size={15} />
+              </a>
+            ) : (
+              <a
+                className="text-link task-material__link"
+                href={material.source.href}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={'Открыть ссылку ' + material.title}
+              >
+                Открыть ссылку <Icon name="diagonal" size={15} />
+              </a>
+            )}
           </li>
         ))}
       </ul>

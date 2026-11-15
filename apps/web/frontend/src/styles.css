@@ -1939,29 +1939,42 @@ svg {
   line-height: 1.55;
   white-space: pre-line;
 }
+.task-materials {
+  display: grid;
+  gap: 12px;
+}
+.task-materials h3 {
+  font-size: 16px;
+  line-height: 1.35;
+}
 .task-materials ul {
   display: grid;
   gap: 10px;
 }
 .task-material {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   padding: 14px 16px;
+  border-radius: 16px;
+  box-shadow: none;
+  overflow-wrap: anywhere;
 }
 .task-material strong {
   font-size: 15px;
-  letter-spacing: -0.03em;
+  line-height: 1.35;
 }
-.task-material p,
-.task-material small {
-  color: var(--muted);
+.detail-content .task-material p {
   font-size: 13px;
   line-height: 1.45;
 }
-.task-material a {
-  color: #315e3a;
-  font-weight: 700;
-  overflow-wrap: anywhere;
+.task-material small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.task-material__link {
+  margin-top: 2px;
+  font-size: 13px;
 }
 .detail-content dl {
   display: grid;
