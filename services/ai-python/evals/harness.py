@@ -1,9 +1,10 @@
-"""Development-only Flask/Ollama/real MCP harness with explicit semantic review."""
+"""Development-only production agent/provider/MCP with synthetic tool backends."""
 
 import argparse
 import hashlib
 import json
 import logging
+import os
 import subprocess
 import time
 from collections import Counter
@@ -11,7 +12,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 from mcp import ClientSession
@@ -26,8 +27,10 @@ from ai_buddy.assessment import AssessmentResult
 from ai_buddy.config import Settings
 from ai_buddy.errors import ErrorCode, ServiceError
 from ai_buddy.mcp_client import CONTRACTS, LimitedTransport, Session, classified_error
+from ai_buddy.mcp_identity import Principal
 from ai_buddy.mcp_server import create_mcp_app
-from ai_buddy.schemas import TurnRequest
+from ai_buddy.ollama import MAX_BYTES
+from ai_buddy.schemas import FailureEnvelope, TurnRequest
 from evals.golden import DIRECTORY, Case, load_split, tool_schema_hash
 
 REPORTS = Path(__file__).with_name("reports")
@@ -43,7 +46,28 @@ class FixtureBackend:
     """Scripted environment, not search quality; actual query intent needs review."""
 
     def __init__(self, case: Case) -> None:
-        self.fixtures = {f.tool: f for f in case.fixtures}
+        self.fixtures = case.fixtures
+        seen: set[tuple[str, str]] = set()
+        for fixture in self.fixtures:
+            contract = CONTRACTS.get(fixture.tool)
+            if contract is None:
+                raise ValueError("unknown fixture tool")
+            arguments = contract.arguments.model_validate(
+                fixture.arguments
+            ).model_dump()
+            key = (
+                fixture.tool,
+                "search" if fixture.tool == "search_knowledge" else digest(arguments),
+            )
+            if key in seen:
+                raise ValueError("ambiguous fixtures")
+            seen.add(key)
+            if fixture.result is not None:
+                (
+                    contract.result
+                    if fixture.result.get("ok") is True
+                    else FailureEnvelope
+                ).model_validate(fixture.result)
         self.calls: list[dict[str, Any]] = []
 
     async def read(
@@ -51,7 +75,21 @@ class FixtureBackend:
     ) -> dict[str, Any]:
         entry: dict[str, Any] = {"name": tool, "arguments": arguments}
         self.calls.append(entry)
-        fixture = self.fixtures.get(tool)
+        fixture = next(
+            (
+                f
+                for f in self.fixtures
+                if f.tool == tool
+                and (
+                    tool == "search_knowledge"
+                    or CONTRACTS[tool]
+                    .arguments.model_validate(f.arguments)
+                    .model_dump()
+                    == arguments
+                )
+            ),
+            None,
+        )
         if fixture is None:
             entry["error"] = "INVALID_TOOL"
             raise ServiceError(ErrorCode.INVALID_TOOL)
@@ -93,7 +131,9 @@ def structural_checks(
         if (
             rule
             and rule.argument_match == "exact"
-            and call["arguments"] != rule.arguments_example
+            and contract is not None
+            and call["arguments"]
+            != contract.arguments.model_validate(rule.arguments_example).model_dump()
         ):
             checks["exact_arguments"] = False
     ordered = [call["name"] for call in calls if call["name"] in exp.ordered_tools]
@@ -174,9 +214,14 @@ def structural_checks(
 
 class ModelRecorder(httpx.AsyncBaseTransport):
     def __init__(
-        self, inner: httpx.AsyncBaseTransport, calls: list[dict[str, Any]], fault: bool
+        self,
+        inner: httpx.AsyncBaseTransport,
+        calls: list[dict[str, Any]],
+        fault: bool,
+        provider: Literal["ollama", "deepseek"] = "ollama",
     ) -> None:
         self.inner, self.calls, self.fault = inner, calls, fault
+        self.provider = provider
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         item: dict[str, Any] = {"request": json.loads(request.content)}
@@ -185,22 +230,61 @@ class ModelRecorder(httpx.AsyncBaseTransport):
             item["injected_status"] = 429
             return httpx.Response(429, request=request)
         response = await self.inner.handle_async_request(request)
-        await response.aread()
-        item["status"] = response.status_code
-        if response.status_code == 200:
-            data = response.json()
-            # Deliberately omit thinking/hidden reasoning.
-            item["response"] = {
-                k: data[k]
-                for k in ("eval_count", "prompt_eval_count", "done_reason")
-                if k in data
-            }
-            item["response"]["message"] = {
-                k: v
-                for k, v in data.get("message", {}).items()
-                if k in {"role", "content", "tool_calls"}
-            }
-        return response
+        try:
+            item["status"] = response.status_code
+            raw = bytearray()
+            if response.status_code == 200:
+                async for chunk in response.aiter_bytes():
+                    if len(raw) + len(chunk) > MAX_BYTES:
+                        raise ServiceError(ErrorCode.AI_INVALID_RESPONSE)
+                    raw.extend(chunk)
+                try:
+                    data = json.loads(raw)
+                    message = (
+                        data.get("message", {})
+                        if self.provider == "ollama"
+                        else data.get("choices", [{}])[0].get("message", {})
+                    )
+                    item["response"] = {
+                        "message": {
+                            k: v
+                            for k, v in message.items()
+                            if k in {"role", "content", "tool_calls"}
+                        }
+                    }
+                    for key in (
+                        "eval_count",
+                        "prompt_eval_count",
+                        "done_reason",
+                        "model",
+                    ):
+                        if key in data:
+                            item["response"][key] = data[key]
+                    if self.provider == "deepseek":
+                        item["response"]["finish_reason"] = data["choices"][0].get(
+                            "finish_reason"
+                        )
+                        item["response"]["usage"] = {
+                            k: v
+                            for k, v in data.get("usage", {}).items()
+                            if k
+                            in {"prompt_tokens", "completion_tokens", "total_tokens"}
+                        }
+                except (ValueError, TypeError, AttributeError, IndexError, KeyError):
+                    raise ServiceError(ErrorCode.AI_INVALID_RESPONSE) from None
+            return httpx.Response(
+                response.status_code,
+                # aiter_bytes already decoded compression. Do not decode it twice.
+                headers={
+                    "Content-Type": response.headers.get(
+                        "Content-Type", "application/json"
+                    )
+                },
+                content=bytes(raw),
+                request=request,
+            )
+        finally:
+            await response.aclose()
 
     async def aclose(self) -> None:
         await self.inner.aclose()
@@ -223,15 +307,30 @@ def execute_case(case: Case, settings: Settings) -> dict[str, Any]:
             transport_class(**kwargs),
             model_calls,
             case.fault == ErrorCode.AI_RATE_LIMITED,
+            settings.llm_provider,
         )
 
     @asynccontextmanager
     async def factory(context: TurnRequest) -> AsyncIterator[Session]:
+        class Identity:
+            async def authenticate(self, token: str) -> Principal:
+                if token != context.delegation_token.get_secret_value():
+                    raise ServiceError(ErrorCode.UNAUTHORIZED)
+                grants = set(CONTRACTS) - {"submit_access_request"}
+                permissions = case.context["permissions"]
+                if isinstance(permissions, list) and "access:submit" in permissions:
+                    grants.add("submit_access_request")
+                return Principal(
+                    subject="synthetic-eval-profile",
+                    allowed_tools=frozenset(grants),
+                    request_id=context.request_id,
+                    conversation_id=context.conversation_id,
+                )
+
         app = create_mcp_app(
             backend,
-            principals={
-                context.delegation_token.get_secret_value(): "synthetic-eval-profile"
-            },
+            authenticator=Identity(),
+            mode="go_http",
         )
         try:
             async with (
@@ -296,34 +395,61 @@ def execute_case(case: Case, settings: Settings) -> dict[str, Any]:
     }
 
 
-def main(model: str, output_dir: Path = REPORTS) -> Path:
+def main(
+    model: str,
+    output_dir: Path = REPORTS,
+    *,
+    provider: Literal["ollama", "deepseek"] = "ollama",
+    allow_live_llm: bool = False,
+) -> Path:
+    if not allow_live_llm:
+        raise ValueError("--allow-live-llm is required; no requests sent")
     # No split option: holdout is intentionally inaccessible to this command.
     dataset = load_split()
+    for case in dataset.cases:
+        if case.readiness == "python_ready":
+            FixtureBackend(case)
     settings = Settings(
         service_token=SecretStr("synthetic-harness-service"),
         mcp_url="http://127.0.0.1/mcp",
         agent_enabled=True,
         ollama_model=model,
+        llm_provider=provider,
+        deepseek_model=model,
+        deepseek_api_key=SecretStr(os.environ["DEEPSEEK_API_KEY"])
+        if provider == "deepseek" and os.environ.get("DEEPSEEK_API_KEY")
+        else None,
+        deepseek_base_url=os.environ.get(
+            "DEEPSEEK_BASE_URL", "https://api.deepseek.com"
+        ),
     )
-    with httpx.Client(timeout=60, trust_env=False) as client:
-        tags = client.get(settings.ollama_url + "/api/tags").json()["models"]
-        selected = next(t for t in tags if t["name"] == model)
-        warmup = client.post(
-            settings.ollama_url + "/api/chat",
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": "Ответь ОК."}],
-                "stream": False,
-                "think": False,
-                "options": {"num_predict": 8},
-            },
-        )
-        warmup.raise_for_status()
+    if not settings.model_configured:
+        raise ValueError("model credential/configuration missing; no requests sent")
+    selected: dict[str, Any] = {
+        "name": model,
+        "provider": provider,
+        "snapshot_pinned": False,
+    }
+    if provider == "ollama":
+        with httpx.Client(timeout=60, trust_env=False) as client:
+            tags = client.get(settings.ollama_url + "/api/tags").json()["models"]
+            selected = next(t for t in tags if t["name"] == model)
+            warmup = client.post(
+                settings.ollama_url + "/api/chat",
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": "Ответь ОК."}],
+                    "stream": False,
+                    "think": False,
+                    "options": {"num_predict": 8},
+                },
+            )
+            warmup.raise_for_status()
     output_dir.mkdir(exist_ok=True, parents=True)
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     path = output_dir / f"development-{stamp}.json"
     report: dict[str, Any] = {
-        "version": "agent-harness-v2",
+        "version": "agent-harness-v3",
         "created_at": stamp,
         "git_commit": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], text=True
@@ -336,7 +462,21 @@ def main(model: str, output_dir: Path = REPORTS) -> Path:
         "dataset_sha256": hashlib.sha256(
             (DIRECTORY / "development.json").read_bytes()
         ).hexdigest(),
-        "tool_schema_sha256": tool_schema_hash(),
+        "tool_schema_sha256": digest(
+            {
+                n: {
+                    "arguments": c.arguments.model_json_schema(),
+                    "result": c.result.model_json_schema(),
+                }
+                for n, c in CONTRACTS.items()
+            }
+        ),
+        "dataset_tool_schema_sha256": tool_schema_hash(),
+        "runtime_tools": sorted(CONTRACTS),
+        "provider": provider,
+        "endpoint": settings.ollama_url
+        if provider == "ollama"
+        else settings.deepseek_base_url,
         "prompt_hashes": {
             "chat": digest(CHAT_PROMPT),
             "assessment": digest(ASSESSMENT_PROMPT),
@@ -344,14 +484,15 @@ def main(model: str, output_dir: Path = REPORTS) -> Path:
         "model": selected,
         "split": "development",
         "label_status": dataset.label_status,
-        "scope": "Real Flask/native Ollama and production local MCP factory via SDK ASGI transport; scripted fixture backend, not Go/retrieval benchmark. Query intent and facts need explicit review.",
+        "scope": "Current Flask/provider/SDK MCP; synthetic principal and fixtures only. Legacy agent-v1 is not full coverage of current actions/stages. No real Go/corporate writes, no semantic approval.",
         "turn_timeout": settings.turn_timeout,
         "model_timeout": settings.model_timeout,
         "holdout_executed": False,
         "complete": False,
         "runs": [],
     }
-    path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+    with path.open("x") as output:
+        output.write(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
     for case in dataset.cases:
         result = execute_case(case, settings)
         report["runs"].append(result)
@@ -370,6 +511,18 @@ def main(model: str, output_dir: Path = REPORTS) -> Path:
         "blocked": sum(r["execution"] == "blocked" for r in report["runs"]),
         "structural_pass": sum(r.get("structural_pass", False) for r in report["runs"]),
         "semantic_assessed": 0,
+        "tools_observed": sorted(
+            {c["name"] for r in report["runs"] for c in r.get("actual_calls", [])}
+        ),
+        "real_corporate_writes": 0,
+        "response_models": sorted(
+            {
+                c.get("response", {}).get("model")
+                for r in report["runs"]
+                for c in r.get("model_calls", [])
+                if c.get("response", {}).get("model")
+            }
+        ),
     }
     path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
     print("Saved", path, flush=True)
@@ -379,7 +532,19 @@ def main(model: str, output_dir: Path = REPORTS) -> Path:
 if __name__ == "__main__":
     logging.getLogger("httpx").setLevel(logging.WARNING)
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default="qwen3:4b-q4_K_M")
+    parser.add_argument("--provider", choices=["ollama", "deepseek"], default="ollama")
+    parser.add_argument("--model")
+    parser.add_argument("--allow-live-llm", action="store_true")
     parser.add_argument("--output-dir", type=Path, default=REPORTS)
     args = parser.parse_args()
-    main(args.model, args.output_dir)
+    main(
+        args.model
+        or (
+            os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
+            if args.provider == "deepseek"
+            else "qwen3:4b-q4_K_M"
+        ),
+        args.output_dir,
+        provider=args.provider,
+        allow_live_llm=args.allow_live_llm,
+    )

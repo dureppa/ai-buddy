@@ -123,6 +123,10 @@ def test_server_domain_failure_survives_sdk_context_cleanup(
     monkeypatch: pytest.MonkeyPatch, case_id: str, tool: str
 ) -> None:
     case = next(c for c in load_split().cases if c.case_id == case_id)
+    # This tests error propagation, independently of current hiring intent routing.
+    case = case.model_copy(
+        update={"input": {**case.input, "message": "Найди учебную инструкцию"}}
+    )
 
     def model(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
@@ -208,9 +212,9 @@ def test_cli_keeps_complete_and_interrupted_reports_separate(
     monkeypatch.setattr(harness, "execute_case", execute)
     if interrupt:
         with pytest.raises(RuntimeError):
-            harness.main("test-model", tmp_path)
+            harness.main("test-model", tmp_path, allow_live_llm=True)
     else:
-        harness.main("test-model", tmp_path)
+        harness.main("test-model", tmp_path, allow_live_llm=True)
     reports = list(tmp_path.glob("development-*.json"))
     assert len(reports) == 1
     data = json.loads(reports[0].read_text())
