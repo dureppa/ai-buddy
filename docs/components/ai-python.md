@@ -129,6 +129,13 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 
 ## Общий development eval
 
+Runtime onboarding-v5-clarify прямо просит значения недостающих параметров и
+сохраняет уточнение после recovery/исправления цитаты; примеры категорий берутся
+только из источника. Это изменение настоящего агента: оно попадёт в чат сайта
+после успешного развёртывания Python-сервиса. Синтетические eval-fixtures не
+подключают новые данные Go или UI автоматически.
+
+
 Текущий [agent-v2 development](../../services/ai-python/evals/agent-v2/README.md)
 содержит 25 синтетических кейсов. --dataset agent-v2 выбирает его явно; agent-v1
 и holdout сохранены. Fixture не является подключением функции на сайте: для

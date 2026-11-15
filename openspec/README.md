@@ -39,3 +39,5 @@ openspec status --change implement-python-agent --json
 [Development harness](changes/implement-python-agent/eval-harness-scope.md) реализован с фактическими MCP-вызовами и отдельным assisted-review; [результаты](../services/ai-python/evals/reports/README.md). Holdout не запускался.
 
 [Текущий harness](changes/implement-python-agent/current-harness-scope.md) поддерживает DeepSeek/Ollama и каталог 11 MCP tools на синтетических fixtures. Legacy agent-v1 сохраняется отдельно от проверки новых контрактов; живые запросы требуют явного включения.
+
+[Текущий development v2 и явное уточнение](changes/implement-python-agent/development-v2-scope.md): отдельная версия тестового окружения по SDD 007/008, без изменения agent-v1/holdout; fixtures не являются подключением функции сайта.
