@@ -88,6 +88,9 @@ HTTP-режим: [границы адаптера](go-http-adapter-scope.md). П
 
 ## Development harness
 
+- [x] Обновить harness под текущие DeepSeek/Ollama transport, весь runtime-каталог MCP и безопасные recorder/metadata. Проверить 11 tools scripted HTTP/SDK-тестами без live LLM; сохранить agent-v1 и blocked-кейсы. [Границы](current-harness-scope.md).
+- [ ] Отдельно согласовать актуальные golden-кейсы progress/actions/AccessIntent и выполнить живой development-прогон выбранных моделей. Техническая поддержка каталога не закрывает качество этих сценариев.
+
 - [x] Реализовать общий Flask/LLM/MCP harness только для development, с actual calls, уникальными отчётами, blocked и безопасными инъекциями отказов.
 - [x] Добавить раздельный structural scorer и привязанный к SHA assisted/human review фактов/ограничений/query intent.
 - [x] Выполнить исходный и повторные development-прогоны; сохранить неудачные варианты prompt, откатить их и оставить прежний chat prompt. Исправить SDK error boundary и перейти на assessment evidence IDs.
