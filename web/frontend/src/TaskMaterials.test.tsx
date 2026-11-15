@@ -202,7 +202,7 @@ it.each(['mentor', 'manager'] as const)(
     expect(attached?.textContent).toContain('Документы · Анна Ким');
     const link = attached?.querySelector('a[target="_blank"]');
     expect(link?.textContent?.trim()).toBe('Открыть ссылку');
-    expect(link?.getAttribute('href')).toBe('https://chat.delivery.example/all');
+    expect(link?.getAttribute('href')).toBe('https://chat.example/delivery/all');
     const file = attached?.querySelector('a[download]');
     expect(file?.textContent?.trim()).toBe('Скачать файл');
     expect(file?.getAttribute('download')).toBe(fileName);
