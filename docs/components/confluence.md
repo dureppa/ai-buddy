@@ -12,6 +12,9 @@ CONFLUENCE_PUBLIC_URL — цитируемые ссылки Go; сервер и�
 
 ## Хранение и агент
 
+При WORK_TOOLS_ENABLED=true страницы читаются из отдельной БД buddy_tool_confluence.
+Существующие страницы переносятся при запуске с сохранением ссылок.
+
 Используется существующая PostgreSQL Buddy, таблица confluence_pages: id,
 product_id, parent_id, kind, title, body, version, updated_at. Миграция 09 создаёт
 таблицу. Go при старте вставляет недостающие страницы из internal/portal/pages.json

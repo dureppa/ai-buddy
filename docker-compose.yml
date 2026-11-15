@@ -68,6 +68,9 @@ services:
     environment:
       <<: *database-env
       DEMO_MODE: "true"
+      JIRA_API_URL: ${JIRA_API_URL:-http://jira:8189}
+      JIRA_PUBLIC_URL: ${JIRA_PUBLIC_URL:-${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5189}
+      WORK_TOOLS_ENABLED: ${COMPOSE_WORK_TOOLS_ENABLED:-true}
       AI_SERVICE_URL: http://agent:8001
       AI_SERVICE_TOKEN: ${COMPOSE_AI_TOKEN:-local-demo-flask-token}
       MCP_ADAPTER_SERVICE_TOKEN: ${COMPOSE_MCP_ADAPTER_TOKEN:-local-demo-adapter-token}
