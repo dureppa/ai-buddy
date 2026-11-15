@@ -1,3 +1,4 @@
+import { currentChecklistTask } from './current-task';
 import { HrDayEvents } from './HrDayEvents';
 import type { HrToday } from './hr-schedule';
 import { eventDay, eventMonth, eventTime, upcomingEvents, type ScheduleEvent } from './schedule';
@@ -335,7 +336,7 @@ export function Adaptation({
   const tabsId = useId();
   const [tab, setTab] = useState<(typeof adaptationTabs)[number]['id']>('tasks');
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all');
-  const next = tasks.find((task) => !workspace.completed.includes(task.id))?.id;
+  const next = currentChecklistTask(tasks, workspace.completed)?.id;
   const visible = tasks.filter(
     (task) => filter === 'all' || workspace.completed.includes(task.id) === (filter === 'done'),
   );

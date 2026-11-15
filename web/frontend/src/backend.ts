@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ProfileId } from './data';
 import type { BuddyReply } from './demo';
-import type { ExplanationContext } from './selection-context';
+import type { ChatPageContext } from './selection-context';
 
 export const backendEnabled = import.meta.env.VITE_API_ENABLED === 'true';
 const sessionSchema = z.object({ access_token: z.string().min(1), profile_id: z.string() });
@@ -70,11 +70,7 @@ export async function apiFetch(
   return response;
 }
 
-export async function askBackend(
-  profile: ProfileId,
-  text: string,
-  pageContext?: ExplanationContext,
-): Promise<BuddyReply> {
+export async function askBackend(profile: ProfileId, text: string, pageContext?: ChatPageContext): Promise<BuddyReply> {
   const key = 'ai-buddy.conversation.' + profile;
   const conversation = localStorage.getItem(key);
   const response = await apiFetch(profile, '/api/v1/chat/messages', {

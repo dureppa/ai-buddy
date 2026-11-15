@@ -741,6 +741,8 @@ components:
           properties:
             selection:
               $ref: '#/components/schemas/Selection'
+            checklist:
+              $ref: '#/components/schemas/ChecklistContext'
             url:
               type: string
               format: uri
@@ -859,6 +861,29 @@ components:
       - title
       title: Selection
       type: object
+    ChecklistContext:
+      description: Текущий видимый веб-план. Не серверное подтверждение выполнения или полномочий.
+      oneOf:
+      - type: object
+        additionalProperties: false
+        required: [status, task]
+        properties:
+          status:
+            const: in_progress
+          task:
+            allOf:
+            - $ref: '#/components/schemas/SelectionResource'
+            - properties:
+                kind:
+                  const: task
+      - type: object
+        additionalProperties: false
+        required: [status]
+        properties:
+          status:
+            enum: [completed, unavailable]
+          task:
+            type: 'null'
     SelectionResource:
       description: Непроверенный контекст, не источник прав. Допустимые поля зависят от
         kind.

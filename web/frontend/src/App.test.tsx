@@ -176,7 +176,7 @@ it('submits one message while a reply is pending and offers a new attempt after 
   expect(send.disabled).toBe(true);
   await click(send);
   expect(askBackend).toHaveBeenCalledTimes(1);
-  expect(askBackend).toHaveBeenCalledWith('olga', question);
+  expect(askBackend).toHaveBeenCalledWith('olga', question, expect.objectContaining({ checklist: expect.any(Object) }));
 
   await act(async () => rejectReply(new Error('Сервис недоступен')));
   const error = await waitForElement(() => container.querySelector<HTMLElement>('[role="alert"]'));
@@ -389,7 +389,7 @@ it('shows history-loading errors and keeps the chat available for a new question
   const alert = await waitForElement(() => container.querySelector<HTMLElement>('[role="alert"]'));
   expect(alert.textContent).toContain('Не удалось загрузить историю диалога.');
   await enterMessage('Где документация?');
-  expect((await button('Отправить сообщение')).disabled).toBe(false);
+  await vi.waitFor(async () => expect((await button('Отправить сообщение')).disabled).toBe(false));
 });
 
 it('shows the first-day reminder and navigates to the onboarding plan', async () => {
@@ -848,6 +848,21 @@ it('keeps survey answers when going back or retrying and marks the task only aft
   expect(toast.textContent).toContain('Ответы получены, спасибо за прохождение!');
   expect(container.querySelector('.task-row--survey.task-row--done')?.textContent).toContain(surveys.midpoint.title);
   expect(container.querySelector('dialog')).toBeNull();
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Текущий пункт после анкеты' });
+  const visibleCurrent = await waitForElement(() =>
+    [...container.querySelectorAll<HTMLElement>('.task-row')].find(
+      (row) => row.querySelector('.task-time')?.textContent === 'В процессе',
+    ),
+  );
+  await click(await button('Спросить Buddy'));
+  await enterMessage('Что делать дальше?');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(1));
+  expect(vi.mocked(askBackend).mock.calls[0][2]?.checklist).toMatchObject({
+    status: 'in_progress',
+    task: { label: visibleCurrent.querySelector('strong')!.textContent },
+  });
+  await click(await button('Закрыть панель Buddy'));
   await click(
     await waitForElement(() =>
       container.querySelector<HTMLButtonElement>('.task-row--survey.task-row--done .task-link'),
@@ -948,7 +963,12 @@ it('preserves task context and history across panel, full chat and follow-ups, t
   await enterMessage('Кто мой наставник?');
   await click(await button('Отправить сообщение'));
   await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(4));
-  expect(vi.mocked(askBackend).mock.calls[3]).toEqual(['olga', 'Кто мой наставник?']);
+  expect(vi.mocked(askBackend).mock.calls[3]).toEqual([
+    'olga',
+    'Кто мой наставник?',
+    expect.objectContaining({ checklist: expect.any(Object) }),
+  ]);
+  expect(vi.mocked(askBackend).mock.calls[3][2]?.selection).toBeUndefined();
 });
 
 it('retries a failed task question with the same context without duplicating the user message', async () => {
@@ -1010,7 +1030,7 @@ it('shows attached material links in the panel and transmits their Confluence id
   const link = await waitForElement(() => container.querySelector<HTMLAnchorElement>('.buddy-materials a'));
   expect(link.textContent).toContain('Инструкция по задаче');
   expect(new URL(link.href).searchParams.get('page')).toBe('guide-access');
-  expect(vi.mocked(askBackend).mock.calls[0][2]?.selection.resource).toMatchObject({
+  expect(vi.mocked(askBackend).mock.calls[0][2]?.selection?.resource).toMatchObject({
     kind: 'task',
     id: 'meet-team',
     page_ids: ['guide-access'],
@@ -1056,4 +1076,41 @@ it('opens the general panel from the dashboard Buddy card without changing the p
   expect(container.querySelector('.buddy-panel')).toBeTruthy();
   expect(container.querySelector('a[href="/home"][aria-current="page"]')).toBeTruthy();
   expect(askBackend).not.toHaveBeenCalled();
+});
+
+it('sends exactly the visible in-progress task and updates it after checking the task', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Начни с текущего пункта' });
+  await mount('/onboarding');
+  const current = await waitForElement(() =>
+    [...container.querySelectorAll<HTMLElement>('.task-row')].find(
+      (row) => row.querySelector('.task-time')?.textContent === 'В процессе',
+    ),
+  );
+  const title = current.querySelector('strong')!.textContent!;
+  await click(await button('Спросить Buddy'));
+  await enterMessage('С чего начать сегодня?');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(1));
+  expect(vi.mocked(askBackend).mock.calls[0][2]?.checklist).toMatchObject({
+    status: 'in_progress',
+    task: { label: title },
+  });
+  await click(await button('Закрыть панель Buddy'));
+  await click(current.querySelector<HTMLButtonElement>('[role=checkbox]')!);
+  const next = await waitForElement(() =>
+    [...container.querySelectorAll<HTMLElement>('.task-row')].find(
+      (row) =>
+        row.querySelector('.task-time')?.textContent === 'В процессе' &&
+        row.querySelector('strong')?.textContent !== title,
+    ),
+  );
+  await click(await button('Спросить Buddy'));
+  await enterMessage('что делать дальше?');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(askBackend).mock.calls[1][2]?.checklist).toMatchObject({
+    status: 'in_progress',
+    task: { label: next.querySelector('strong')!.textContent },
+  });
 });

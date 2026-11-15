@@ -123,8 +123,23 @@ class Selection(ClosedModel):
         return self
 
 
+class ChecklistContext(ClosedModel):
+    status: Literal["in_progress", "completed", "unavailable"]
+    task: SelectionResource | None = None
+
+    @model_validator(mode="after")
+    def valid_task(self) -> "ChecklistContext":
+        if self.status == "in_progress":
+            if self.task is None or self.task.kind != "task":
+                raise ValueError("in-progress checklist requires a task")
+        elif self.task is not None:
+            raise ValueError("completed checklist has no current task")
+        return self
+
+
 class PageContext(ClosedModel):
     selection: Selection | None = None
+    checklist: ChecklistContext | None = None
     url: Annotated[str, Field(min_length=1, max_length=2048)]
 
     @field_validator("url")
