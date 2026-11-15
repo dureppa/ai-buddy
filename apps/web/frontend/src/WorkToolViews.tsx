@@ -320,7 +320,7 @@ function Preview({ record, frame = false }: { record: ToolRecord; frame?: boolea
         )}
       </div>
       <div className={'tool-canvas' + (frame ? ' tool-canvas--frame' : '')}>
-        <div className="tool-preview" style={{ width: Number(zoom) * 2.8 }}>
+        <div className="tool-preview" style={{ zoom: Number(zoom) / 100 }}>
           <small>{record.fields.Фрейм ?? record.fields.Компонент}</small>
           <span className={error ? 'tool-preview__error' : 'tool-preview__success'} aria-hidden="true">
             {error ? '!' : '✓'}
@@ -335,21 +335,36 @@ function Preview({ record, frame = false }: { record: ToolRecord; frame?: boolea
 
 function Figma({ record }: Props) {
   return (
-    <>
-      <Status>{record.status}</Status>
-      <Tabs
-        views={{
-          Холст: <Preview record={record} frame />,
-          Комментарии: (
-            <div className="tool-thread">
-              <p>Открытых комментариев · {record.fields['Открытых комментариев']}</p>
-              <Link to="/work-tools/design-review">Открыть дизайн-ревью →</Link>
-            </div>
-          ),
-          Свойства: <Grid rows={Object.entries(record.fields)} />,
-        }}
-      />
-    </>
+    <div className="tool-design-editor">
+      <section className="tool-design-editor__workspace" aria-label="Холст">
+        <Preview record={record} frame />
+      </section>
+      <aside className="tool-design-editor__inspector" aria-label="Панель макета">
+        <Status>{record.status}</Status>
+        <Tabs
+          views={{
+            Свойства: (
+              <dl>
+                {Object.entries(record.fields)
+                  .filter(([label]) => label !== 'Открытых комментариев')
+                  .map(([label, value]) => (
+                    <div key={label}>
+                      <dt>{label}</dt>
+                      <dd>{value}</dd>
+                    </div>
+                  ))}
+              </dl>
+            ),
+            Комментарии: (
+              <>
+                <p>Открытых комментариев · {record.fields['Открытых комментариев'] ?? '0'}</p>
+                <Link to="/work-tools/design-review">Открыть дизайн-ревью →</Link>
+              </>
+            ),
+          }}
+        />
+      </aside>
+    </div>
   );
 }
 

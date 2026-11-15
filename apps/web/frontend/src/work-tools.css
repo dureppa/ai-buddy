@@ -362,3 +362,47 @@
   letter-spacing: -0.035em;
   color: var(--accent);
 }
+
+.tool-preview {
+  width: 280px;
+}
+.tool-design-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 216px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.tool-design-editor__workspace .tool-toolbar {
+  margin: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.tool-design-editor__workspace .tool-canvas {
+  min-height: clamp(360px, 57vh, 720px);
+  overflow: hidden;
+}
+.tool-design-editor__inspector {
+  padding: 14px;
+  border-inline-start: 1px solid var(--line);
+}
+.tool-design-editor__inspector dl > div {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.tool-design-editor__inspector dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+.tool-design-editor__inspector dd {
+  margin: 4px 0 0;
+}
+@media (max-width: 900px) {
+  .tool-design-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tool-design-editor__inspector {
+    border-inline-start: 0;
+    border-top: 1px solid var(--line);
+  }
+}
