@@ -188,6 +188,7 @@ export function Modal({
       className={side ? 'dialog dialog--side' : 'dialog'}
       aria-label={title}
       onCancel={(event) => {
+        if (event.target !== event.currentTarget) return;
         event.preventDefault();
         onClose();
       }}
