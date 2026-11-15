@@ -71,3 +71,8 @@ uv run --locked python -m evals.review evals/reports/development-<timestamp>.jso
 учитывает references: URL должен происходить из фактически вызванного tool.
 Fixtures без вызова не дают права ссылаться на них. Это проверка происхождения
 источников, а не доказательство смысловой поддержки каждого утверждения.
+
+Сохранён [trial DeepSeek после PR #67](reports/deepseek-development-20261115.md)
+на исходном agent-v1 development. Он фиксирует старый runtime/fixtures;
+актуальный development-v2 описан выше. При переносе JSON/SHA не изменялись,
+новых платных запусков не выполнялось.

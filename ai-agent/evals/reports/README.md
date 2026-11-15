@@ -63,3 +63,15 @@ Raw-отчёты содержат git HEAD и SHA исходников на мо
 274 pytest-теста прошли при остановленной Ollama; coverage всего Python-кода с evals/experiments **89,69%**, gate 85%. Ruff/mypy, OpenSpec strict и отдельный TCP smoke MCP проверены. Это показатели кода; они не заменяют строки качества выше. Полный `just check` также прошёл локально на Node 24.22.2 из .nvmrc после `npm ci`: frontend checks/builds, Python, Go tests/race/vet и repository checks. Первая попытка до установки frontend dependencies завершилась отсутствием @eslint/js; исходники и lock-файлы Go/UI не менялись. Это не проверка реальных Go API/БД/онбординга и не заявление общего покрытия команды выше 80%.
 
 Следующий приоритет — review эталонов наставником и сравнение более подходящих доступных моделей на development. Go HTTP adapter, реальный retrieval/ACL и полный путь сохранения/перехода ещё не проверены. Holdout нужен после заморозки и отдельного разрешения.
+
+## DeepSeek: сохранённый snapshot после PR #67
+
+[Разбор trial от 15 ноября](deepseek-development-20261115.md): agent-v1,
+18 выполнены, 2 blocked; structural 12/18, Codex-assisted 11/18.
+[Raw](development-20261115T121444200296Z.json),
+[review](review-deepseek-20261115.json),
+[reviewed](reviewed-development-20261115T121444200296Z.json).
+23 provider-запроса, 108 726 токенов — расход записанного эксперимента.
+Это не оценка текущего runtime, не сравнение при одинаковом окружении и
+не приёмка всех инструментов. Human review = 0, release_accepted=false;
+holdout не запускался. Файлы перенесены в ai-agent без изменения JSON/SHA.
