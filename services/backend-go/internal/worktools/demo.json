@@ -1,0 +1,276 @@
+{
+  "mattermost": {
+    "name": "Mattermost",
+    "area": "Каналы команды",
+    "records": [
+      {
+        "team": "delivery",
+        "id": "delivery-42",
+        "title": "Путь заказа",
+        "status": "Закреплено",
+        "description": "Команда проверяет потери на шаге выбора ПВЗ.",
+        "fields": {
+          "Задача": "DEL-1"
+        }
+      },
+      {
+        "team": "travel",
+        "id": "book-118",
+        "title": "Бронирование жилья",
+        "status": "Закреплено",
+        "description": "Релиз 1.8.4 проверяем на stage.",
+        "fields": {
+          "Задача": "TRV-1"
+        }
+      },
+      {
+        "team": "autoteca",
+        "id": "auto-17",
+        "title": "Качество отчётов",
+        "status": "Закреплено",
+        "description": "Повторить прогон поиска отчёта по учебному VIN.",
+        "fields": {
+          "Задача": "AUTO-1"
+        }
+      },
+      {
+        "team": "help",
+        "id": "help-25",
+        "title": "Участие в проектах",
+        "status": "Закреплено",
+        "description": "Обсуждаем экран подтверждения участия.",
+        "fields": {
+          "Задача": "HELP-1"
+        }
+      }
+    ]
+  },
+  "redash": {
+    "name": "Redash",
+    "area": "Воронка доставки",
+    "records": [
+      {
+        "team": "delivery",
+        "id": "delivery-funnel",
+        "title": "Оформление заказа",
+        "status": "14–20 сентября",
+        "description": "Самая большая потеря на переходе от начала оформления к выбору ПВЗ: 320 из 1000 сессий (32%).",
+        "fields": {
+          "Начало оформления": "1000",
+          "Выбор ПВЗ": "680",
+          "Оплата": "580",
+          "Подтверждение": "550",
+          "Задача": "DEL-1"
+        }
+      }
+    ]
+  },
+  "trino": {
+    "name": "Trino",
+    "area": "Витрины данных",
+    "records": [
+      {
+        "team": "delivery",
+        "id": "checkout-counts",
+        "title": "delivery.checkout_events",
+        "status": "Сохранённый запрос",
+        "description": "Учебная выборка по уникальным сессиям оформления.",
+        "fields": {
+          "Период": "14–20 сентября",
+          "Начало оформления": "1000",
+          "Выбор ПВЗ": "680",
+          "Задача": "DEL-1"
+        }
+      }
+    ]
+  },
+  "trisigma": {
+    "name": "Trisigma",
+    "area": "Эксперименты",
+    "records": [
+      {
+        "team": "delivery",
+        "id": "pickup-ab",
+        "title": "Подсказка выбора ПВЗ",
+        "status": "В процессе",
+        "description": "Тест сравнивает два варианта экрана выбора пункта выдачи.",
+        "fields": {
+          "Контроль": "68%",
+          "Вариант B": "72%",
+          "Сессий на вариант": "500",
+          "Задача": "DEL-1"
+        }
+      }
+    ]
+  },
+  "bitbucket": {
+    "name": "Bitbucket",
+    "area": "Репозитории и pull requests",
+    "records": [
+      {
+        "team": "travel",
+        "id": "booking-pr-118",
+        "title": "booking-api / PR 118",
+        "status": "Ждёт ревью",
+        "description": "Изменение проверки свободных дат.",
+        "fields": {
+          "Ветка": "booking/date-validation",
+          "Замечание": "Добавить кейс занятых дат",
+          "Задача": "TRV-1"
+        }
+      }
+    ]
+  },
+  "paas": {
+    "name": "PaaS",
+    "area": "Окружения и релизы",
+    "records": [
+      {
+        "team": "travel",
+        "id": "booking-stage",
+        "title": "booking-api · stage",
+        "status": "Развёрнуто",
+        "description": "Релиз 1.8.4 завершился в 12:00, пока проверяется на stage.",
+        "fields": {
+          "Версия": "1.8.4",
+          "Предыдущая": "1.8.3",
+          "Задача": "TRV-1"
+        }
+      }
+    ]
+  },
+  "grafana": {
+    "name": "Grafana",
+    "area": "Мониторинг",
+    "records": [
+      {
+        "team": "travel",
+        "id": "booking-errors",
+        "title": "Ошибки booking-api",
+        "status": "stage",
+        "description": "Доля ошибок после 12:00 увеличилась с 1% до 3%.",
+        "fields": {
+          "До релиза": "1%",
+          "После релиза": "3%",
+          "Версия": "1.8.4",
+          "Задача": "TRV-1"
+        }
+      }
+    ]
+  },
+  "tms": {
+    "name": "TMS",
+    "area": "Тест-кейсы и прогоны",
+    "records": [
+      {
+        "team": "autoteca",
+        "id": "vin-missing",
+        "title": "Поиск отсутствующего отчёта",
+        "status": "Не пройден",
+        "description": "Ожидалось сообщение «Отчёт не найден», интерфейс показал ошибку формата.",
+        "fields": {
+          "Учебный VIN": "DEMO-VIN-017",
+          "Задача": "AUTO-1"
+        }
+      }
+    ]
+  },
+  "postman": {
+    "name": "Postman",
+    "area": "Коллекции запросов",
+    "records": [
+      {
+        "team": "autoteca",
+        "id": "report-lookup",
+        "title": "Автотека / поиск отчёта",
+        "status": "Последний ответ 404",
+        "description": "Последний учебный запрос вернул REPORT_NOT_FOUND.",
+        "fields": {
+          "Метод": "GET",
+          "Сценарий": "DEMO-VIN-017",
+          "Задача": "AUTO-1"
+        }
+      }
+    ]
+  },
+  "test-stand": {
+    "name": "Стенд Автотеки",
+    "area": "Учебные отчёты",
+    "records": [
+      {
+        "team": "autoteca",
+        "id": "fixture-017",
+        "title": "DEMO-VIN-017",
+        "status": "404",
+        "description": "Учебная запись для сценария отсутствующего отчёта.",
+        "fields": {
+          "Ответ": "REPORT_NOT_FOUND",
+          "Задача": "AUTO-1"
+        }
+      },
+      {
+        "team": "autoteca",
+        "id": "fixture-018",
+        "title": "DEMO-VIN-018",
+        "status": "200",
+        "description": "Пример найденного отчёта.",
+        "fields": {
+          "Ответ": "REPORT_FOUND"
+        }
+      }
+    ]
+  },
+  "figma": {
+    "name": "Figma",
+    "area": "Файлы и фреймы",
+    "records": [
+      {
+        "team": "help",
+        "id": "join-confirmation",
+        "title": "#яПомогаю / Подтверждение участия",
+        "status": "Версия 3",
+        "description": "Макет экрана после отправки заявки.",
+        "fields": {
+          "Фрейм": "Мобильная версия",
+          "Открытых комментариев": "2",
+          "Задача": "HELP-1"
+        }
+      }
+    ]
+  },
+  "design-system": {
+    "name": "Дизайн-система Авито",
+    "area": "Веб-компоненты",
+    "records": [
+      {
+        "team": "help",
+        "id": "feedback-banner",
+        "title": "Баннер результата",
+        "status": "Стабильный",
+        "description": "Баннер сообщает об успехе или ошибке и предлагает следующий шаг.",
+        "fields": {
+          "Состояния": "Успех, ошибка",
+          "Компонент": "FeedbackBanner",
+          "Задача": "HELP-1"
+        }
+      }
+    ]
+  },
+  "design-review": {
+    "name": "Дизайн-ревью",
+    "area": "Замечания и решения",
+    "records": [
+      {
+        "team": "help",
+        "id": "join-review",
+        "title": "Подтверждение участия",
+        "status": "На проверке",
+        "description": "Уточнить текст ошибки и добавить состояние повторной отправки.",
+        "fields": {
+          "Макет": "join-confirmation",
+          "Задача": "HELP-1"
+        }
+      }
+    ]
+  }
+}

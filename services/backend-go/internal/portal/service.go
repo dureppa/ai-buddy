@@ -95,6 +95,7 @@ type Page struct {
 	Updated string  `json:"updated_at"`
 }
 type Service struct {
+	KnowledgeDB  *pgxpool.Pool
 	DB           *pgxpool.Pool
 	Catalog      Catalog
 	AccessURL    string

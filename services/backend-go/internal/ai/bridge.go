@@ -16,6 +16,7 @@ import (
 
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/buddy"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/portal"
+	"github.com/dureppa/ai-buddy/services/backend-go/internal/worktools"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -36,6 +37,8 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 type Bridge struct {
+	JiraURL, PublicJiraURL                                   string
+	WorkTools                                                *worktools.Catalog
 	Portal                                                   *portal.Service
 	PublicConsentURL, PublicDocumentsURL, PublicEventsURL    string
 	DemoMode                                                 bool
@@ -83,7 +86,7 @@ func originOK(u *url.URL) bool {
 		return false
 	}
 	switch u.Hostname() {
-	case "127.0.0.1", "localhost", "agent", "hr-consents", "hr-documents", "hr-events", "hr-absences", "hr-trips":
+	case "127.0.0.1", "localhost", "agent", "hr-consents", "hr-documents", "hr-events", "hr-absences", "hr-trips", "jira":
 		return true
 	default:
 		return false
@@ -269,7 +272,8 @@ func (b *Bridge) read(tool string) http.HandlerFunc {
 			failure(w, 403, "FORBIDDEN")
 			return
 		}
-		if _, err = b.Store.ProfileByID(r.Context(), c.Subject); err != nil {
+		profile, err := b.Store.ProfileByID(r.Context(), c.Subject)
+		if err != nil {
 			failure(w, 403, "FORBIDDEN")
 			return
 		}
@@ -293,6 +297,26 @@ func (b *Bridge) read(tool string) http.HandlerFunc {
 				return
 			}
 			data, err = b.Portal.Search(r.Context(), c.Subject, query, int(limit))
+			if err == nil && b.WorkTools != nil {
+				var matches []any
+				matches, err = b.WorkTools.Search(r.Context(), profile.TeamID, query, int(limit))
+				if docs, ok := data["documents"].([]any); ok {
+					combined := append(matches, docs...)
+					data["documents"] = combined[:min(len(combined), int(limit))]
+				}
+			}
+			if err == nil && b.DemoMode && b.JiraURL != "" && wantsJira(query) {
+				var matches []any
+				jiraLimit := int(limit)
+				if docs, ok := data["documents"].([]any); ok && len(docs) > 0 {
+					jiraLimit = max(1, jiraLimit-1)
+				}
+				matches, err = b.jiraDocuments(r.Context(), c.Subject, jiraLimit)
+				if docs, ok := data["documents"].([]any); ok {
+					combined := append(matches, docs...)
+					data["documents"] = combined[:min(len(combined), int(limit))]
+				}
+			}
 		} else if tool == "get_task_evidence" {
 			data, err = b.evidence(r.Context(), c.Subject, args)
 		} else {

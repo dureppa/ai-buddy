@@ -1,0 +1,68 @@
+openapi: 3.1.0
+info:
+  title: Учебные рабочие сервисы AI Buddy
+  version: 1.0.0
+paths:
+  /api/v1/work-tools/{service}:
+    get:
+      summary: Рабочие записи инструмента для команды текущей сессии
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: service
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              [
+                mattermost,
+                redash,
+                trino,
+                trisigma,
+                bitbucket,
+                paas,
+                grafana,
+                tms,
+                postman,
+                test-stand,
+                figma,
+                design-system,
+                design-review,
+              ]
+      responses:
+        '200':
+          description: Список записей
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [name, area, records]
+                properties:
+                  name: { type: string }
+                  area: { type: string }
+                  records:
+                    type: array
+                    items:
+                      type: object
+                      required: [team, id, title, status, description, fields]
+                      properties:
+                        team: { type: string }
+                        id: { type: string }
+                        title: { type: string }
+                        status: { type: string }
+                        description: { type: string }
+                        fields:
+                          type: object
+                          additionalProperties: { type: string }
+        '401':
+          description: Сессия отсутствует или недействительна
+        '404':
+          description: Сервис не найден или недоступен команде
+        '503':
+          description: Хранилище недоступно
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

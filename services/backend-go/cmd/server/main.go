@@ -21,6 +21,7 @@ import (
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/httpapi"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/portal"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/store"
+	"github.com/dureppa/ai-buddy/services/backend-go/internal/worktools"
 )
 
 func main() {
@@ -117,6 +118,17 @@ func runContext(ctx context.Context) error {
 				return err
 			}
 		}
+		bridge.JiraURL = strings.TrimRight(os.Getenv("JIRA_API_URL"), "/")
+		if err = ai.OriginOK(bridge.JiraURL); err != nil {
+			return err
+		}
+		bridge.PublicJiraURL = "http://localhost:5189"
+		if origin := os.Getenv("JIRA_PUBLIC_URL"); origin != "" {
+			if err = setPublicURL(&bridge.PublicJiraURL, origin); err != nil {
+				return err
+			}
+			bridge.PublicJiraURL = strings.TrimRight(bridge.PublicJiraURL, "/")
+		}
 		bridge.Portal = portalService
 		bridge.HRSecret = cfg.SessionSecret
 		bridge.DemoMode = cfg.DemoMode
@@ -124,6 +136,25 @@ func runContext(ctx context.Context) error {
 	}
 	api := httpapi.NewAPI(sessions, onboarding, access, notifications, chat).WithPortal(portalService)
 
+	if cfg.DemoMode && os.Getenv("WORK_TOOLS_ENABLED") == "true" {
+		setupCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
+		defer cancel()
+		knowledgeDB, setupErr := portalService.OpenKnowledgeDatabase(setupCtx, cfg.DatabaseURL)
+		if setupErr != nil {
+			return fmt.Errorf("setup Confluence database: %w", setupErr)
+		}
+		defer knowledgeDB.Close()
+		catalog, setupErr := worktools.Open(setupCtx, pool, cfg.DatabaseURL)
+		cancel()
+		if setupErr != nil {
+			return fmt.Errorf("setup work tools: %w", setupErr)
+		}
+		defer catalog.Close()
+		api.WithWorkTools(catalog)
+		if bridge != nil {
+			bridge.WorkTools = catalog
+		}
+	}
 	if bridge != nil {
 		api.WithInternalRoutes(bridge.Register).WithTeamGuide(st).WithHRToday(bridge.TodayHR)
 		workerCtx, cancelWorker := context.WithCancel(ctx)

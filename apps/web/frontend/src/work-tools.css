@@ -1,0 +1,118 @@
+.work-tool {
+  --tool-accent: #285b97;
+  background: #fff;
+  color: #202b3b;
+  border: 1px solid #d5dce7;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.work-tool--redash,
+.work-tool--postman {
+  --tool-accent: #be3c2e;
+}
+.work-tool--grafana,
+.work-tool--paas {
+  --tool-accent: #704800;
+}
+.work-tool--figma,
+.work-tool--design-system,
+.work-tool--design-review {
+  --tool-accent: #5944a2;
+}
+.work-tool__header {
+  background: var(--tool-accent);
+  color: white;
+  padding: 24px;
+}
+.work-tool__header a {
+  color: inherit;
+}
+.work-tool__header h1 {
+  margin: 12px 0 4px;
+}
+.work-tool__layout {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(0, 3fr);
+}
+.work-tool__layout nav {
+  background: #f3f6fa;
+  padding: 16px;
+}
+.work-tool__layout nav a {
+  display: block;
+  padding: 10px;
+  color: #283b56;
+}
+.work-tool__layout nav a[aria-current] {
+  background: white;
+  font-weight: 700;
+}
+.work-tool__layout article,
+.work-tool > p {
+  padding: 24px;
+}
+.work-tool__layout dl {
+  display: grid;
+  gap: 8px;
+}
+.work-tool__layout dl div {
+  padding: 12px;
+  border: 1px solid #d5dce7;
+  border-radius: 8px;
+}
+.work-tool__layout dd {
+  margin: 3px 0 0;
+  font-weight: 650;
+}
+.work-tool__layout meter {
+  width: 100%;
+}
+@media (max-width: 680px) {
+  .work-tool__layout {
+    grid-template-columns: 1fr;
+  }
+}
+.work-tool-page {
+  min-height: 100vh;
+  background: #edf1f7;
+  padding: clamp(12px, 5vw, 64px);
+}
+.work-tool--mattermost {
+  --tool-accent: #294a82;
+}
+.work-tool--mattermost nav {
+  background: #233b63;
+}
+.work-tool--mattermost nav a:not([aria-current]) {
+  color: white;
+}
+.work-tool--grafana {
+  background: #19202c;
+  color: #e1e7ef;
+}
+.work-tool--grafana nav {
+  background: #202b3c;
+}
+.work-tool--grafana nav a:not([aria-current]) {
+  color: #edf2ff;
+}
+.work-tool--grafana article {
+  background: #111723;
+}
+.work-tool--trino article dl,
+.work-tool--tms article dl {
+  gap: 0;
+  border: 1px solid #d5dce7;
+}
+.work-tool--trino article dl div,
+.work-tool--tms article dl div {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid #d5dce7;
+}
+.work-tool--postman dd,
+.work-tool--bitbucket dd {
+  font-family: ui-monospace, monospace;
+}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/buddy"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const pageSelect = `SELECT id,product_id,parent_id,kind,title,body,version,to_char(updated_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') FROM confluence_pages `
@@ -26,7 +27,7 @@ func (s *Service) Pages(ctx context.Context, subject, query string) ([]Page, err
 	if len([]rune(query)) > 500 {
 		return nil, buddy.ErrInvalidInput
 	}
-	rows, err := s.DB.Query(ctx, pageSelect+`WHERE (product_id IS NULL OR product_id=$1) AND ($2='' OR title ILIKE '%'||$2||'%' OR body ILIKE '%'||$2||'%') ORDER BY CASE kind WHEN 'product' THEN 0 WHEN 'team' THEN 1 WHEN 'role' THEN 2 ELSE 3 END,title LIMIT 100`, identity.Product, query)
+	rows, err := s.knowledgeDB().Query(ctx, pageSelect+`WHERE (product_id IS NULL OR product_id=$1) AND ($2='' OR title ILIKE '%'||$2||'%' OR body ILIKE '%'||$2||'%') ORDER BY CASE kind WHEN 'product' THEN 0 WHEN 'team' THEN 1 WHEN 'role' THEN 2 ELSE 3 END,title LIMIT 100`, identity.Product, query)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func (s *Service) Page(ctx context.Context, subject, id string) (Page, error) {
 	if err != nil {
 		return Page{}, err
 	}
-	p, err := scanPage(s.DB.QueryRow(ctx, pageSelect+`WHERE id=$1 AND (product_id IS NULL OR product_id=$2)`, id, identity.Product))
+	p, err := scanPage(s.knowledgeDB().QueryRow(ctx, pageSelect+`WHERE id=$1 AND (product_id IS NULL OR product_id=$2)`, id, identity.Product))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Page{}, buddy.ErrNotFound
 	}
@@ -62,10 +63,28 @@ func (s *Service) Search(ctx context.Context, subject, query string, limit int) 
 		return nil, buddy.ErrInvalidInput
 	}
 	terms := strings.Join(strings.Fields(query), " OR ")
-	rows, err := s.DB.Query(ctx, `WITH corpus AS (
- SELECT 'confluence:'||id AS id,title,left(body,1200) AS excerpt,body AS search_text,version,$4||'?page='||id AS url FROM confluence_pages WHERE product_id IS NULL OR product_id=$1
- UNION ALL SELECT id,title,left(content,1200),content,1,url FROM knowledge_articles
- ) SELECT id,title,excerpt,version,url FROM corpus WHERE to_tsvector('russian',title||' '||search_text) @@ websearch_to_tsquery('russian',$2) ORDER BY ts_rank(to_tsvector('russian',title||' '||search_text),websearch_to_tsquery('russian',$2)) DESC,id LIMIT $3`, identity.Product, terms, limit, s.KnowledgeURL)
+	corpus := `SELECT 'confluence:'||id AS id,title,left(body,1200) AS excerpt,body AS search_text,version,$4||'?page='||id AS url FROM confluence_pages WHERE product_id IS NULL OR product_id=$1`
+	articles := `SELECT id,title,left(content,1200) AS excerpt,content AS search_text,1 AS version,url FROM knowledge_articles`
+	if s.KnowledgeDB == nil {
+		return s.searchCorpus(ctx, s.DB, corpus+" UNION ALL "+articles, identity.Product, terms, limit, s.KnowledgeURL)
+	}
+	result, err := s.searchCorpus(ctx, s.KnowledgeDB, corpus, identity.Product, terms, limit, s.KnowledgeURL)
+	if err != nil {
+		return nil, err
+	}
+	docs := result["documents"].([]any)
+	if len(docs) < limit {
+		extra, err := s.searchCorpus(ctx, s.DB, articles+" WHERE $1::text IS NOT NULL AND $4::text IS NOT NULL", identity.Product, terms, limit-len(docs), s.KnowledgeURL)
+		if err != nil {
+			return nil, err
+		}
+		result["documents"] = append(docs, extra["documents"].([]any)...)
+	}
+	return result, nil
+}
+
+func (s *Service) searchCorpus(ctx context.Context, db *pgxpool.Pool, corpus, team, terms string, limit int, origin string) (map[string]any, error) {
+	rows, err := db.Query(ctx, "WITH corpus AS ("+corpus+`) SELECT id,title,excerpt,version,url FROM corpus WHERE to_tsvector('russian',title||' '||search_text) @@ websearch_to_tsquery('russian',$2) ORDER BY ts_rank(to_tsvector('russian',title||' '||search_text),websearch_to_tsquery('russian',$2)) DESC,id LIMIT $3`, team, terms, limit, origin)
 	if err != nil {
 		return nil, err
 	}

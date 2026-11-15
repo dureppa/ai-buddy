@@ -1,3 +1,4 @@
+import { backendEnabled } from './backend';
 import type { Tone } from './data';
 import { profiles, type ProfileId } from './demo-accounts';
 
@@ -26,9 +27,10 @@ export const jiraService = {
 } as const;
 
 export function toolProfileUrl(base: string, profile: ProfileId) {
-  const url = new URL(base);
+  const internal = base.startsWith('/');
+  const url = new URL(base, 'http://localhost');
   url.searchParams.set('profile', profile);
-  return url.toString();
+  return internal ? url.pathname + url.search + url.hash : url.toString();
 }
 
 export const confluenceService = {
@@ -176,5 +178,9 @@ const roleTools: Record<ProfileId, readonly ToolGuide[]> = {
 export function toolsFor(profileId: ProfileId): Tool[] {
   const knowledge = new URL(confluenceService.url);
   if (!knowledge.searchParams.has('page')) knowledge.searchParams.set('page', 'team-' + profiles[profileId].productId);
-  return [...roleTools[profileId], jiraService, { ...confluenceService, url: knowledge.toString() }, mattermost];
+  const guides = [...roleTools[profileId], mattermost];
+  const links = backendEnabled
+    ? guides.map((tool) => ({ ...tool, url: '/work-tools/' + tool.id, action: 'Открыть сервис' }))
+    : guides;
+  return [...links.slice(0, -1), jiraService, { ...confluenceService, url: knowledge.toString() }, links.at(-1)!];
 }
