@@ -68,6 +68,9 @@ services:
     environment:
       <<: *database-env
       DEMO_MODE: "true"
+      JIRA_API_URL: ${JIRA_API_URL:-http://jira:8189}
+      JIRA_PUBLIC_URL: ${JIRA_PUBLIC_URL:-${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5189}
+      WORK_TOOLS_ENABLED: ${COMPOSE_WORK_TOOLS_ENABLED:-true}
       AI_SERVICE_URL: http://agent:8001
       AI_SERVICE_TOKEN: ${COMPOSE_AI_TOKEN:-local-demo-flask-token}
       MCP_ADAPTER_SERVICE_TOKEN: ${COMPOSE_MCP_ADAPTER_TOKEN:-local-demo-adapter-token}
@@ -82,8 +85,6 @@ services:
       HR_OFFBOARDING_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5184/
       HR_BENEFITS_URL: http://hr-benefits:8186
       HR_BENEFITS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5186/
-      JIRA_API_URL: http://jira:8189
-      JIRA_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5189/
       JIRA_SESSION_SECRET: ${COMPOSE_JIRA_SESSION_SECRET:-local-jira-session-secret-change-for-shared-host}
       HR_CONSENTS_URL: http://hr-consents:8185
       HR_CONSENTS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5185/

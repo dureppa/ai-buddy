@@ -1169,6 +1169,7 @@
                 "$ref": "#/$defs/Source"
               },
               "maxItems": 5,
+              "minItems": 1,
               "title": "References",
               "type": "array"
             }

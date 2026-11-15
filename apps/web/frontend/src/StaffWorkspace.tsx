@@ -4,10 +4,12 @@ import { readDemoSession } from './demo-session';
 import {
   addChecklistItem,
   baselineFor,
+  checklistEditsKey,
   groupByName,
   internMaterials,
   internOverview,
   materialGroupChoices,
+  materialsForTask,
   materialsKey,
   maxMaterialBytes,
   readMaterials,
@@ -22,7 +24,7 @@ import {
   type StaffMaterial,
 } from './staff-data';
 import { InternChecklist } from './InternChecklist';
-import { Avatar, Icon, Modal } from './ui';
+import { Avatar, Icon, Modal, Toast } from './ui';
 import './staff.css';
 
 function fileSource(file: File): Promise<StaffMaterial['source']> {
@@ -299,7 +301,6 @@ function StaffMaterials({
   ownMaterials,
   visibleMaterials,
   openGroup,
-  message,
   onOpenGroup,
   onCreate,
   onEdit,
@@ -309,7 +310,6 @@ function StaffMaterials({
   ownMaterials: StaffMaterial[];
   visibleMaterials: ShownMaterial[];
   openGroup?: string;
-  message: string;
   onOpenGroup: (group?: string) => void;
   onCreate: () => void;
   onEdit: (material: StaffMaterial) => void;
@@ -319,11 +319,6 @@ function StaffMaterials({
   const active = groups.find((group) => group.name === openGroup);
   return (
     <section className="staff-publications" aria-label="Материалы для стажёров">
-      {message && (
-        <p className="staff-message" role="status">
-          {message}
-        </p>
-      )}
       {active ? (
         <>
           <button type="button" className="text-link staff-back" onClick={() => onOpenGroup(undefined)}>
@@ -419,18 +414,24 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
   const [materials, setMaterials] = useState(() => readMaterials(localStorage));
   const [editor, setEditor] = useState<'new' | StaffMaterial>();
   const [pendingRemoval, setPendingRemoval] = useState<StaffMaterial>();
-  const [message, setMessage] = useState('');
+  const [notice, setNotice] = useState<{ message: string }>();
   const [error, setError] = useState('');
 
   useEffect(() => {
     function refresh(event: StorageEvent) {
-      if (event.key === null || event.key.startsWith('ai-buddy.workspace.'))
+      if (event.key === null || event.key === checklistEditsKey || event.key.startsWith('ai-buddy.workspace.'))
         setInterns(internOverview(localStorage, id));
       if (event.key === null || event.key === materialsKey) setMaterials(readMaterials(localStorage));
     }
     window.addEventListener('storage', refresh);
     return () => window.removeEventListener('storage', refresh);
   }, [id]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(undefined), 3500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   const current = interns.find((intern) => intern.id === selected);
   const ownMaterials = materials.filter(
@@ -449,7 +450,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
       removeMaterial(localStorage, id, pendingRemoval.id);
       setMaterials(readMaterials(localStorage));
       setPendingRemoval(undefined);
-      setMessage('Материал удалён.');
+      setNotice({ message: 'Материал удалён.' });
       setError('');
     } catch {
       setError('Не удалось удалить материал. Обнови страницу и попробуй ещё раз.');
@@ -521,26 +522,30 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
               name={current.profile.fullName}
               stageLabel={current.profile.stage + ' · ' + current.progress.percent + '% выполнено'}
               items={current.checklist}
-              requests={current.requests}
               materials={internMaterials(localStorage, current.id)}
               canEdit
               onBack={() => setSelected(undefined)}
               onAdd={(input) => {
                 addChecklistItem(localStorage, id, input);
                 setInterns(internOverview(localStorage, id));
+                setNotice({ message: 'Пункт добавлен в чек-лист.' });
               }}
-              onSaveMaterials={(taskId, materialIds) => {
+              onChangeMaterial={(taskId, materialId, attach) => {
+                const savedIds = materialsForTask(localStorage, current.id, taskId).map((material) => material.id);
+                const materialIds = attach ? [...savedIds, materialId] : savedIds.filter((id) => id !== materialId);
                 setTaskMaterials(localStorage, id, taskId, materialIds);
                 setInterns(internOverview(localStorage, id));
+                setNotice({ message: attach ? 'Материал прикреплён.' : 'Материал откреплён.' });
               }}
               onRemove={(taskId) => {
                 removeChecklistItem(localStorage, id, taskId);
                 setInterns(internOverview(localStorage, id));
+                setNotice({ message: 'Пункт удалён.' });
               }}
             />
           ) : (
             <div className="staff-grid">
-              {interns.map(({ id: internId, profile, progress, next, requests }) => (
+              {interns.map(({ id: internId, profile, progress, next }) => (
                 <button
                   key={internId}
                   type="button"
@@ -565,7 +570,6 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
                   </span>
                   <progress value={progress.percent} max="100" aria-label={'Прогресс · ' + profile.fullName} />
                   <span className="staff-intern__next">{next ? 'Дальше · ' + next.title : 'Чек-лист выполнен'}</span>
-                  {requests.length > 0 && <span className="status">На согласовании · {requests.length}</span>}
                 </button>
               ))}
             </div>
@@ -576,7 +580,6 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
             ownMaterials={ownMaterials}
             visibleMaterials={visibleMaterials}
             openGroup={openGroup}
-            message={message}
             onOpenGroup={setOpenGroup}
             onCreate={() => setEditor('new')}
             onEdit={setEditor}
@@ -602,7 +605,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
               setEditor(undefined);
               setOpenGroup(group);
               setSection('materials');
-              setMessage(editor === 'new' ? 'Материал опубликован.' : 'Изменения сохранены.');
+              setNotice({ message: editor === 'new' ? 'Материал опубликован.' : 'Изменения сохранены.' });
             }}
           />
         </Modal>
@@ -627,6 +630,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
           </div>
         </Modal>
       )}
+      {notice && <Toast message={notice.message} placement="top-right" />}
     </div>
   );
 }

@@ -44,6 +44,8 @@ npm run dev --workspace=@ai-buddy/web
 
 Полный локальный набор проверок запускается командой `just check`. Отдельные проверки frontend, Python и Go доступны через `just frontend-check`, `just python-check` и `just go-check`.
 
+`npm run test:coverage --workspace=@ai-buddy/web` запускает тесты веб-приложения, проверяет порог покрытия строк 85% и записывает отчёт в `apps/web/coverage/lcov.info`. В CI отчёт доступен в артефакте `web-coverage`.
+
 ## Корпоративные демосайты
 
 В разделе «Корпоративные сервисы» и поиске есть ссылки на шесть внешних демосайтов. Запусти внешние сайты во втором терминале.

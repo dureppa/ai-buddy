@@ -5,13 +5,11 @@ import {
   confirmAccess,
   progressFor,
   readWorkspace,
-  serviceStatus,
   toggleTask,
   type AccessDraft,
   type StoragePort,
 } from './demo';
 import { tasksFor } from './checklist';
-import { services } from './data';
 import { products, profiles, staffAccounts } from './demo-accounts';
 
 type Memory = StoragePort & { data: Map<string, string> };
@@ -94,10 +92,20 @@ describe('AI-buddy demo workspace', () => {
 
   it('answers about a service that is already available', () => {
     const storage = memory();
-    const reply = answerBuddy('Как работать в Figma?', readWorkspace(storage, 'olga'), 'olga');
+    const reply = answerBuddy('Как работать в Figma?', readWorkspace(storage, 'maria'), 'maria');
     expect(reply.kind).toBe('answer');
     expect(reply.text).toContain('Figma');
     expect(reply.link?.to).toContain('/tools?service=figma');
+  });
+
+  it('answers the tools suggestion with the current role catalog', () => {
+    const reply = answerBuddy('Какие инструменты нужны моей команде?', readWorkspace(memory(), 'timur'), 'timur');
+    expect(reply.lines?.map((line) => line.split(' — ')[0])).toEqual([
+      'Тест-кейсы · TMS',
+      'Postman',
+      'Тестовый стенд Автотеки',
+    ]);
+    expect(reply.link?.to).toBe('/tools');
   });
 
   it('returns team contacts for a team question', () => {
@@ -172,16 +180,7 @@ describe('AI-buddy demo workspace', () => {
     expect(readWorkspace(storage, 'olga').requests).toHaveLength(1);
   });
 
-  it('reports submitted access status and reaches full progress', () => {
-    const storage = memory();
-    const draft: AccessDraft = { id: 'draft', profileId: 'olga', serviceId: 'grafana', expiresAt: 1000 };
-    const { workspace } = confirmAccess(storage, 'olga', draft, 10);
-    expect(
-      serviceStatus(
-        workspace,
-        services.find((service) => service.id === 'grafana')!,
-      ),
-    ).toBe('submitted');
+  it('returns full progress when every task is complete', () => {
     const complete = { completed: tasksFor('olga').map((task) => task.id), requests: [] };
     expect(progressFor(complete)).toEqual({ completed: tasksFor('olga').length, remaining: 0, percent: 100 });
   });

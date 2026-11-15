@@ -20,6 +20,7 @@ from ai_buddy.mcp_client import Gateway
 from ai_buddy.mcp_server import create_mcp_app
 from ai_buddy.service_schemas import (
     PrepareServiceActionArguments,
+    ServiceActionEnvelope,
     ServiceContextArguments,
 )
 from tests.helpers import FakeSession, context, result, settings
@@ -240,3 +241,16 @@ def test_receipts_and_screening(state: str) -> None:
     with pytest.raises(UnsafeContent):
         screen_payload("prepare_service_action", data)
     assert service_receipt('{"ok":false}') is None
+
+
+@pytest.mark.parametrize("change", ["missing_source", "unsafe_url", "foreign_field"])
+def test_confirmation_result_validation(change: str) -> None:
+    data = draft_data()
+    if change == "missing_source":
+        data["references"] = []
+    elif change == "unsafe_url":
+        data["draft"]["service_url"] = "javascript:alert(1)"
+    else:
+        data["draft"]["profile_id"] = "nina"
+    with pytest.raises(ValidationError):
+        ServiceActionEnvelope.model_validate({"ok": True, "data": data})

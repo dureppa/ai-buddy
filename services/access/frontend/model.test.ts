@@ -41,14 +41,14 @@ it('recommends role-specific resources with shared tools', () => {
   }
   expect(recommendedTemplates('designer').map((item) => item.id)).not.toContain('dwh');
 });
-it('reads demo identity and distinguishes reviewers from mentors', () => {
+it('reads demo identity and associates it with a team', () => {
   expect(readAccessAccount('other=1; ai_buddy_account=sasha')).toBe('sasha');
   expect(readAccessAccount('ai_buddy_account=manager')).toBe('manager');
   expect(readAccessAccount('ai_buddy_account=bad')).toBe(null);
   expect(readAccessAccount('')).toBe(null);
   expect(accountContext('olga').role).toBe('analyst');
-  expect(accountContext('manager').canReview).toBe(true);
-  expect(accountContext('mentor').canReview).toBe(false);
+  expect(accountContext('manager').role).toBeNull();
+  expect(accountContext('mentor').role).toBeNull();
 });
 it('validates configured fields, levels, version and boundaries', () => {
   expect(parseInput(input)).toEqual(input);
@@ -73,29 +73,26 @@ it('validates configured fields, levels, version and boundaries', () => {
     parseInput({ ...repository, fields: { repository_url: 'https://git.example/repo' } }).fields.repository_url,
   ).toContain('https:');
 });
-it('creates a scoped request, prevents duplicates and allows resubmission after rejection', () => {
+it('creates a scoped request, prevents duplicates and allows resubmission after cancellation', () => {
   const requests = createRequest([], input, 'olga', id, now);
   expect(requests[0].product_id).toBe('delivery');
   expect(requests[0].status).toBe('submitted');
   expect(() =>
     createRequest(requests, { ...input, system: ' dwh ', resource_key: 'DELIVERY.ORDERS' }, 'olga', id, now),
   ).toThrow('уже существует');
-  const rejected = changeRequest(requests, id, 'manager', 'rejected', 'Уточните витрину', now);
-  expect(createRequest(rejected, input, 'olga', '86e2b6a2-cf72-4d68-bb60-6837cb41be7f', now)).toHaveLength(2);
+  const cancelled = changeRequest(requests, id, 'olga', now);
+  expect(createRequest(cancelled, input, 'olga', '86e2b6a2-cf72-4d68-bb60-6837cb41be7f', now)).toHaveLength(2);
 });
-it('restricts decisions to the own product manager and rejects stale actions', () => {
+it('only shows requests to their author and only lets the author cancel them', () => {
   const requests = createRequest([], input, 'olga', id, now);
-  for (const actor of ['olga', 'mentor', 'travel-manager'] as const)
-    expect(() => changeRequest(requests, id, actor, 'approved', '', now)).toThrow();
-  expect(() => changeRequest(requests, id, 'manager', 'rejected', '', now)).toThrow('причину');
-  const approved = changeRequest(requests, id, 'manager', 'approved', 'Согласовано', now);
-  expect(approved[0].status).toBe('approved');
-  expect(() => changeRequest(approved, id, 'manager', 'rejected', 'Причина', now)).toThrow('уже изменена');
-  expect(() => changeRequest(requests, id, 'sasha', 'cancelled', '', now)).toThrow();
-  expect(changeRequest(requests, id, 'olga', 'cancelled', '', now)[0].status).toBe('cancelled');
-  expect(visibleRequests(requests, 'travel-manager')).toEqual([]);
-  expect(visibleRequests(requests, 'manager')).toHaveLength(1);
-  expect(visibleRequests(requests, 'sasha')).toEqual([]);
+  for (const actor of ['manager', 'mentor', 'travel-manager', 'sasha'] as const) {
+    expect(() => changeRequest(requests, id, actor, now)).toThrow();
+    expect(visibleRequests(requests, actor)).toEqual([]);
+  }
+  const cancelled = changeRequest(requests, id, 'olga', now);
+  expect(cancelled[0].status).toBe('cancelled');
+  expect(() => changeRequest(cancelled, id, 'olga', now)).toThrow('уже изменена');
+  expect(visibleRequests(requests, 'olga')).toEqual(requests);
 });
 it('persists requests and reports corrupt or unavailable storage', () => {
   let saved: string | null = null;

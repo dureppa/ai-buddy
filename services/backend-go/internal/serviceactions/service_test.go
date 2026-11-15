@@ -508,3 +508,28 @@ func TestConfiguration(t *testing.T) {
 		t.Fatal("missing service fallback", err)
 	}
 }
+
+func TestContextFitsMCPEnvelope(t *testing.T) {
+	f := newFixture(t)
+	f.readOverride = func(path string) any {
+		if path == "/api/v1/me/issues" {
+			rows := []any{}
+			for range 20 {
+				rows = append(rows, fixtureIssue())
+			}
+			return rows
+		}
+		return nil
+	}
+	out, err := f.s.Context(context.Background(), "olga", map[string]any{"service": "jira"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := json.Marshal(out)
+	if len(raw) > 12*1024 || out["has_more"] != true || len(out["issues"].([]any)) == 0 {
+		t.Fatal("unbounded context", len(raw), out["has_more"])
+	}
+	if _, err := boundContext(map[string]any{"huge": strings.Repeat("x", 13000)}, nil); !errors.Is(err, ErrUnavailable) {
+		t.Fatal("unbounded metadata", err)
+	}
+}

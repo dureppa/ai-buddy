@@ -54,12 +54,12 @@ type Catalog struct {
 	Templates []Template `json:"templates"`
 }
 type Identity struct {
-	ID      string `json:"profile_id"`
-	Product string `json:"product_id"`
-	Role    string `json:"job_role"`
-	Name    string `json:"name"`
-	Team    string `json:"team_name"`
-	Manager bool   `json:"can_review"`
+	ID        string `json:"profile_id"`
+	Product   string `json:"product_id"`
+	Role      string `json:"job_role"`
+	Name      string `json:"name"`
+	Team      string `json:"team_name"`
+	CanReview bool   `json:"can_review"`
 }
 type Input struct {
 	TemplateID    string            `json:"template_id"`
@@ -95,6 +95,7 @@ type Page struct {
 	Updated string  `json:"updated_at"`
 }
 type Service struct {
+	KnowledgeDB  *pgxpool.Pool
 	DB           *pgxpool.Pool
 	Catalog      Catalog
 	AccessURL    string
@@ -112,7 +113,7 @@ func New(db *pgxpool.Pool) *Service {
 }
 func (s *Service) Identity(ctx context.Context, id string) (Identity, error) {
 	var out Identity
-	err := s.DB.QueryRow(ctx, `SELECT p.id,p.team_id,coalesce(p.job_role,''),p.display_name,t.name,p.can_review_access FROM profiles p JOIN teams t ON t.id=p.team_id WHERE p.id=$1 AND p.job_role IS NOT NULL`, id).Scan(&out.ID, &out.Product, &out.Role, &out.Name, &out.Team, &out.Manager)
+	err := s.DB.QueryRow(ctx, `SELECT p.id,p.team_id,coalesce(p.job_role,''),p.display_name,t.name FROM profiles p JOIN teams t ON t.id=p.team_id WHERE p.id=$1 AND p.job_role IS NOT NULL`, id).Scan(&out.ID, &out.Product, &out.Role, &out.Name, &out.Team)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return out, buddy.ErrForbidden
 	}
@@ -255,11 +256,10 @@ func (s *Service) Submit(ctx context.Context, subject string, input Input, key, 
 	return r, nil
 }
 func (s *Service) List(ctx context.Context, subject string) ([]Request, error) {
-	identity, err := s.Identity(ctx, subject)
-	if err != nil {
+	if _, err := s.Identity(ctx, subject); err != nil {
 		return nil, err
 	}
-	rows, err := s.DB.Query(ctx, requestSelect+`WHERE profile_id=$1 OR ($2 AND product_id=$3) ORDER BY created_at DESC LIMIT 100`, subject, identity.Manager, identity.Product)
+	rows, err := s.DB.Query(ctx, requestSelect+`WHERE profile_id=$1 ORDER BY created_at DESC LIMIT 100`, subject)
 	if err != nil {
 		return nil, err
 	}
@@ -275,25 +275,22 @@ func (s *Service) List(ctx context.Context, subject string) ([]Request, error) {
 	return out, rows.Err()
 }
 func (s *Service) Decide(ctx context.Context, subject, id, action, note string) (Request, error) {
-	identity, err := s.Identity(ctx, subject)
-	if err != nil {
+	if _, err := s.Identity(ctx, subject); err != nil {
 		return Request{}, err
 	}
 	note = strings.TrimSpace(note)
-	if (action != "approved" && action != "rejected" && action != "cancelled") || utf8.RuneCountInString(note) > 2000 || (action == "rejected" && utf8.RuneCountInString(note) < 5) {
+	if action != "cancelled" || utf8.RuneCountInString(note) > 2000 {
 		return Request{}, buddy.ErrInvalidInput
 	}
-	found, err := scanRequest(s.DB.QueryRow(ctx, requestSelect+`WHERE id::text=$1 AND (profile_id=$2 OR ($3 AND product_id=$4))`, id, subject, identity.Manager, identity.Product))
-	if errors.Is(err, pgx.ErrNoRows) {
-		return Request{}, buddy.ErrNotFound
-	}
+	var owned bool
+	err := s.DB.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM portal_access_requests WHERE id::text=$1 AND profile_id=$2)`, id, subject).Scan(&owned)
 	if err != nil {
 		return Request{}, err
 	}
-	if (action == "cancelled" && found.Profile != subject) || (action != "cancelled" && (!identity.Manager || found.Profile == subject || identity.Product != found.Product)) {
-		return Request{}, buddy.ErrForbidden
+	if !owned {
+		return Request{}, buddy.ErrNotFound
 	}
-	tag, err := s.DB.Exec(ctx, `UPDATE portal_access_requests r SET status=$1,decision_by=$2,decision_note=$3,decided_at=now() WHERE r.id::text=$4 AND r.status='submitted' AND EXISTS(SELECT 1 FROM profiles p WHERE p.id=r.profile_id AND p.team_id=r.product_id)`, action, subject, note, id)
+	tag, err := s.DB.Exec(ctx, `UPDATE portal_access_requests r SET status='cancelled',decision_by=$1,decision_note=$2,decided_at=now() WHERE r.id::text=$3 AND r.profile_id=$1 AND r.status='submitted' AND EXISTS(SELECT 1 FROM profiles p WHERE p.id=r.profile_id AND p.team_id=r.product_id)`, subject, note, id)
 	if err != nil {
 		return Request{}, err
 	}

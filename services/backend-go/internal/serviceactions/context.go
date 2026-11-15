@@ -55,7 +55,10 @@ func (s *Service) Context(ctx context.Context, profile string, args map[string]a
 	}
 	out["service"] = in.Service
 	out["references"] = []any{source(in.Service, title, e.PublicURL)}
-	return out, nil
+	if in.Service == "offboarding" {
+		return out, nil
+	}
+	return boundContext(out, []string{"referrals", "vacancies", "requests", "options"})
 }
 func (s *Service) jiraContext(ctx context.Context, profile string, in contextArgs, e Endpoint) (map[string]any, error) {
 	out := map[string]any{"service": "jira", "current_user_id": profile, "spaces": []any{}, "boards": []any{}, "issues": []any{}, "members": []any{}, "has_more": false}
@@ -153,7 +156,7 @@ func (s *Service) jiraContext(ctx context.Context, profile string, in contextArg
 		out["issues"] = rows
 	}
 	out["references"] = []any{source("jira", "Мои задачи Jira", address)}
-	return out, nil
+	return boundContext(out, []string{"issues", "boards", "members", "spaces"})
 }
 func jiraIssue(raw map[string]any) map[string]any {
 	out := projection(raw, "id", "board_id", "space_id", "key", "title", "description", "status", "priority", "assignee_id", "reporter_id", "due_date", "version")
@@ -181,4 +184,44 @@ func jiraURL(base, space, board, issue string) string {
 	}
 	u.RawQuery = q.Encode()
 	return u.String()
+}
+
+// MCP includes both JSON text and structured content; reserve space for both.
+func boundContext(out map[string]any, lists []string) (map[string]any, error) {
+	for _, key := range lists {
+		rows, ok := out[key].([]any)
+		if !ok {
+			continue
+		}
+		limit := 50
+		if key == "referrals" || key == "requests" || key == "boards" {
+			limit = 30
+		}
+		if len(rows) > limit {
+			out[key] = rows[:limit]
+			out["has_more"] = true
+		}
+	}
+	for {
+		raw, err := json.Marshal(out)
+		if err != nil {
+			return nil, ErrUnavailable
+		}
+		if len(raw) <= 12*1024 {
+			return out, nil
+		}
+		trimmed := false
+		for _, key := range lists {
+			rows, ok := out[key].([]any)
+			if ok && len(rows) > 0 {
+				out[key] = rows[:len(rows)-1]
+				out["has_more"] = true
+				trimmed = true
+				break
+			}
+		}
+		if !trimmed {
+			return nil, ErrUnavailable
+		}
+	}
 }

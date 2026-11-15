@@ -8,10 +8,12 @@ import './service-actions.css';
 export function ServiceActionCard({
   draft,
   busy,
+  blocked = false,
   onDecide,
 }: {
   draft: ServiceAction;
   busy: boolean;
+  blocked?: boolean;
   onDecide: (confirm: boolean) => void;
 }) {
   const expired = Date.parse(draft.expires_at) <= Date.now();
@@ -30,10 +32,10 @@ export function ServiceActionCard({
       </dl>
       {visible.state === 'prepared' && (
         <div className="service-action-buttons">
-          <button className="button button--dark" disabled={busy} onClick={() => onDecide(true)}>
+          <button className="button button--dark" disabled={busy || blocked} onClick={() => onDecide(true)}>
             {busy ? 'Отправляем…' : 'Подтвердить'}
           </button>
-          <button className="button button--white" disabled={busy} onClick={() => onDecide(false)}>
+          <button className="button button--white" disabled={busy || blocked} onClick={() => onDecide(false)}>
             Отменить
           </button>
         </div>
@@ -57,7 +59,8 @@ export function ServiceActionPage({ profileId }: { profileId: ProfileId }) {
     queryKey: key,
     queryFn: () => readServiceAction(profileId, actionId),
     retry: false,
-    refetchInterval: (q) => (q.state.data?.state === 'executing' ? 2000 : 10000),
+    refetchInterval: (q) =>
+      q.state.data?.state === 'executing' ? 2000 : q.state.data?.state === 'prepared' ? 10000 : false,
   });
   const mutation = useMutation({
     mutationFn: (confirm: boolean) => decideServiceAction(profileId, actionId, confirm),
@@ -98,7 +101,8 @@ export function ServiceActionPage({ profileId }: { profileId: ProfileId }) {
       )}
       <ServiceActionCard
         draft={query.data}
-        busy={mutation.isPending || needsRefresh}
+        busy={mutation.isPending}
+        blocked={needsRefresh}
         onDecide={(confirm) => mutation.mutate(confirm)}
       />
     </>

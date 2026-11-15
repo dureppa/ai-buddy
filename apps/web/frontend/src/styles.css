@@ -859,8 +859,7 @@ svg {
   box-shadow: 0 3px 14px #29342a05;
 }
 .tasks-panel,
-.events-panel,
-.requests-panel {
+.events-panel {
   padding: 20px;
   min-width: 0;
 }
@@ -1197,6 +1196,38 @@ svg {
   line-height: 1.45;
   margin: 7px 0 10px;
 }
+.adaptation-tabs {
+  display: flex;
+  gap: clamp(18px, 4vw, 32px);
+  margin-bottom: 18px;
+  box-shadow: inset 0 -1px var(--line);
+}
+.adaptation-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 6px 4px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: clamp(16px, 2.5vw, 18px);
+  font-weight: 700;
+  line-height: 1.25;
+}
+.adaptation-tab:hover,
+.adaptation-tab[aria-selected='true'] {
+  color: var(--dark);
+}
+.adaptation-tab[aria-selected='true'] {
+  border-bottom-color: #315e3a;
+}
+.adaptation-tab:focus-visible {
+  outline-offset: -3px;
+  border-radius: 6px;
+}
 .filter-row {
   display: flex;
   flex-wrap: wrap;
@@ -1395,36 +1426,6 @@ svg {
   height: 6px;
   border-radius: 50%;
   background: currentColor;
-}
-.status--available {
-  color: #315f3a;
-  background: #e6f6e0;
-}
-.status--submitted {
-  color: #584270;
-  background: #eee5f7;
-}
-.status--requestable {
-  color: #714450;
-  background: #fce9ed;
-}
-.service-card .status {
-  margin-top: 4px;
-}
-.requests-panel {
-  margin-top: 18px;
-}
-.request-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
-  border-top: 1px solid var(--line);
-  padding: 11px 0;
-  font-size: 13px;
-}
-.request-row > span:first-child {
-  min-width: 108px;
 }
 .search-field {
   display: flex;
@@ -1939,29 +1940,42 @@ svg {
   line-height: 1.55;
   white-space: pre-line;
 }
+.task-materials {
+  display: grid;
+  gap: 12px;
+}
+.task-materials h3 {
+  font-size: 16px;
+  line-height: 1.35;
+}
 .task-materials ul {
   display: grid;
   gap: 10px;
 }
 .task-material {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   padding: 14px 16px;
+  border-radius: 16px;
+  box-shadow: none;
+  overflow-wrap: anywhere;
 }
 .task-material strong {
   font-size: 15px;
-  letter-spacing: -0.03em;
+  line-height: 1.35;
 }
-.task-material p,
-.task-material small {
-  color: var(--muted);
+.detail-content .task-material p {
   font-size: 13px;
   line-height: 1.45;
 }
-.task-material a {
-  color: #315e3a;
-  font-weight: 700;
-  overflow-wrap: anywhere;
+.task-material small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.task-material__link {
+  margin-top: 2px;
+  font-size: 13px;
 }
 .detail-content dl {
   display: grid;
@@ -2059,6 +2073,12 @@ svg {
   box-shadow: 0 12px 25px #20382636;
   font-size: 13px;
   animation: page-in 240ms both;
+}
+.toast--top-right {
+  inset: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) auto auto;
+  translate: none;
+  max-width: min(360px, calc(100% - 32px));
+  pointer-events: none;
 }
 .toast--error {
   background: #833f52;

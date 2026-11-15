@@ -78,7 +78,6 @@ export function AccessForm({
   }
   return (
     <Dialog title={review ? 'Проверьте заявку' : template.title} onClose={onClose}>
-      <p className="access-muted">Согласование: {template.owner} и руководитель команды.</p>
       <form onSubmit={(event) => void submit(event)}>
         {review ? (
           <RequestSummary input={input} />
@@ -199,7 +198,7 @@ export function AccessForm({
             {review ? 'Изменить поля' : 'Отмена'}
           </button>
           <button className="access-primary" type="submit" disabled={pending}>
-            {pending ? 'Отправляем…' : review ? 'Отправить на согласование' : 'Продолжить'}
+            {pending ? 'Отправляем…' : review ? 'Отправить заявку' : 'Продолжить'}
           </button>
         </div>
       </form>
@@ -232,26 +231,23 @@ export function RequestSummary({ input }: { input: RequestInput }) {
 function RequestDetails({
   request,
   account,
-  canReview,
-  onAction,
+  onCancel,
   onClose,
 }: {
   request: AccessRequest;
   account: AccountId;
-  canReview: boolean;
-  onAction: (id: string, action: 'approved' | 'rejected' | 'cancelled', note: string) => Promise<void>;
+  onCancel: (id: string) => Promise<void>;
   onClose: () => void;
 }) {
-  const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
-  async function act(action: 'approved' | 'rejected' | 'cancelled') {
+  async function cancel() {
     setPending(true);
     try {
-      await onAction(request.id, action, note);
+      await onCancel(request.id);
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось сохранить решение.');
+      setError(e instanceof Error ? e.message : 'Не удалось отменить заявку.');
     } finally {
       setPending(false);
     }
@@ -269,31 +265,9 @@ function RequestDetails({
       {request.status === 'approved' && (
         <p className="access-notice">Заявка согласована в деморежиме. Реальные права не выдавались.</p>
       )}
-      {request.status === 'submitted' && canReview && (
-        <>
-          <label className="access-comment">
-            Комментарий к решению
-            <textarea
-              maxLength={2000}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={3}
-              placeholder="При отказе укажите причину"
-            />
-          </label>
-          <div className="access-actions">
-            <button disabled={pending} onClick={() => void act('rejected')}>
-              Отклонить
-            </button>
-            <button className="access-primary" disabled={pending} onClick={() => void act('approved')}>
-              Согласовать
-            </button>
-          </div>
-        </>
-      )}
       {request.status === 'submitted' && request.profile_id === account && (
         <div className="access-actions">
-          <button disabled={pending} onClick={() => void act('cancelled')}>
+          <button disabled={pending} onClick={() => void cancel()}>
             Отменить заявку
           </button>
         </div>
@@ -335,7 +309,7 @@ function Portal({ account }: { account: AccountId }) {
   const [serverContext, setServerContext] = useState<typeof fallback>();
   const context = serverContext || fallback;
   const product = products[context.productId];
-  const [tab, setTab] = useState<'catalog' | 'requests'>(fallback.canReview ? 'requests' : 'catalog');
+  const [tab, setTab] = useState<'catalog' | 'requests'>('catalog');
   const [query, setQuery] = useState('');
   const [recommended, setRecommended] = useState(true);
   const [requests, setRequests] = useState<AccessRequest[]>([]);
@@ -361,7 +335,6 @@ function Portal({ account }: { account: AccountId }) {
           name: catalog.context.name,
           productId: catalog.context.product_id,
           role: catalog.context.job_role === 'staff' ? null : catalog.context.job_role,
-          canReview: catalog.context.can_review,
         });
         setLiveTemplates(catalog.templates as LiveTemplate[]);
         setRequests(records);
@@ -391,12 +364,12 @@ function Portal({ account }: { account: AccountId }) {
     setTemplate(undefined);
     setTab('requests');
     setStatus('all');
-    setNotice('Заявка сохранена на сервере и отправлена на согласование.');
+    setNotice('Заявка сохранена. Её номер и статус доступны в списке.');
     setRevision((value) => value + 1);
   }
-  async function action(id: string, action: 'approved' | 'rejected' | 'cancelled', note: string) {
-    await api.decide(id, action, note);
-    setNotice('Решение сохранено на сервере.');
+  async function cancel(id: string) {
+    await api.cancel(id);
+    setNotice('Заявка отменена.');
     setRevision((value) => value + 1);
   }
   const mine = requests;
@@ -419,13 +392,7 @@ function Portal({ account }: { account: AccountId }) {
           <span className="access-demo">Демосреда</span>
           <div className="access-current-account">
             <span>{context.name}</span>
-            <small>
-              {context.canReview
-                ? 'Руководитель команды'
-                : isProfileId(account)
-                  ? profiles[account].position
-                  : 'Сотрудник'}
-            </small>
+            <small>{isProfileId(account) ? profiles[account].position : 'Сотрудник'}</small>
           </div>
         </div>
       </header>
@@ -442,15 +409,13 @@ function Portal({ account }: { account: AccountId }) {
             Каталог доступов
           </button>
           <button className={tab === 'requests' ? 'active' : ''} onClick={() => setTab('requests')}>
-            {context.canReview ? 'Заявки команды' : 'Мои заявки'}
+            Мои заявки
             <span>{mine.length}</span>
           </button>
         </div>
         <div className="access-demo-note">
           <Icon name="info" size={17} />
-          <span>
-            Учебный сервис: заявки сохраняются на сервере и доступны Buddy. Согласование не выдаёт реальные права.
-          </span>
+          <span>Учебный сервис. Отправленные заявки хранятся в списке «Мои заявки».</span>
         </div>
         {pending && (
           <p role="status" className="access-muted">
@@ -521,17 +486,11 @@ function Portal({ account }: { account: AccountId }) {
             {catalog.length === 0 && (
               <div className="access-empty">Ресурсы не найдены. Попробуйте другое название.</div>
             )}
-            {context.canReview && (
-              <p className="access-muted">
-                Заявки создаются из рабочего пространства стажёра в AI Buddy. Рассмотрение доступно в разделе «Заявки
-                команды».
-              </p>
-            )}
           </>
         ) : (
           <>
             <div className="access-request-toolbar">
-              <h2>{context.canReview ? 'Заявки вашей команды' : 'Ваши заявки'}</h2>
+              <h2>Ваши заявки</h2>
               <label>
                 Статус
                 <select value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -568,11 +527,7 @@ function Portal({ account }: { account: AccountId }) {
               <div className="access-empty">
                 <Icon name="file" size={30} />
                 <h3>Здесь пока нет заявок</h3>
-                <p>
-                  {context.canReview
-                    ? 'Заявки стажёров вашей команды появятся в этом списке.'
-                    : 'Выберите ресурс в каталоге, чтобы запросить доступ.'}
-                </p>
+                {isProfileId(account) && <p>Выберите ресурс в каталоге, чтобы запросить доступ.</p>}
                 <button onClick={() => setTab('catalog')}>Открыть каталог</button>
               </div>
             )}
@@ -584,8 +539,7 @@ function Portal({ account }: { account: AccountId }) {
         <RequestDetails
           request={selectedRequest}
           account={account}
-          canReview={context.canReview}
-          onAction={action}
+          onCancel={cancel}
           onClose={() => setSelected(undefined)}
         />
       )}

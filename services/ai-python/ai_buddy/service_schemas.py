@@ -2,9 +2,9 @@
 
 from typing import Annotated, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
-from ai_buddy.schemas import ClosedModel, Identifier, Source
+from ai_buddy.schemas import ClosedModel, Identifier, Source, safe_url
 
 ServiceName = Literal["hiring", "offboarding", "benefits", "jira"]
 UUIDString = Annotated[
@@ -253,10 +253,15 @@ class ServiceActionDraft(ClosedModel):
     service_url: str
     result: str
 
+    @field_validator("service_url")
+    @classmethod
+    def public_url(cls, value: str) -> str:
+        return safe_url(value)
+
 
 class ServiceActionData(ClosedModel):
     draft: ServiceActionDraft
-    references: Annotated[list[Source], Field(max_length=5)]
+    references: Annotated[list[Source], Field(min_length=1, max_length=5)]
 
 
 class ServiceActionEnvelope(ClosedModel):

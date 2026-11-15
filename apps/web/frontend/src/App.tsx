@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { ChatPage, ChatWindow, type ChatEntry, type DraftState } from './Chat';
 import { tasksFor } from './checklist';
-import { navigation, services } from './data';
+import { navigation } from './data';
 import { isStaffId, products, profiles, teamColleagues, teamContacts, type ProfileId } from './demo-accounts';
 import {
   answerBuddy,
@@ -19,7 +19,6 @@ import {
   confirmAccess,
   progressFor,
   readWorkspace,
-  serviceStatus,
   toggleTask,
   type AccessDraft,
   type BuddyGrowthStage,
@@ -28,31 +27,22 @@ import {
 import { demoSessionKey, endDemoSession, readDemoSession, startDemoSession } from './demo-session';
 import { saveServiceQuestion } from './service-questions';
 import { materialsForTask } from './staff-data';
-import { AccessBadge, Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
-import { Avatar, Buddy, EmptyState, Icon, Modal, type Mood } from './ui';
+import { Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './screens';
+import { Avatar, Buddy, EmptyState, Icon, Modal, Toast, type Mood } from './ui';
 
 import { corporateLinks } from './corporate-links';
-import { jiraService, confluenceService, toolProfileUrl } from './tool-links';
+import { toolProfileUrl, toolsFor } from './tool-links';
 import { CorporateDirectory, accessPortalUrl } from './CorporateDirectory';
+import { WorkToolPage } from './WorkToolPage';
 import { ProductGuide } from './ProductGuide';
 
 const searchItems = [
   { label: 'Путеводитель по продукту', detail: 'Раздел', to: '/product-guide' },
   ...navigation.map((item) => ({ label: item.label, detail: 'Раздел', to: item.path })),
-  ...services.map((service) => ({
-    label: service.title,
-    detail: service.category,
-    to:
-      service.id === 'jira'
-        ? jiraService.url
-        : service.id === 'confluence'
-          ? confluenceService.url
-          : '/tools?service=' + service.id,
-  })),
   ...corporateLinks.map((service) => ({ label: service.title, detail: 'Внешний сервис', to: service.url })),
 ];
 
-type Toast = { message: string; tone: 'success' | 'error' };
+type ToastState = { message: string; tone: 'success' | 'error' };
 const delay = (milliseconds: number) => new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
 
 function TaskMaterialList({ profileId, taskId }: { profileId: ProfileId; taskId: string }) {
@@ -69,9 +59,26 @@ function TaskMaterialList({ profileId, taskId }: { profileId: ProfileId; taskId:
             <small>
               {material.group} · {material.author}
             </small>
-            <a href={material.source.href} target="_blank" rel="noreferrer">
-              {material.source.kind === 'file' ? material.source.name : material.source.href}
-            </a>
+            {material.source.kind === 'file' ? (
+              <a
+                className="text-link task-material__link"
+                href={material.source.href}
+                download={material.source.name}
+                aria-label={'Скачать файл ' + material.source.name}
+              >
+                Скачать файл <Icon name="file" size={15} />
+              </a>
+            ) : (
+              <a
+                className="text-link task-material__link"
+                href={material.source.href}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={'Открыть ссылку ' + material.title}
+              >
+                Открыть ссылку <Icon name="diagonal" size={15} />
+              </a>
+            )}
           </li>
         ))}
       </ul>
@@ -83,12 +90,15 @@ function SearchDialog({ profileId, onClose }: { profileId: ProfileId; onClose: (
   const [query, setQuery] = useState('');
   const results = [
     ...searchItems.map((item) =>
-      item.to === jiraService.url || item.to === confluenceService.url
-        ? { ...item, to: toolProfileUrl(item.to, profileId) }
-        : item.to === corporateLinks.find((service) => service.id === 'access')?.url
-          ? { ...item, to: accessPortalUrl(item.to, profileId) }
-          : item,
+      item.to === corporateLinks.find((service) => service.id === 'access')?.url
+        ? { ...item, to: accessPortalUrl(item.to, profileId) }
+        : item,
     ),
+    ...toolsFor(profileId).map((tool) => ({
+      label: tool.title,
+      detail: tool.category,
+      to: 'url' in tool ? toolProfileUrl(tool.url, profileId) : '/tools?service=' + tool.id,
+    })),
     ...tasksFor(profileId).map((task) => ({
       label: task.title,
       detail: 'Задача',
@@ -279,7 +289,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   const [navOpen, setNavOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [questionOpen, setQuestionOpen] = useState(false);
-  const [toast, setToast] = useState<Toast | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
   const [mood, setMood] = useState<Mood>('happy');
   const [grownStage, setGrownStage] = useState<BuddyGrowthStage | null>(null);
   const [entries, setEntries] = useState<ChatEntry[]>([]);
@@ -421,12 +431,13 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   const person =
     location.pathname === '/team' &&
     [...teamContacts(profileId), ...teamColleagues(profileId)].find((item) => item.id === params.get('person'));
-  const service = location.pathname === '/tools' && services.find((item) => item.id === params.get('service'));
+  const service =
+    location.pathname === '/tools' && toolsFor(profileId).find((item) => item.id === params.get('service'));
   const linkedDetail: Detail | null = task
     ? { kind: 'task', item: task }
     : person
       ? { kind: 'person', item: person }
-      : service
+      : service && 'instruction' in service
         ? { kind: 'service', item: service }
         : null;
   const shownDetail = detail ?? linkedDetail;
@@ -613,10 +624,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                   }
                 />
                 <Route path="/team" element={<Team profileId={profileId} onOpen={setDetail} />} />
-                <Route
-                  path="/tools"
-                  element={<Tools profileId={profileId} workspace={workspace} onOpen={setDetail} />}
-                />
+                <Route path="/tools" element={<Tools profileId={profileId} onOpen={setDetail} />} />
                 <Route
                   path="/resources"
                   element={<Resources directory={<CorporateDirectory profileId={profileId} />} />}
@@ -781,33 +789,8 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           )}
           {shownDetail.kind === 'service' && (
             <div className="detail-content">
-              <AccessBadge status={serviceStatus(workspace, shownDetail.item)} />
               <p>{shownDetail.item.description}</p>
               <p>{shownDetail.item.instruction}</p>
-              <dl>
-                <dt>Ответственный</dt>
-                <dd>{shownDetail.item.owner}</dd>
-              </dl>
-              {serviceStatus(workspace, shownDetail.item) === 'requestable' && (
-                <button
-                  type="button"
-                  className="button button--dark"
-                  onClick={() => {
-                    closeDetail();
-                    navigate('/chat');
-                    send('Запроси доступ к ' + shownDetail.item.title);
-                  }}
-                >
-                  Подготовить заявку <Icon name="arrow" size={17} />
-                </button>
-              )}
-              {workspace.requests
-                .filter((request) => request.serviceId === shownDetail.item.id)
-                .map((request) => (
-                  <p className="detail-request" key={request.id}>
-                    Заявка <strong>{request.number}</strong>
-                  </p>
-                ))}
             </div>
           )}
           {shownDetail.kind === 'event' && (
@@ -846,12 +829,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
             ))}
         </Modal>
       )}
-      {toast && (
-        <div className={'toast toast--' + toast.tone} role={toast.tone === 'error' ? 'alert' : 'status'}>
-          <Icon name={toast.tone === 'success' ? 'check' : 'info'} size={20} />
-          {toast.message}
-        </div>
-      )}
+      {toast && <Toast message={toast.message} tone={toast.tone} />}
     </div>
   );
 }
@@ -892,5 +870,15 @@ export default function App() {
   }
   if (pathname === '/' || pathname === '/staff') return <Navigate to="/home" replace />;
 
+  if (pathname.startsWith('/work-tools/')) {
+    return (
+      <main className="work-tool-page">
+        <Routes>
+          <Route path="/work-tools/:service" element={<WorkToolPage profileId={account} />} />
+          <Route path="*" element={<Navigate to="/tools" replace />} />
+        </Routes>
+      </main>
+    );
+  }
   return <WorkspaceShell key={account} profileId={account} onExit={exit} />;
 }

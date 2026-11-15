@@ -1,6 +1,6 @@
 # Go-бэкенд
 
-`internal/serviceactions` подключает четыре API, сохраняет подтверждения в PostgreSQL (миграция 10) и выполняет одну попытку после ручного confirm. Два внутренних POST-маршрута: /internal/v1/ai/service-context и /internal/v1/ai/service-actions/prepare. [Настройки и публичные маршруты](service-actions.md).
+`internal/serviceactions` подключает четыре API, сохраняет подтверждения в PostgreSQL (миграция 11) и выполняет одну попытку после ручного confirm. Два внутренних POST-маршрута: /internal/v1/ai/service-context и /internal/v1/ai/service-actions/prepare. [Настройки и публичные маршруты](service-actions.md).
 
 ## Живая AI-интеграция (14.11.2026)
 

@@ -1,3 +1,4 @@
+import { toolsFor } from './tool-links';
 import { z } from 'zod';
 import { tasksFor } from './checklist';
 import { corporateLinks } from './corporate-links';
@@ -117,10 +118,6 @@ export function toggleTask(storage: StoragePort, profile: ProfileId, taskId: str
   return writeWorkspace(storage, profile, { ...workspace, completed });
 }
 
-export function serviceStatus(workspace: Workspace, service: Service) {
-  return workspace.requests.some((request) => request.serviceId === service.id) ? 'submitted' : service.state;
-}
-
 export function mayRequest(profile: ProfileId, service: Service) {
   return service.state === 'requestable' && !(profile === 'sasha' && service.id === 'grafana');
 }
@@ -176,14 +173,13 @@ export function answerBuddy(
         kind: 'access_denied',
         text:
           'Для этого профиля заявка на ' + service.title + ' недоступна. Уточни порядок доступа у владельца сервиса.',
-        link: { label: 'Посмотреть владельца сервиса', to: '/tools?service=' + service.id },
+        link: { label: 'Открыть управление доступами', to: serviceUrl('access') },
       };
     const existing = workspace.requests.find((request) => request.serviceId === service.id);
     if (existing)
       return {
         kind: 'answer',
-        text: 'Заявка ' + existing.number + ' на ' + service.title + ' уже отправлена и ждёт подтверждения.',
-        link: { label: 'Посмотреть статус', to: '/tools?service=' + service.id },
+        text: 'Заявка ' + existing.number + ' на ' + service.title + ' уже отправлена.',
       };
     return {
       kind: 'access_confirmation_required',
@@ -202,6 +198,21 @@ export function answerBuddy(
       kind: 'answer',
       text: 'В этом учебном сценарии сначала согласуй дату с лидом и уточни дальнейшие шаги в сервисе отсутствий.',
       link: { label: 'Открыть отсутствия', to: serviceUrl('absences') },
+    };
+  const tools = toolsFor(profile);
+  if (/инструмент/.test(question))
+    return {
+      kind: 'answer',
+      text: 'Вот инструменты для твоих задач.',
+      lines: tools.slice(0, 3).map((tool) => tool.title + ' — ' + tool.description),
+      link: { label: 'Открыть инструменты', to: '/tools' },
+    };
+  const tool = tools.find((item) => question.includes(item.title.toLocaleLowerCase('ru')) || item.id === service?.id);
+  if (tool)
+    return {
+      kind: 'answer',
+      text: tool.title + ' — ' + tool.description,
+      link: { label: 'Открыть инструменты', to: 'instruction' in tool ? '/tools?service=' + tool.id : '/tools' },
     };
   const intern = profiles[profile];
   const product = products[intern.productId];
@@ -234,12 +245,6 @@ export function answerBuddy(
       kind: 'answer',
       text: context + ' ' + product.teamDescription + ' ' + product.firstStep,
       link: { label: 'Открыть путеводитель по продукту', to: '/product-guide' },
-    };
-  if (service)
-    return {
-      kind: 'answer',
-      text: service.title + ' — ' + service.description + ' ' + service.instruction,
-      link: { label: 'Карточка сервиса', to: '/tools?service=' + service.id },
     };
   if (/сегодня|начат|задач|план|остал/.test(question)) {
     const pending = tasksFor(profile).filter((task) => !workspace.completed.includes(task.id));

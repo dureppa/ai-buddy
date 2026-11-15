@@ -110,7 +110,7 @@ def test_submit_returns_persisted_receipt_without_an_extra_model_generation() ->
         assert "ДОС-000001" in trace.answer and "не выдача доступа" in trace.answer
         assert len(session.calls) == 1
         assert trace.model_calls == 1
-        assert "на согласовании" in trace.answer
+        assert "отправлено" in trace.answer
         presented = present_answer(trace)
         assert "ДОС-000001" in presented and "не выдача доступа" in presented
         assert "[access:" not in presented
