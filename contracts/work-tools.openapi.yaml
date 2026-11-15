@@ -93,8 +93,336 @@ paths:
           description: Неизвестный профиль или некорректный запрос
         '404':
           description: Демовход выключен
+  /internal/v1/ai/work-tools:
+    get:
+      summary: Каталог инструментов текущего профиля через MCP
+      description: Требует Go resource-token audience=mcp-resource и X-Request-ID
+        текущей делегации. Профиль/команда не принимаются в аргументах.
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: X-Request-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Ограниченный контекст с проверенными ссылками
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkToolsEnvelope'
+        '400':
+          description: INVALID_ARGUMENTS — некорректные аргументы или X-Request-ID
+        '401':
+          description: CONTEXT_EXPIRED — недействительная делегация
+        '403':
+          description: FORBIDDEN — инструмент не разрешён
+        '404':
+          description: NOT_FOUND — инструмент или запись недоступны текущему профилю
+        '503':
+          description: TEMPORARILY_UNAVAILABLE — сервис или ответ недоступен
+  /internal/v1/ai/work-tools/context:
+    post:
+      summary: Актуальные записи выбранного рабочего инструмента через MCP
+      description: Требует Go resource-token audience=mcp-resource и X-Request-ID
+        текущей делегации. Профиль/команда не принимаются в аргументах.
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: X-Request-ID
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Ограниченный контекст с проверенными ссылками
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkContextEnvelope'
+        '400':
+          description: INVALID_ARGUMENTS — некорректные аргументы или X-Request-ID
+        '401':
+          description: CONTEXT_EXPIRED — недействительная делегация
+        '403':
+          description: FORBIDDEN — инструмент не разрешён
+        '404':
+          description: NOT_FOUND — инструмент или запись недоступны текущему профилю
+        '503':
+          description: TEMPORARILY_UNAVAILABLE — сервис или ответ недоступен
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkContextArguments'
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
+  schemas:
+    Source:
+      additionalProperties: false
+      properties:
+        title:
+          maxLength: 200
+          minLength: 1
+          title: Title
+          type: string
+        url:
+          maxLength: 2048
+          minLength: 1
+          title: Url
+          type: string
+        id:
+          maxLength: 128
+          minLength: 1
+          pattern: ^[^\s\x00-\x1f\x7f]+$
+          title: Id
+          type: string
+        version:
+          maxLength: 64
+          minLength: 1
+          title: Version
+          type: string
+        is_demo:
+          title: Is Demo
+          type: boolean
+      required:
+      - title
+      - url
+      - id
+      - version
+      - is_demo
+      title: Source
+      type: object
+    WorkToolSummary:
+      additionalProperties: false
+      properties:
+        id:
+          anyOf:
+          - enum:
+            - mattermost
+            - redash
+            - trino
+            - trisigma
+            - bitbucket
+            - paas
+            - grafana
+            - tms
+            - postman
+            - test-stand
+            - figma
+            - design-system
+            - design-review
+            type: string
+          - enum:
+            - jira
+            - confluence
+            type: string
+          title: Id
+        name:
+          maxLength: 200
+          minLength: 1
+          title: Name
+          type: string
+        area:
+          maxLength: 200
+          title: Area
+          type: string
+        read_tool:
+          enum:
+          - get_work_tool_context
+          - get_service_context
+          - search_knowledge
+          title: Read Tool
+          type: string
+      required:
+      - id
+      - name
+      - area
+      - read_tool
+      title: WorkToolSummary
+      type: object
+    WorkToolsData:
+      additionalProperties: false
+      properties:
+        tools:
+          items:
+            $ref: '#/components/schemas/WorkToolSummary'
+          maxItems: 15
+          title: Tools
+          type: array
+        references:
+          items:
+            $ref: '#/components/schemas/Source'
+          maxItems: 5
+          minItems: 1
+          title: References
+          type: array
+      required:
+      - tools
+      - references
+      title: WorkToolsData
+      type: object
+    WorkToolsEnvelope:
+      additionalProperties: false
+      properties:
+        ok:
+          const: true
+          title: Ok
+          type: boolean
+        data:
+          $ref: '#/components/schemas/WorkToolsData'
+      required:
+      - ok
+      - data
+      title: WorkToolsEnvelope
+      type: object
+    WorkContextData:
+      additionalProperties: false
+      properties:
+        service:
+          enum:
+          - mattermost
+          - redash
+          - trino
+          - trisigma
+          - bitbucket
+          - paas
+          - grafana
+          - tms
+          - postman
+          - test-stand
+          - figma
+          - design-system
+          - design-review
+          title: Service
+          type: string
+        name:
+          maxLength: 200
+          minLength: 1
+          title: Name
+          type: string
+        area:
+          maxLength: 200
+          title: Area
+          type: string
+        records:
+          items:
+            $ref: '#/components/schemas/WorkRecord'
+          maxItems: 5
+          title: Records
+          type: array
+        has_more:
+          title: Has More
+          type: boolean
+        references:
+          items:
+            $ref: '#/components/schemas/Source'
+          maxItems: 5
+          minItems: 1
+          title: References
+          type: array
+      required:
+      - service
+      - name
+      - area
+      - records
+      - has_more
+      - references
+      title: WorkContextData
+      type: object
+    WorkRecord:
+      additionalProperties: false
+      properties:
+        id:
+          maxLength: 128
+          minLength: 1
+          pattern: ^[^\s\x00-\x1f\x7f]+$
+          title: Id
+          type: string
+        title:
+          maxLength: 2000
+          minLength: 1
+          title: Title
+          type: string
+        status:
+          maxLength: 200
+          title: Status
+          type: string
+        description:
+          maxLength: 2000
+          title: Description
+          type: string
+        fields:
+          additionalProperties:
+            type: string
+          maxProperties: 24
+          title: Fields
+          type: object
+        truncated:
+          title: Truncated
+          type: boolean
+      required:
+      - id
+      - title
+      - status
+      - description
+      - fields
+      - truncated
+      title: WorkRecord
+      type: object
+    WorkContextEnvelope:
+      additionalProperties: false
+      properties:
+        ok:
+          const: true
+          title: Ok
+          type: boolean
+        data:
+          $ref: '#/components/schemas/WorkContextData'
+      required:
+      - ok
+      - data
+      title: WorkContextEnvelope
+      type: object
+    WorkContextArguments:
+      additionalProperties: false
+      properties:
+        service:
+          enum:
+          - mattermost
+          - redash
+          - trino
+          - trisigma
+          - bitbucket
+          - paas
+          - grafana
+          - tms
+          - postman
+          - test-stand
+          - figma
+          - design-system
+          - design-review
+          title: Service
+          type: string
+        record_id:
+          anyOf:
+          - maxLength: 128
+            minLength: 1
+            pattern: ^[^\s\x00-\x1f\x7f]+$
+            type: string
+          - type: 'null'
+          default: null
+          title: Record Id
+      required:
+      - service
+      title: WorkContextArguments
+      type: object

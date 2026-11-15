@@ -283,7 +283,7 @@ grafana — maria t, olga t, sasha f; прогресс — maria 12, olga 3, sas
 
 [SDD 007](../specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
 get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
-Максимум — 11 tools; submit_access_request объявляется только при AccessIntent текущего turn.
+Максимум — 13 tools; submit_access_request объявляется только при AccessIntent текущего turn.
 Два новых инструмента чтения/подготовки доступны при настройке serviceactions.
 Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
 POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
@@ -295,3 +295,9 @@ X-Request-ID, TTL и ACL. local_demo остаётся с двумя read tools.
 Поиск MCP по knowledge_articles использует русский полнотекстовый поиск
 PostgreSQL: значимые слова объединяются через OR, заголовок имеет больший вес,
 чем содержимое. Полный вопрос не обязан встречаться в статье дословно.
+
+`internal/worktools/agent.go` предоставляет каталог и проекцию записей для MCP.
+GET /internal/v1/ai/work-tools и POST /internal/v1/ai/work-tools/context используют
+тот же resource-token, X-Request-ID и проверенный TeamID. Новых профилей/URL в
+аргументах нет. Клиент проверяет team ответа, ограничивает размер/время,
+не следует redirect и не использует env proxy. [SDD 009](../specs/009-agent-role-tools.md).

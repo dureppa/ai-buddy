@@ -129,7 +129,7 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 
 ## Общий development eval
 
-Harness поддерживает текущие DeepSeek/Ollama transport и 11 MCP tools с
+Harness поддерживает текущие DeepSeek/Ollama transport и 13 MCP tools с
 синтетическими ответами; [runbook](../../ai-agent/evals/HARNESS.md).
 Живой CLI требует --allow-live-llm. Контрактные тесты новых tools не расширяют
 старый golden agent-v1 автоматически и не являются оценкой качества LLM.
@@ -142,7 +142,7 @@ Harness поддерживает текущие DeepSeek/Ollama transport и 11 
 
 [SDD 007](../specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
 get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
-Максимум — 11 tools; submit_access_request объявляется только при AccessIntent текущего turn.
+Максимум — 13 tools; submit_access_request объявляется только при AccessIntent текущего turn.
 Два новых инструмента чтения/подготовки доступны при настройке serviceactions.
 Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
 POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
@@ -177,3 +177,9 @@ Jira по ключу (`DEL-1`) распознаётся и без слова Jir
 Повторные доменные ошибки до лимита завершаются коротким уточнением.
 Транспортные/интеграционные отказы по-прежнему сообщаются как недоступность.
 Регрессии: `tests/test_jira_recovery.py` (включены в Python CI).
+
+Рабочие инструменты направлений: get_work_tools / get_work_tool_context,
+закрытые схемы в work_schemas.py и отдельное чтение по русским/английским именам.
+Агент получает только контекст текущего вопроса; запрос доступа сохраняет прежний
+маршрут каталога заявок. Новые tools только читают, UI-действия не выдаются за API.
+Транспорт/бюджеты прежние; доменные ошибки дают уточнение. [SDD 009](../specs/009-agent-role-tools.md).

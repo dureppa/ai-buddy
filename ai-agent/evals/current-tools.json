@@ -202,5 +202,59 @@
         }
       ]
     }
+  },
+  "get_work_tools": {
+    "arguments": {},
+    "data": {
+      "tools": [
+        {
+          "id": "redash",
+          "name": "Redash",
+          "area": "Аналитика",
+          "read_tool": "get_work_tool_context"
+        }
+      ],
+      "references": [
+        {
+          "id": "work-tools:demo",
+          "title": "Инструменты",
+          "url": "/tools",
+          "version": "1",
+          "is_demo": true
+        }
+      ]
+    }
+  },
+  "get_work_tool_context": {
+    "arguments": {
+      "service": "redash"
+    },
+    "data": {
+      "service": "redash",
+      "name": "Redash",
+      "area": "Аналитика",
+      "records": [
+        {
+          "id": "funnel",
+          "title": "Воронка",
+          "status": "Готов",
+          "description": "Учебная метрика",
+          "fields": {
+            "Конверсия": "68%"
+          },
+          "truncated": false
+        }
+      ],
+      "has_more": false,
+      "references": [
+        {
+          "id": "work-tools:demo",
+          "title": "Инструменты",
+          "url": "/tools",
+          "version": "1",
+          "is_demo": true
+        }
+      ]
+    }
   }
 }

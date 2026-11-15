@@ -211,7 +211,7 @@ func bearer(r *http.Request) string {
 func (b *Bridge) Register(mux *http.ServeMux) {
 	b.registerReview(mux)
 	mux.HandleFunc("POST /internal/v1/ai/context/resolve", b.resolve)
-	for path, tool := range map[string]string{"POST /internal/v1/ai/service-context": "get_service_context", "POST /internal/v1/ai/service-actions/prepare": "prepare_service_action", "POST /internal/v1/ai/knowledge/search": "search_knowledge", "GET /internal/v1/ai/team-context": "get_team_context", "GET /internal/v1/ai/onboarding/progress": "get_onboarding_progress", "POST /internal/v1/ai/onboarding/task-context": "get_task_context", "POST /internal/v1/ai/onboarding/task-evidence": "get_task_evidence", "GET /internal/v1/ai/access/catalog": "get_access_catalog", "POST /internal/v1/ai/access/requests": "submit_access_request", "GET /internal/v1/ai/access/requests": "get_access_requests", "POST /internal/v1/ai/knowledge/page": "get_knowledge_page"} {
+	for path, tool := range map[string]string{"GET /internal/v1/ai/work-tools": "get_work_tools", "POST /internal/v1/ai/work-tools/context": "get_work_tool_context", "POST /internal/v1/ai/service-context": "get_service_context", "POST /internal/v1/ai/service-actions/prepare": "prepare_service_action", "POST /internal/v1/ai/knowledge/search": "search_knowledge", "GET /internal/v1/ai/team-context": "get_team_context", "GET /internal/v1/ai/onboarding/progress": "get_onboarding_progress", "POST /internal/v1/ai/onboarding/task-context": "get_task_context", "POST /internal/v1/ai/onboarding/task-evidence": "get_task_evidence", "GET /internal/v1/ai/access/catalog": "get_access_catalog", "POST /internal/v1/ai/access/requests": "submit_access_request", "GET /internal/v1/ai/access/requests": "get_access_requests", "POST /internal/v1/ai/knowledge/page": "get_knowledge_page"} {
 		mux.HandleFunc(path, b.read(tool))
 	}
 }
@@ -264,6 +264,9 @@ func (b *Bridge) resolve(w http.ResponseWriter, r *http.Request) {
 	if b.Actions != nil {
 		allowed = append(allowed, "get_service_context", "prepare_service_action")
 	}
+	if b.WorkTools != nil {
+		allowed = append(allowed, "get_work_tools", "get_work_tool_context")
+	}
 	write(w, 200, map[string]any{"active": true, "subject_id": c.Subject, "request_id": c.RequestID, "conversation_id": c.ConversationID, "expires_at": c.ExpiresAt.Time.UTC().Format(time.RFC3339), "api_token": resource, "allowed_tools": allowed})
 }
 func (b *Bridge) read(tool string) http.HandlerFunc {
@@ -292,7 +295,15 @@ func (b *Bridge) read(tool string) http.HandlerFunc {
 			failure(w, 403, "FORBIDDEN")
 			return
 		}
-		if tool == "get_service_context" || tool == "prepare_service_action" {
+		if tool == "get_work_tools" || tool == "get_work_tool_context" {
+			if b.WorkTools == nil {
+				err = buddy.ErrUnavailable
+			} else if tool == "get_work_tools" {
+				data = b.WorkTools.CatalogData(profile.TeamID, b.JiraURL != "", b.Portal != nil)
+			} else {
+				data, err = b.WorkTools.AgentContext(r.Context(), profile.TeamID, args)
+			}
+		} else if tool == "get_service_context" || tool == "prepare_service_action" {
 			if b.Actions == nil {
 				err = buddy.ErrUnavailable
 			} else if tool == "get_service_context" {

@@ -36,6 +36,11 @@ from ai_buddy.service_schemas import (
     ServiceContextArguments,
     ServiceContextEnvelope,
 )
+from ai_buddy.work_schemas import (
+    WorkContextArguments,
+    WorkContextEnvelope,
+    WorkToolsEnvelope,
+)
 
 MAX_RESULT_BYTES = 32 * 1024
 MAX_TRANSPORT_BYTES = 1024 * 1024
@@ -55,6 +60,8 @@ class Contract:
 
 
 CONTRACTS = {
+    "get_work_tools": Contract(EmptyArguments, WorkToolsEnvelope),
+    "get_work_tool_context": Contract(WorkContextArguments, WorkContextEnvelope),
     "get_service_context": Contract(ServiceContextArguments, ServiceContextEnvelope),
     "prepare_service_action": Contract(
         PrepareServiceActionArguments, ServiceActionEnvelope

@@ -77,7 +77,7 @@ class ActiveContext(ClosedModel):
     subject_id: Identifier
     request_id: UUID
     conversation_id: UUID
-    allowed_tools: Annotated[list[str], Field(max_length=11)]
+    allowed_tools: Annotated[list[str], Field(max_length=13)]
     expires_at: datetime
     api_token: SecretStr
 
@@ -245,6 +245,8 @@ class GoHTTPBackend:
             raise ServiceError(ErrorCode.INVALID_ARGUMENTS) from None
         search = tool == "search_knowledge"
         routes = {
+            "get_work_tools": ("GET", "/internal/v1/ai/work-tools"),
+            "get_work_tool_context": ("POST", "/internal/v1/ai/work-tools/context"),
             "get_service_context": ("POST", "/internal/v1/ai/service-context"),
             "prepare_service_action": (
                 "POST",

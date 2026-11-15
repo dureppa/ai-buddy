@@ -1,6 +1,6 @@
 # Python MCP: demo и Go HTTP
 
-Актуальный go_http поддерживает максимум 11 tools, включая get_service_context и prepare_service_action. Последний сохраняет только черновик: confirm отсутствует в MCP. Jira patch передаётся с exclude_unset на всех трёх границах; явный null очищает только исполнителя/срок. [Подключение](service-actions.md).
+Актуальный go_http поддерживает максимум 13 tools, включая get_service_context и prepare_service_action. Последний сохраняет только черновик: confirm отсутствует в MCP. Jira patch передаётся с exclude_unset на всех трёх границах; явный null очищает только исполнителя/срок. [Подключение](service-actions.md).
 
 ## Дополнение: живой Go и личный прогресс
 
@@ -10,7 +10,7 @@ get_task_evidence(task_id); последняя функция читает ак�
 GET /internal/v1/ai/onboarding/progress, POST task-context/task-evidence находятся
 под /internal/v1/ai/onboarding/. Все результаты содержат references.
 Модель не получает профиль или токены как аргументы tools.
-ActiveContext допускает до 11 grants. В локальном demo выдаются только два исходных
+ActiveContext допускает до 13 grants. В локальном demo выдаются только два исходных
 инструмента; новые данные не подменяются фикстурами. Для Compose GO_API_URL может
 быть http://go:8080 — это единственное дополнение к прежним HTTP loopback origins.
 
@@ -79,7 +79,7 @@ HTTP-адаптер: `uv run --locked pytest tests/test_go_http.py` провер
 
 [SDD 007](../specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
 get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
-Максимум — 11 tools; submit_access_request объявляется только при AccessIntent текущего turn.
+Максимум — 13 tools; submit_access_request объявляется только при AccessIntent текущего turn.
 Два новых инструмента чтения/подготовки доступны при настройке serviceactions.
 Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
 POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
@@ -87,3 +87,8 @@ X-Request-ID, TTL и ACL. local_demo остаётся с двумя read tools.
 Поиск включает сохранённые Confluence-страницы продукта и общие гайды; заявки
 портала/чата общие в PostgreSQL. Повторы идемпотентны; receipt из БД, approved
 не является granted. Исторические ограничения выше относятся к предыдущим срезам.
+
+SDD 009 добавляет get_work_tools и get_work_tool_context; максимум grants — 13.
+Каталог соответствует текущему профилю, контекст читает один самостоятельный
+рабочий сервис и возвращает записи с якорями. Новых выполняющих tools нет.
+Длинные данные ограничены и маркируются has_more/truncated. local_demo прежний.

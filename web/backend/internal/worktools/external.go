@@ -27,7 +27,8 @@ func NewExternal(publicURL, secret string) (*Catalog, error) {
 		publicURL: strings.TrimRight(publicURL, "/"),
 		secret:    []byte(secret),
 		external: &http.Client{
-			Timeout:       4 * time.Second,
+			Timeout:       2 * time.Second,
+			Transport:     &http.Transport{Proxy: nil, DisableCompression: true},
 			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 		},
 	}
@@ -61,6 +62,7 @@ func (c *Catalog) readExternal(ctx context.Context, team, service string) (Page,
 		return Page{}, err
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Accept-Encoding", "identity")
 	resp, err := c.external.Do(req)
 	if err != nil {
 		return Page{}, buddy.ErrUnavailable
@@ -70,10 +72,23 @@ func (c *Catalog) readExternal(ctx context.Context, team, service string) (Page,
 	case http.StatusNotFound:
 		return Page{}, buddy.ErrNotFound
 	case http.StatusOK:
-		var page Page
-		if err := json.NewDecoder(io.LimitReader(resp.Body, 2<<20)).Decode(&page); err != nil {
+		raw, err := io.ReadAll(io.LimitReader(resp.Body, (2<<20)+1))
+		if err != nil || len(raw) > 2<<20 {
 			return Page{}, buddy.ErrUnavailable
 		}
+		var page Page
+		decoder := json.NewDecoder(strings.NewReader(string(raw)))
+		if decoder.Decode(&page) != nil || decoder.Decode(new(any)) != io.EOF || page.Records == nil {
+			return Page{}, buddy.ErrUnavailable
+		}
+		for _, record := range page.Records {
+			if record.Team != team || !recordID.MatchString(record.ID) || strings.TrimSpace(record.Title) == "" {
+				return Page{}, buddy.ErrUnavailable
+			}
+		}
+		meta := c.services[service]
+		page.Name = meta.Name
+		page.Area = meta.Area
 		return page, nil
 	default:
 		return Page{}, buddy.ErrUnavailable

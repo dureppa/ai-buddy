@@ -34,7 +34,7 @@ func TestExternalSearchUsesScopedToolAPI(t *testing.T) {
 		return &http.Response{
 			StatusCode: http.StatusOK,
 			Body: io.NopCloser(strings.NewReader(fmt.Sprintf(
-				`{"name":"Grafana","records":[{"id":"record","title":"Ошибки","description":"%s"}]}`, "Запись внешней БД",
+				`{"name":"Grafana","area":"Мониторинг","records":[{"team":"travel","id":"record","title":"Ошибки","description":"%s","fields":{}}]}`, "Запись внешней БД",
 			))),
 		}, nil
 	})
