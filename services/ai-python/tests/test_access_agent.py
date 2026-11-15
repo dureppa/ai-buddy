@@ -27,7 +27,7 @@ ARGS: dict[str, Any] = {
     "duration_days": 30,
     "fields": {"usage": "Исследование"},
 }
-RECEIPT = {
+RECEIPT: dict[str, Any] = {
     "request": {
         "id": "6ec29497-e40a-4c3e-a4d3-716095a94f61",
         "number": "ДОС-000001",

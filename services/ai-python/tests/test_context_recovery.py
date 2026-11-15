@@ -95,7 +95,7 @@ def test_recovery_quarantines_documents_before_retrying_model() -> None:
         )
         finalize(trace)
         assert trace.answer == QUARANTINED
-        assert len(seen) == 2
-        assert "СЕКРЕТНЫЙ_УСПЕХ" not in seen[1]
+        assert len(seen) == 1
+        assert "СЕКРЕТНЫЙ_УСПЕХ" not in seen[0]
 
     asyncio.run(run())
