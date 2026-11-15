@@ -18,6 +18,7 @@
 
 Спецификации:
 
+- [Опросы стажировки и уведомления](specs/internship-surveys.md)
 - [Заявка на доступ](specs/001-access-request.md), [онбординг](specs/002-onboarding-and-context.md), [HR-сервисы](specs/003-hr-services.md)
 - [Агент и сервисы](specs/004-agent-service-integration.md), [Jira](specs/005-jira.md), [портал доступов](specs/006-access-portal.md)
 - [Доступы и Confluence](specs/007-agent-access-confluence.md), [остальные действия](specs/008-remaining-agent-services.md)

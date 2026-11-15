@@ -382,13 +382,19 @@ svg {
 }
 .alert-button > span {
   position: absolute;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding-inline: 2px;
+  border-radius: 12px;
   background: #49ca66;
   border: 1.5px solid var(--white);
-  top: 7px;
-  right: 7px;
+  color: #192c20;
+  font-size: 10px;
+  font-weight: 700;
+  top: 2px;
+  right: 2px;
 }
 .profile-button {
   border-color: transparent;
@@ -2502,4 +2508,43 @@ svg {
 }
 .agent-answer__text ul {
   list-style: disc;
+}
+
+.task-row--survey {
+  border: 1px solid #8875c6;
+  border-radius: 12px;
+  margin-block: 6px;
+  padding-inline: 10px;
+}
+
+.survey-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.survey-step {
+  animation: survey-turn 230ms ease-out both;
+}
+
+.survey-step--back {
+  --survey-enter-offset: -18px;
+}
+
+@keyframes survey-turn {
+  from {
+    opacity: 0;
+    transform: translateX(var(--survey-enter-offset, 18px)) rotateY(12deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .survey-step {
+    animation: none;
+  }
 }

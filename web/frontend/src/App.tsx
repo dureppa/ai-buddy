@@ -7,6 +7,19 @@ import { readHrToday } from './hr-schedule';
 import { Schedule } from './EventsPage';
 import { readSchedule, scheduleKey, type ScheduleEvent } from './schedule';
 import { askBackend, backendEnabled, readBackendConversation } from './backend';
+import { InternshipSurvey } from './InternshipSurvey';
+import {
+  completedSurveys,
+  markNotificationsRead,
+  notificationSurvey,
+  readNotifications,
+  submitSurvey,
+  surveys,
+  surveyForTask,
+  surveyStage,
+  surveyTaskId,
+  type SurveyStage,
+} from './surveys';
 import { StartScreen } from './StartScreen';
 import { StaffWorkspace } from './StaffWorkspace';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -45,7 +58,7 @@ const searchItems = [
   ...corporateLinks.map((service) => ({ label: service.title, detail: 'Внешний сервис', to: service.url })),
 ];
 
-type ToastState = { message: string; tone: 'success' | 'error' };
+type ToastState = { message: string; tone: 'success' | 'error'; placement?: 'top-right' };
 const delay = (milliseconds: number) => new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
 
 function TaskMaterialList({ profileId, taskId }: { profileId: ProfileId; taskId: string }) {
@@ -197,38 +210,6 @@ function ServiceQuestionForm({ profileId, onSaved }: { profileId: ProfileId; onS
   );
 }
 
-function Survey({ onSubmit }: { onSubmit: () => void }) {
-  const [answer, setAnswer] = useState('');
-  return (
-    <form
-      className="detail-form"
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (answer) onSubmit();
-      }}
-    >
-      <p>Как проходит твоя адаптация?</p>
-      <fieldset>
-        {['Всё понятно', 'Есть несколько вопросов', 'Нужна помощь'].map((option) => (
-          <label key={option} className="radio-row">
-            <input
-              type="radio"
-              name="survey"
-              value={option}
-              checked={answer === option}
-              onChange={() => setAnswer(option)}
-            />
-            {option}
-          </label>
-        ))}
-      </fieldset>
-      <button className="button button--dark" type="submit" disabled={!answer}>
-        Отправить ответ
-      </button>
-    </form>
-  );
-}
-
 function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: () => void }) {
   const profile = profiles[profileId];
   const product = products[profile.productId];
@@ -287,8 +268,6 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
-  const [readAlerts, setReadAlerts] = useState(false);
-  const [surveyDone, setSurveyDone] = useState(() => localStorage.getItem('ai-buddy.survey.' + profileId) === 'done');
   const [navOpen, setNavOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [questionOpen, setQuestionOpen] = useState(false);
@@ -338,7 +317,47 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     },
     staleTime: Infinity,
   });
-  const workspace = workspaceQuery.data;
+  const surveysKey = ['internship-surveys', profileId] as const;
+  const surveysQuery = useQuery({ queryKey: surveysKey, queryFn: () => completedSurveys(profileId) });
+  const completedStages = surveysQuery.data;
+  const notificationsKey = ['notifications', profileId] as const;
+  const notificationsQuery = useQuery({
+    queryKey: notificationsKey,
+    queryFn: () => readNotifications(profileId, profile.stageId),
+    refetchInterval: backendEnabled ? 60_000 : false,
+  });
+  const notifications = notificationsQuery.data?.filter((notification) => {
+    const stage = notificationSurvey(notification.action_url);
+    return !stage || !completedStages?.includes(stage);
+  });
+  const unreadIds =
+    notifications
+      ?.filter((notification) => !notification.read)
+      .map(({ id }) => id)
+      .join(',') ?? '';
+  const unreadCount = unreadIds ? unreadIds.split(',').length : 0;
+  const { mutate: markRead, isError: readFailed } = useMutation({
+    mutationFn: (ids: string[]) => markNotificationsRead(profileId, ids),
+    onSuccess: async (_, ids) => {
+      await queryClient.cancelQueries({ queryKey: notificationsKey });
+      queryClient.setQueryData<Awaited<ReturnType<typeof readNotifications>>>(notificationsKey, (previous) =>
+        previous?.map((notification) =>
+          ids.includes(notification.id) ? { ...notification, read: true } : notification,
+        ),
+      );
+    },
+  });
+  useEffect(() => {
+    if (alertsOpen && unreadIds) markRead(unreadIds.split(','));
+  }, [alertsOpen, markRead, unreadIds]);
+
+  const workspace = workspaceQuery.data && {
+    ...workspaceQuery.data,
+    completed: [
+      ...workspaceQuery.data.completed.filter((id) => !surveyForTask(id)),
+      ...(completedStages ?? []).map(surveyTaskId),
+    ],
+  };
 
   const taskMutation = useMutation({
     mutationFn: async (id: string) => toggleTask(localStorage, profileId, id),
@@ -436,22 +455,26 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     [...teamContacts(profileId), ...teamColleagues(profileId)].find((item) => item.id === params.get('person'));
   const service =
     location.pathname === '/tools' && toolsFor(profileId).find((item) => item.id === params.get('service'));
-  const linkedDetail: Detail | null = task
-    ? { kind: 'task', item: task }
-    : person
-      ? { kind: 'person', item: person }
-      : service && 'instruction' in service
-        ? { kind: 'service', item: service }
-        : null;
+  const linkedSurvey =
+    location.pathname === '/onboarding' && (surveyStage(params.get('survey')) || (task && surveyForTask(task.id)));
+  const linkedDetail: Detail | null = linkedSurvey
+    ? { kind: 'survey', stage: linkedSurvey }
+    : task
+      ? { kind: 'task', item: task }
+      : person
+        ? { kind: 'person', item: person }
+        : service && 'instruction' in service
+          ? { kind: 'service', item: service }
+          : null;
   const shownDetail = detail ?? linkedDetail;
   function closeDetail() {
     setDetail(null);
     if (linkedDetail) navigate(location.pathname, { replace: true });
   }
-  function openSurvey() {
+  function openSurvey(stage: SurveyStage = profile.stageId) {
     setAlertsOpen(false);
     setDrawerOpen(false);
-    setDetail({ kind: 'survey' });
+    setDetail({ kind: 'survey', stage });
   }
   const chatProps = {
     profileId,
@@ -463,8 +486,8 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     onSend: send,
     onConfirm: (draft: AccessDraft) => confirmation.mutate(draft),
     onDismiss: (draft: AccessDraft) => setDrafts((previous) => ({ ...previous, [draft.id]: { type: 'dismissed' } })),
-    onSurvey: openSurvey,
-    surveyDone,
+    onSurvey: () => openSurvey(),
+    surveyDone: completedStages?.includes(profile.stageId) ?? false,
   };
 
   const checklist = workspace && {
@@ -473,10 +496,6 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     onToggle: (id: string) => taskMutation.mutate(id),
     savingTask: taskMutation.isPending ? taskMutation.variables : undefined,
   };
-
-  const hasUnread =
-    !readAlerts &&
-    (profile.stageId === 'first' || profile.stageId === 'final' || (profile.stageId === 'midpoint' && !surveyDone));
 
   return (
     <div className="shell">
@@ -568,13 +587,10 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
               type="button"
               className="icon-button alert-button"
               aria-label="Уведомления"
-              onClick={() => {
-                setAlertsOpen(true);
-                setReadAlerts(true);
-              }}
+              onClick={() => setAlertsOpen(true)}
             >
               <Icon name="bell" />
-              {hasUnread && <span />}
+              {unreadCount > 0 && <span aria-label={'Непрочитанных уведомлений: ' + unreadCount}>{unreadCount}</span>}
             </button>
             <button
               type="button"
@@ -669,40 +685,41 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       {searchOpen && <SearchDialog profileId={profileId} onClose={() => setSearchOpen(false)} />}
       {alertsOpen && (
         <Modal title="Уведомления" onClose={() => setAlertsOpen(false)}>
-          {profile.stageId === 'midpoint' && !surveyDone ? (
-            <div className="alert-card tone-lilac">
-              <Icon name="flag" />
-              <div>
-                <h3>Экватор стажировки</h3>
-                <p>Расскажи, как проходят первые месяцы.</p>
-                <button type="button" className="button button--white" onClick={openSurvey}>
-                  Пройти опрос
-                </button>
+          {notificationsQuery.isPending && <p>Загружаем уведомления…</p>}
+          {notificationsQuery.isError && (
+            <button className="button button--white" onClick={() => void notificationsQuery.refetch()}>
+              Повторить загрузку уведомлений
+            </button>
+          )}
+          {readFailed && unreadIds && (
+            <button className="button button--white" onClick={() => markRead(unreadIds.split(','))}>
+              Повторить отметку о прочтении
+            </button>
+          )}
+          {notifications?.map((notification) => {
+            const stage = notificationSurvey(notification.action_url);
+            return (
+              <div key={notification.id} className="alert-card tone-lilac">
+                <Icon name="flag" />
+                <div>
+                  <h3>{notification.title}</h3>
+                  <p>{notification.text}</p>
+                  {stage ? (
+                    <button type="button" className="button button--white" onClick={() => openSurvey(stage)}>
+                      {notification.action_title}
+                    </button>
+                  ) : (
+                    notification.action_url && (
+                      <Link to={notification.action_url} className="text-link" onClick={() => setAlertsOpen(false)}>
+                        {notification.action_title}
+                      </Link>
+                    )
+                  )}
+                </div>
               </div>
-            </div>
-          ) : profile.stageId === 'first' ? (
-            <div className="alert-card tone-mint">
-              <Icon name="calendar" />
-              <div>
-                <h3>Твой первый день</h3>
-                <p>Сегодня в 14:00 — знакомство с лидом.</p>
-                <Link to="/onboarding" className="text-link" onClick={() => setAlertsOpen(false)}>
-                  Посмотреть план <Icon name="arrow" size={16} />
-                </Link>
-              </div>
-            </div>
-          ) : profile.stageId === 'final' ? (
-            <div className="alert-card tone-blue">
-              <Icon name="flag" />
-              <div>
-                <h3>Финал стажировки</h3>
-                <p>Проверь итоги адаптации и подготовься к переходу в команду.</p>
-                <Link to="/onboarding" className="text-link" onClick={() => setAlertsOpen(false)}>
-                  Открыть итоги <Icon name="arrow" size={16} />
-                </Link>
-              </div>
-            </div>
-          ) : (
+            );
+          })}
+          {notifications?.length === 0 && (
             <EmptyState title="Новых уведомлений нет" text="Важные напоминания появятся здесь." />
           )}
         </Modal>
@@ -724,7 +741,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                 : shownDetail.item.name
               : shownDetail.kind === 'settings'
                 ? 'Настройки'
-                : 'Опрос об адаптации'
+                : surveys[shownDetail.stage].title
           }
           onClose={closeDetail}
         >
@@ -822,22 +839,39 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
             </div>
           )}
           {shownDetail.kind === 'survey' &&
-            (surveyDone ? (
-              <EmptyState title="Спасибо за ответ!" text="Опрос уже заполнен." />
-            ) : (
-              <Survey
-                onSubmit={() => {
-                  localStorage.setItem('ai-buddy.survey.' + profileId, 'done');
-                  setSurveyDone(true);
+            (completedStages?.includes(shownDetail.stage) ? (
+              <EmptyState title="Спасибо за ответы!" text="Опрос уже заполнен." />
+            ) : completedStages ? (
+              <InternshipSurvey
+                key={shownDetail.stage}
+                stage={shownDetail.stage}
+                onSubmit={async (answers) => {
+                  const stage = shownDetail.stage;
+                  await submitSurvey(profileId, stage, answers);
+                  await queryClient.cancelQueries({ queryKey: surveysKey });
+                  queryClient.setQueryData<SurveyStage[]>(surveysKey, (previous) => [
+                    ...new Set([...(previous ?? []), stage]),
+                  ]);
+                  void queryClient.invalidateQueries({ queryKey: notificationsKey });
                   closeDetail();
                   setMood('celebrating');
-                  setToast({ tone: 'success', message: 'Спасибо! Ответ записан в демо.' });
+                  setToast({
+                    tone: 'success',
+                    message: 'Ответы получены, спасибо за прохождение!',
+                    placement: 'top-right',
+                  });
                 }}
               />
+            ) : surveysQuery.isError ? (
+              <button className="button button--white" onClick={() => void surveysQuery.refetch()}>
+                Повторить загрузку опроса
+              </button>
+            ) : (
+              <p>Загружаем опрос…</p>
             ))}
         </Modal>
       )}
-      {toast && <Toast message={toast.message} tone={toast.tone} />}
+      {toast && <Toast message={toast.message} tone={toast.tone} placement={toast.placement} />}
     </div>
   );
 }

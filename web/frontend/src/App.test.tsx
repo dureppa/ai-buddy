@@ -8,6 +8,8 @@ import App from './App';
 import { apiFetch, askBackend, readBackendConversation } from './backend';
 import { readWorkspace } from './demo';
 import { demoSessionKey } from './demo-session';
+import { profiles, type ProfileId } from './demo-accounts';
+import { surveys } from './surveys';
 import { readServiceQuestions } from './service-questions';
 import { saveMaterial } from './staff-data';
 import { toolViews } from '../../../tools/shared/frontend/WorkToolViews';
@@ -19,8 +21,14 @@ vi.mock('./backend', () => ({
   },
   askBackend: vi.fn(),
   readBackendConversation: vi.fn(),
-  apiFetch: vi.fn(async () => Response.json({ events: [], unavailable: [] })),
+  apiFetch: vi.fn(async (_profile, path) => defaultAPIResponse(path)),
 }));
+
+function defaultAPIResponse(path: string) {
+  return Response.json(
+    path === '/api/v1/onboarding/surveys' || path === '/api/v1/notifications' ? [] : { events: [], unavailable: [] },
+  );
+}
 
 let root: Root;
 let client: QueryClient;
@@ -55,7 +63,7 @@ beforeEach(() => {
   });
   vi.mocked(apiFetch)
     .mockReset()
-    .mockImplementation(async () => Response.json({ events: [], unavailable: [] }));
+    .mockImplementation(async (_profile, path) => defaultAPIResponse(path));
   vi.mocked(readBackendConversation).mockReset().mockResolvedValue([]);
   vi.mocked(askBackend).mockReset();
   container = document.createElement('div');
@@ -84,7 +92,7 @@ async function mount(path: string) {
   });
 }
 
-async function waitForElement<T extends HTMLElement>(find: () => T | null | undefined): Promise<T> {
+async function waitForElement<T>(find: () => T | null | undefined): Promise<T> {
   return vi.waitFor(async () => {
     await act(async () => {});
     const element = find();
@@ -345,11 +353,13 @@ it('publishes, edits and removes a link in the mentor’s materials', async () =
 
 it('shows fetched HR events alongside a partial outage without hiding the calendar', async () => {
   localStorage.setItem(demoSessionKey, 'olga');
-  vi.mocked(apiFetch).mockResolvedValueOnce(
-    Response.json({
-      events: [{ id: 'leave', title: 'Отпуск', detail: 'До пятницы', service: 'absences' }],
-      unavailable: ['trips'],
-    }),
+  vi.mocked(apiFetch).mockImplementation(async (_profile, path) =>
+    path === '/api/v1/schedule/hr-today'
+      ? Response.json({
+          events: [{ id: 'leave', title: 'Отпуск', detail: 'До пятницы', service: 'absences' }],
+          unavailable: ['trips'],
+        })
+      : defaultAPIResponse(path),
   );
   await mount('/events');
   const leave = await waitForElement(() =>
@@ -383,6 +393,7 @@ it('shows history-loading errors and keeps the chat available for a new question
 });
 
 it('shows the first-day reminder and navigates to the onboarding plan', async () => {
+  backendMode.enabled = false;
   localStorage.setItem(demoSessionKey, 'olga');
   await mount('/home');
   await click(await button('Уведомления'));
@@ -397,21 +408,13 @@ it('shows the first-day reminder and navigates to the onboarding plan', async ()
   expect(container.querySelector('dialog[aria-label="Уведомления"]')).toBeNull();
 });
 
-it('records the midpoint survey and removes the reminder on the next visit', async () => {
+it('opens the midpoint survey from the chat', async () => {
+  backendMode.enabled = false;
   localStorage.setItem(demoSessionKey, 'sasha');
   await mount('/chat');
   await click(await button('Пройти опрос'));
-  const submit = await button('Отправить ответ');
-  expect(submit.disabled).toBe(true);
-  await click(await waitForElement(() => container.querySelector<HTMLInputElement>('input[value="Нужна помощь"]')));
-  await click(submit);
-  expect(container.textContent).toContain('Спасибо! Ответ записан в демо.');
-  expect(container.textContent).not.toContain('Пройти опрос');
-  await act(async () => root.unmount());
-  root = createRoot(container);
-  await mount('/chat');
-  await waitForElement(() => container.querySelector<HTMLElement>('[role="log"]'));
-  expect(container.textContent).not.toContain('Пройти опрос');
+  expect((await button('Далее')).disabled).toBe(true);
+  expect(container.querySelector('dialog')?.getAttribute('aria-label')).toBe(surveys.midpoint.title);
 });
 
 it('persists a confirmed demo request and leaves the tools page free of requests', async () => {
@@ -717,4 +720,147 @@ it('switches between the current and previous PaaS releases', async () => {
   });
   expect(container.querySelector('.tool-thread h3')?.textContent).toBe('1.8.3');
   expect(container.querySelector('.tool-thread')?.textContent).toContain('Предыдущий релиз окружения');
+});
+
+it.each(Object.entries(profiles).map(([id, profile]) => ({ id: id as ProfileId, ...profile })))(
+  'shows three outlined surveys for $name and opens the stage reminder',
+  async (profile) => {
+    backendMode.enabled = false;
+    localStorage.setItem(demoSessionKey, profile.id);
+    await mount('/onboarding');
+
+    const rows = await waitForElement(() => {
+      const cards = container.querySelectorAll('.task-row--survey');
+      return cards.length === 3 ? cards : null;
+    });
+    expect([...rows].map((row) => row.querySelector('strong')?.textContent)).toEqual([
+      surveys.first.title,
+      surveys.midpoint.title,
+      surveys.final.title,
+    ]);
+    expect([...rows].every((row) => !row.querySelector('[role="checkbox"]'))).toBe(true);
+
+    const bell = await button('Уведомления');
+    expect(bell.querySelector('span')).not.toBeNull();
+    await click(bell);
+    const reminder = await button('Пройти опрос');
+    await vi.waitFor(() => expect(bell.querySelector('span')).toBeNull());
+    await click(reminder);
+    expect(container.querySelector(`dialog[aria-label="${surveys[profile.stageId].title}"]`)).not.toBeNull();
+    for (const question of surveys[profile.stageId].questions) {
+      if (!('options' in question)) break;
+      await click(
+        await waitForElement(() =>
+          container.querySelector<HTMLInputElement>(`input[name="${question.id}"][value="1"]`),
+        ),
+      );
+      await click(await button('Далее'));
+    }
+    await click(await button('Отправить ответы'));
+    await waitForElement(() => container.querySelector('.toast--top-right'));
+    const saved = localStorage.getItem('ai-buddy.survey-answers.' + profile.id + '.' + profile.stageId);
+    expect(Object.keys(JSON.parse(saved ?? '{}'))).toEqual(
+      surveys[profile.stageId].questions.filter((question) => 'options' in question).map((question) => question.id),
+    );
+  },
+);
+
+it('keeps survey answers when going back or retrying and marks the task only after success', async () => {
+  localStorage.setItem(demoSessionKey, 'sasha');
+  let complete = false;
+  let attempts = 0;
+  let read = false;
+  vi.mocked(apiFetch).mockImplementation(async (_profile, path, options) => {
+    if (path === '/api/v1/onboarding/surveys') return Response.json(complete ? ['midpoint'] : []);
+    if (path === '/api/v1/notifications') {
+      return Response.json(
+        complete
+          ? []
+          : [
+              {
+                id: 'midpoint-reminder',
+                title: surveys.midpoint.title,
+                text: 'Поделись впечатлениями',
+                action_title: 'Пройти опрос',
+                action_url: '/onboarding?survey=midpoint',
+                read,
+              },
+            ],
+      );
+    }
+    if (path === '/api/v1/notifications/read') {
+      expect(options?.body).toBe('{"ids":["midpoint-reminder"]}');
+      read = true;
+      return new Response(null, { status: 204 });
+    }
+    if (path === '/api/v1/onboarding/surveys/midpoint') {
+      attempts += 1;
+      if (attempts === 1) throw new Error('offline');
+      expect(JSON.parse(String(options?.body))).toEqual({
+        answers: {
+          mentor: '2',
+          hr_bp: '1',
+          buddy: '1',
+          frequency: '1',
+          feedback: '1',
+          goals: '1',
+          comment: 'Комментарий',
+        },
+      });
+      complete = true;
+      return new Response(null, { status: 204 });
+    }
+    return defaultAPIResponse(path);
+  });
+
+  await mount('/onboarding');
+  const bell = await button('Уведомления');
+  await waitForElement(() => bell.querySelector('span'));
+  await click(bell);
+  await click(await button('Закрыть'));
+  await vi.waitFor(() => expect(bell.querySelector('span')).toBeNull());
+  await click(bell);
+  await click(await button('Пройти опрос'));
+  expect((await button('Далее')).disabled).toBe(true);
+
+  await click(await waitForElement(() => container.querySelector<HTMLInputElement>('input[name="mentor"][value="2"]')));
+  await click(await button('Далее'));
+  await click(await button('Назад'));
+  expect(container.querySelector<HTMLInputElement>('input[name="mentor"][value="2"]')?.checked).toBe(true);
+  await click(await button('Далее'));
+
+  for (const question of ['hr_bp', 'buddy', 'frequency', 'feedback', 'goals']) {
+    await click(
+      await waitForElement(() => container.querySelector<HTMLInputElement>(`input[name="${question}"][value="1"]`)),
+    );
+    await click(await button('Далее'));
+  }
+
+  const comment = await waitForElement(() => container.querySelector<HTMLTextAreaElement>('dialog textarea'));
+  await fill(comment, 'Комментарий');
+  await click(await button('Отправить ответы'));
+  await waitForElement(() => container.querySelector('dialog [role="alert"]'));
+  expect(comment.value).toBe('Комментарий');
+  expect(container.querySelector('.task-row--survey.task-row--done')).toBeNull();
+
+  await click(await button('Отправить ответы'));
+  const toast = await waitForElement(() => container.querySelector('.toast--top-right'));
+  expect(toast.textContent).toContain('Ответы получены, спасибо за прохождение!');
+  expect(container.querySelector('.task-row--survey.task-row--done')?.textContent).toContain(surveys.midpoint.title);
+  expect(container.querySelector('dialog')).toBeNull();
+  await click(
+    await waitForElement(() =>
+      container.querySelector<HTMLButtonElement>('.task-row--survey.task-row--done .task-link'),
+    ),
+  );
+  expect(container.textContent).toContain('Опрос уже заполнен.');
+
+  await act(async () => root.unmount());
+  client.clear();
+  root = createRoot(container);
+  await mount('/onboarding?survey=midpoint');
+  await waitForElement(() =>
+    [...container.querySelectorAll('dialog p')].find((p) => p.textContent === 'Опрос уже заполнен.'),
+  );
+  expect(attempts).toBe(2);
 });
