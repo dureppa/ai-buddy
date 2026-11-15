@@ -298,3 +298,16 @@ it('does not offer the same fragment again while its panel is open', async () =>
   expect(document.querySelector('.selection-assistant--trigger')).toBeNull();
   expect(mocks.ask).toHaveBeenCalledTimes(1);
 });
+
+it('scrolls to a new clarification response', async () => {
+  await open();
+  const body = document.querySelector<HTMLElement>('.selection-assistant__body')!;
+  Object.defineProperty(body, 'scrollHeight', { configurable: true, value: 1000 });
+  const input = document.querySelector<HTMLInputElement>('#selection-question')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Почему?');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await act(async () => input.closest('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+  expect(body.scrollTop).toBe(1000);
+});

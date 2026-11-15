@@ -33,6 +33,7 @@ function SelectionAssistantSession({ profileId, apiPrefix = '/api', enabled = ba
   const revision = useRef(0);
   const returnFocus = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const latestPanel = useRef(panel);
   latestPanel.current = panel;
@@ -126,6 +127,10 @@ function SelectionAssistantSession({ profileId, apiPrefix = '/api', enabled = ba
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['open'] });
     return () => observer.disconnect();
   }, [panel?.portal]);
+
+  useEffect(() => {
+    if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+  }, [panel?.entries, panel?.waiting]);
 
   async function send(text: string, current: Panel, retry = false) {
     request.current?.abort();
@@ -238,7 +243,7 @@ function SelectionAssistantSession({ profileId, apiPrefix = '/api', enabled = ba
                 <Icon name="close" size={19} />
               </button>
             </header>
-            <div className="selection-assistant__body">
+            <div className="selection-assistant__body" ref={bodyRef}>
               <div className="selection-assistant__context">
                 <small>
                   {panel.context.selection.resource?.label || panel.context.selection.title || 'Выделенный фрагмент'}

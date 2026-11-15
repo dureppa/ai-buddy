@@ -6,8 +6,8 @@
 
 - `just frontend-check`: Prettier, ESLint, TypeScript, тесты всех трёх workspaces
   и сборки Buddy, расширения и внешних сайтов — успешно.
-- `npm run test:coverage --workspace=@ai-buddy/web`: 185 passed, строки 89,47%.
-- `just python-check`: Ruff, mypy, 639 passed, строки 91,41%.
+- `npm run test:coverage --workspace=@ai-buddy/web`: 186 passed, строки 89,49%.
+- `just python-check`: Ruff, mypy, 639 passed, строки 91,42%.
 - Go 1.26.11: `go vet ./...`, `go test -coverprofile=coverage.out -covermode=atomic ./...`
   с отдельной временной PostgreSQL 17, миграциями и seed — успешно. Общий итог
   77,4% операторов; существующий общий порог Go >80% пока не закрыт.

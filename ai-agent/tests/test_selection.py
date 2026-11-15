@@ -149,6 +149,8 @@ def test_explicit_selection_reads(
             assert '"documents": []' not in str(messages)
             names = {item["function"]["name"] for item in tools}
             assert not names & {"prepare_service_action", "submit_access_request"}
+            if resource["kind"] == "task":
+                assert not names & {"get_task_context", "get_task_evidence"}
             assert "local-task" in str(messages) if resource["kind"] == "task" else True
             suffix = " [" + next(iter(trace.sources)) + "]" if trace.sources else ""
             return {
