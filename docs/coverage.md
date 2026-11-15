@@ -53,27 +53,29 @@ TEST_DATABASE_URL=postgres://$USER@127.0.0.1:5432/aibuddy_test?sslmode=disable \
 go tool cover -func=coverage.out
 ```
 
-Инструмент: `go test -covermode=atomic`, покрытие операторов. Версия Go — 1.26.11. Локальная база этого прогона — PostgreSQL 14.20. Compose использует PostgreSQL 17. Интеграционные тесты без `TEST_DATABASE_URL` пропускаются, и тогда итог заметно ниже.
+Инструмент: `go test -covermode=atomic`, покрытие операторов. Версия Go — 1.26.11. Прогон выполнен на отдельной PostgreSQL 17 в Docker Compose. Интеграционные тесты без `TEST_DATABASE_URL` пропускаются, и тогда итог заметно ниже.
 
 | | |
 | --- | --- |
-| Итог по `web/backend` | 76,3% операторов |
+| Итог по `web/backend` | 77,1% операторов |
 | `internal/store` | 82,2% |
 | `internal/serviceactions` | 84,0% |
-| `internal/ai` | 77,6% |
+| `internal/ai` | 77,8% |
 | `internal/httpapi` | 71,5% |
 | `internal/portal` | 74,2% |
-| `internal/worktools` | 75,0% |
+| `internal/worktools` | 85,6% |
 | `internal/buddy` | 67,5% |
 | `cmd/server` | 55,6% |
 | `accessapi` | 0% |
 
 Итог ниже 80%. Усреднять его с вебом или Python нельзя.
 
-На этом прогоне не прошёл `TestAIKnowledgeSearchNaturalQuestions`: поиск «Как оформить отпуск?» не вернул ожидаемую статью `timeoff`, а «Как проверить микрофон?» вернул `consents` вместо `equipment`. Покрытие `internal/store` посчитано по выполненным проверкам, включая эту неуспешную. Порог Go этим прогоном не закрыт.
+Все пакеты Go API прошли тесты, включая поиск базы знаний и роли инструментов.
+Шлюз `accessapi` проверяется запросами из Go-модуля портала, поэтому отдельный
+прогон покрытия `web/backend` учитывает его как 0%.
 
 ## Внешние сервисы
 
-`just service-go-check` запускает проверки пакетов рядом с исходниками.
+`just service-go-check` прошёл с PostgreSQL 17 и детектором гонок для девяти корпоративных модулей, Jira и общего модуля инструментов.
 `just external-check` проверяет запуск и HTTP-взаимодействие всех 24 API.
 Эти проверки выполняются в CI и не включаются в процент прикладного Go API Buddy.
