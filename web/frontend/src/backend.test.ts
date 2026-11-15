@@ -75,31 +75,29 @@ describe('live backend client', () => {
   });
 });
 
-it('uses Buddy API on external services and keeps explanation conversations separate', async () => {
-  const storage = new Map<string, string>([['ai-buddy.conversation.olga', 'main-conversation']]);
-  vi.stubGlobal('localStorage', { getItem: (key: string) => storage.get(key) ?? null, setItem: vi.fn() });
-  const fetch = vi
+it('sends checklist context alongside the question in the primary conversation', async () => {
+  const fetcher = vi
     .fn()
-    .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'buddy-token', profile_id: 'olga' })))
-    .mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          conversation_id: '22222222-2222-4222-8222-222222222222',
-          kind: 'answer',
-          text: 'Пояснение',
-          references: [],
-        }),
-      ),
+    .mockResolvedValueOnce(Response.json({ access_token: 'context-token', profile_id: 'olga' }))
+    .mockResolvedValueOnce(
+      Response.json({
+        conversation_id: '11111111-1111-4111-8111-111111111111',
+        kind: 'answer',
+        text: 'Ответ',
+        references: [],
+      }),
     );
-  vi.stubGlobal('fetch', fetch);
+  vi.stubGlobal('fetch', fetcher);
+  vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => {} });
   const api = await import('./backend');
-  const context = { url: 'https://service.example/', selection: { text: 'Фрагмент', title: 'Страница' } };
-  const controller = new AbortController();
-  await api.askSelectionBackend('olga', 'Что это?', context, undefined, controller.signal, '/buddy-api');
-  expect(fetch.mock.calls[0][0]).toBe('/buddy-api/v1/demo/sessions');
-  expect(fetch.mock.calls[1][0]).toBe('/buddy-api/v1/chat/messages');
-  expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ text: 'Что это?', page_context: context });
-  expect(fetch.mock.calls[1][1].headers.Authorization).toBe('Bearer buddy-token');
-  expect(fetch.mock.calls[1][1].signal).toBe(controller.signal);
-  expect(localStorage.setItem).not.toHaveBeenCalled();
+  const context = {
+    url: 'http://localhost/onboarding',
+    selection: {
+      title: 'Пункт',
+      text: 'Команда',
+      resource: { kind: 'task' as const, id: 'meet-team', label: 'Команда', description: 'Описание' },
+    },
+  };
+  await api.askBackend('olga', 'Объясни пункт', context);
+  expect(JSON.parse(fetcher.mock.calls[1][1].body)).toMatchObject({ text: 'Объясни пункт', page_context: context });
 });

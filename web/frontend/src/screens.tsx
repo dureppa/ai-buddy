@@ -1,4 +1,3 @@
-import { taskSelectionResource } from './task-selection';
 import { HrDayEvents } from './HrDayEvents';
 import type { HrToday } from './hr-schedule';
 import { eventDay, eventMonth, eventTime, upcomingEvents, type ScheduleEvent } from './schedule';
@@ -28,30 +27,32 @@ type ChecklistProps = {
   onOpen: OpenDetail;
   onToggle: (id: string) => void;
   savingTask?: string;
+  onAsk?: (task: Task) => void;
+  asking?: boolean;
+  onOpenBuddy: () => void;
 };
 
 function TaskRow({
-  profileId,
   task,
   checked,
   saving,
   next,
   onOpen,
   onToggle,
+  onAsk,
+  asking,
 }: {
-  profileId: ProfileId;
   task: Task;
   checked: boolean;
   saving: boolean;
   next?: boolean;
   onOpen: OpenDetail;
   onToggle: (id: string) => void;
+  onAsk?: (task: Task) => void;
+  asking?: boolean;
 }) {
   return (
-    <li
-      className={'task-row' + (checked ? ' task-row--done' : '')}
-      data-agent-resource={JSON.stringify(taskSelectionResource(profileId, task))}
-    >
+    <li className={'task-row' + (checked ? ' task-row--done' : '')}>
       <button
         type="button"
         role="checkbox"
@@ -76,6 +77,11 @@ function TaskRow({
         </span>
         <Icon name="chevron" size={16} />
       </button>
+      {onAsk && (
+        <button type="button" className="button button--white task-ask" disabled={asking} onClick={() => onAsk(task)}>
+          Разобрать пункт
+        </button>
+      )}
     </li>
   );
 }
@@ -138,7 +144,6 @@ function SectionTitle({ title, children }: { title: string; children?: ReactNode
 }
 
 const quickActions = [
-  { title: 'Спросить Buddy', detail: 'Подскажу, с чего начать', icon: 'message', to: '/chat', tone: 'lilac' },
   { title: 'Мой план адаптации', detail: 'Этапы, задачи и прогресс', icon: 'map', to: '/onboarding', tone: 'mint' },
   { title: 'Познакомиться с командой', detail: 'Твои коллеги и наставник', icon: 'users', to: '/team', tone: 'blue' },
   { title: 'Рабочие инструменты', detail: 'Сервисы команды', icon: 'key', to: '/tools', tone: 'pink' },
@@ -150,6 +155,9 @@ export function Dashboard({
   onOpen,
   onToggle,
   savingTask,
+  onAsk,
+  asking,
+  onOpenBuddy,
   events,
   hrEvents,
   hrError,
@@ -219,13 +227,14 @@ export function Dashboard({
           <ul className="task-list">
             {dashboardTasks.map((task) => (
               <TaskRow
-                profileId={profileId}
                 key={task.id}
                 task={task}
                 checked={workspace.completed.includes(task.id)}
                 saving={savingTask === task.id}
                 onOpen={onOpen}
                 onToggle={onToggle}
+                onAsk={onAsk}
+                asking={asking}
               />
             ))}
           </ul>
@@ -268,6 +277,14 @@ export function Dashboard({
       <section className="quick-section">
         <SectionTitle title="Быстрые действия" />
         <div className="quick-grid">
+          <button type="button" className="quick-card tone-lilac" onClick={onOpenBuddy}>
+            <span className="quick-card__icons">
+              <Icon name="message" size={23} />
+              <Icon name="diagonal" size={17} />
+            </span>
+            <strong>Спросить Buddy</strong>
+            <span>Подскажу, с чего начать</span>
+          </button>
           {quickActions.map((action) => (
             <Link key={action.to} to={action.to} className={'quick-card tone-' + action.tone}>
               <span className="quick-card__icons">
@@ -289,7 +306,16 @@ const adaptationTabs = [
   { id: 'materials', label: 'Материалы', icon: 'book' },
 ] as const;
 
-export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask }: ChecklistProps) {
+export function Adaptation({
+  profileId,
+  workspace,
+  onOpen,
+  onToggle,
+  savingTask,
+  onAsk,
+  asking,
+  onOpenBuddy,
+}: ChecklistProps) {
   const tasks = checklistFor(localStorage, profileId).map((task) => ({
     ...task,
     summary: task.materialIds.length ? task.summary + ' · Материалы: ' + task.materialIds.length : task.summary,
@@ -410,7 +436,6 @@ export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask 
                       <ul className="task-list">
                         {stageTasks.map((task) => (
                           <TaskRow
-                            profileId={profileId}
                             key={task.id}
                             task={task}
                             checked={workspace.completed.includes(task.id)}
@@ -418,6 +443,8 @@ export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask 
                             saving={savingTask === task.id}
                             onOpen={onOpen}
                             onToggle={onToggle}
+                            onAsk={onAsk}
+                            asking={asking}
                           />
                         ))}
                       </ul>
@@ -433,9 +460,9 @@ export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask 
                 <p>
                   {next ? 'Если шаг непонятен, я помогу разобраться.' : 'Все задачи выполнены. Ты отлично справился!'}
                 </p>
-                <Link to="/chat" className="text-link">
-                  Открыть чат <Icon name="arrow" size={17} />
-                </Link>
+                <button type="button" className="text-link" onClick={onOpenBuddy}>
+                  Спросить Buddy <Icon name="arrow" size={17} />
+                </button>
               </div>
             </aside>
           </div>

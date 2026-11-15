@@ -62,15 +62,7 @@ export function WorkToolPage({ profileId }: { profileId: ProfileId }) {
           </aside>
           <div className="work-tool__main">
             {selected && Workspace ? (
-              <article
-                id={selected.id}
-                data-agent-resource={JSON.stringify({
-                  kind: 'work_tool',
-                  service,
-                  id: selected.id,
-                  label: [...selected.title].slice(0, 200).join(''),
-                })}
-              >
+              <article id={selected.id}>
                 <div className="work-tool__path">
                   {page.area} {selected.fields.Задача && ' / ' + selected.fields.Задача}
                 </div>
