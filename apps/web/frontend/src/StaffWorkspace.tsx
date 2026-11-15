@@ -22,7 +22,7 @@ import {
   type StaffMaterial,
 } from './staff-data';
 import { InternChecklist } from './InternChecklist';
-import { Avatar, Icon, Modal } from './ui';
+import { Avatar, Icon, Modal, Toast } from './ui';
 import './staff.css';
 
 function fileSource(file: File): Promise<StaffMaterial['source']> {
@@ -299,7 +299,6 @@ function StaffMaterials({
   ownMaterials,
   visibleMaterials,
   openGroup,
-  message,
   onOpenGroup,
   onCreate,
   onEdit,
@@ -309,7 +308,6 @@ function StaffMaterials({
   ownMaterials: StaffMaterial[];
   visibleMaterials: ShownMaterial[];
   openGroup?: string;
-  message: string;
   onOpenGroup: (group?: string) => void;
   onCreate: () => void;
   onEdit: (material: StaffMaterial) => void;
@@ -319,11 +317,6 @@ function StaffMaterials({
   const active = groups.find((group) => group.name === openGroup);
   return (
     <section className="staff-publications" aria-label="Материалы для стажёров">
-      {message && (
-        <p className="staff-message" role="status">
-          {message}
-        </p>
-      )}
       {active ? (
         <>
           <button type="button" className="text-link staff-back" onClick={() => onOpenGroup(undefined)}>
@@ -419,7 +412,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
   const [materials, setMaterials] = useState(() => readMaterials(localStorage));
   const [editor, setEditor] = useState<'new' | StaffMaterial>();
   const [pendingRemoval, setPendingRemoval] = useState<StaffMaterial>();
-  const [message, setMessage] = useState('');
+  const [notice, setNotice] = useState<{ message: string }>();
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -431,6 +424,12 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
     window.addEventListener('storage', refresh);
     return () => window.removeEventListener('storage', refresh);
   }, [id]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(undefined), 3500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   const current = interns.find((intern) => intern.id === selected);
   const ownMaterials = materials.filter(
@@ -449,7 +448,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
       removeMaterial(localStorage, id, pendingRemoval.id);
       setMaterials(readMaterials(localStorage));
       setPendingRemoval(undefined);
-      setMessage('Материал удалён.');
+      setNotice({ message: 'Материал удалён.' });
       setError('');
     } catch {
       setError('Не удалось удалить материал. Обнови страницу и попробуй ещё раз.');
@@ -528,14 +527,17 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
               onAdd={(input) => {
                 addChecklistItem(localStorage, id, input);
                 setInterns(internOverview(localStorage, id));
+                setNotice({ message: 'Пункт добавлен в чек-лист.' });
               }}
               onSaveMaterials={(taskId, materialIds) => {
                 setTaskMaterials(localStorage, id, taskId, materialIds);
                 setInterns(internOverview(localStorage, id));
+                setNotice({ message: 'Материалы пункта сохранены.' });
               }}
               onRemove={(taskId) => {
                 removeChecklistItem(localStorage, id, taskId);
                 setInterns(internOverview(localStorage, id));
+                setNotice({ message: 'Пункт удалён.' });
               }}
             />
           ) : (
@@ -576,7 +578,6 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
             ownMaterials={ownMaterials}
             visibleMaterials={visibleMaterials}
             openGroup={openGroup}
-            message={message}
             onOpenGroup={setOpenGroup}
             onCreate={() => setEditor('new')}
             onEdit={setEditor}
@@ -602,7 +603,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
               setEditor(undefined);
               setOpenGroup(group);
               setSection('materials');
-              setMessage(editor === 'new' ? 'Материал опубликован.' : 'Изменения сохранены.');
+              setNotice({ message: editor === 'new' ? 'Материал опубликован.' : 'Изменения сохранены.' });
             }}
           />
         </Modal>
@@ -627,6 +628,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
           </div>
         </Modal>
       )}
+      {notice && <Toast message={notice.message} placement="top-right" />}
     </div>
   );
 }

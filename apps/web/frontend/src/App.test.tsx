@@ -247,12 +247,12 @@ it('shows the task a mentor adds in the intern’s workspace after signing out',
       ),
     ),
   );
-  const material = await waitForElement(() =>
-    [...container.querySelectorAll('label')]
-      .find((label) => label.textContent?.includes('Учебный отчёт'))
-      ?.querySelector<HTMLInputElement>('input'),
+  await click(await button('Добавить материалы'));
+  const search = await waitForElement(() =>
+    container.querySelector<HTMLInputElement>('dialog[open] input[aria-label="Поиск материалов"]'),
   );
-  await click(material);
+  await fill(search, 'Учебный отчёт');
+  await click(await button('Добавить Учебный отчёт'));
   await click(await button('Сохранить материалы'));
   expect(container.textContent).toContain('Материалы пункта сохранены.');
 
