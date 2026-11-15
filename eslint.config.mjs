@@ -12,9 +12,7 @@ export default tseslint.config(
     files: [
       '{web,extension,ops/service-sites}/frontend/**/*.{ts,tsx}',
       'corporate-services/**/frontend/**/*.{ts,tsx}',
-      'tools/jira/frontend/**/*.{ts,tsx}',
-      'corporate-services/access/frontend/**/*.{ts,tsx}',
-      'tools/confluence/frontend/**/*.{ts,tsx}',
+      'tools/*/frontend/**/*.{ts,tsx}',
     ],
     languageOptions: {
       parserOptions: {

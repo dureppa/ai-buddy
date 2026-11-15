@@ -36,3 +36,5 @@ docker compose --profile hr --profile jira down
 ```
 
 Публикация на сервере с паролем nginx описана в [server-deployment](server-deployment.md). Jira в этом же запуске открывается на http://127.0.0.1:5189/, портал доступов — на 5190, Confluence — на 5191.
+
+`just external-check` запускает 24 сервиса на временном стенде и проверяет демовход, HTTP и доступ к базам при выключенном Buddy. Затем проверяет HTTP-вызовы из Buddy.

@@ -12,6 +12,12 @@ GRANT CONNECT ON DATABASE buddy_access TO buddy_access;
 SQL
 
 psql -d buddy_access -v ON_ERROR_STOP=1 -f /data/schema.sql
+psql -d buddy_access -v ON_ERROR_STOP=1 <<'SQL'
+GRANT SELECT ON teams, profiles TO buddy_access;
+GRANT SELECT, INSERT ON portal_resources TO buddy_access;
+GRANT SELECT, INSERT, UPDATE ON portal_access_requests TO buddy_access;
+GRANT USAGE ON SEQUENCE portal_access_requests_number_seq TO buddy_access;
+SQL
 ready=$(psql -Atc "SELECT to_regclass('public.portal_access_requests') IS NOT NULL")
 done=$(psql -d buddy_access -Atc "SELECT EXISTS(SELECT 1 FROM access_migrations WHERE name='legacy-import')")
 if [ "$ready" != t ] || [ "$done" = t ]; then
@@ -41,6 +47,9 @@ INSERT INTO teams SELECT * FROM legacy_teams ON CONFLICT(id) DO UPDATE SET name=
 INSERT INTO profiles SELECT * FROM legacy_profiles ON CONFLICT(id) DO UPDATE
   SET display_name=excluded.display_name,team_id=excluded.team_id,job_role=excluded.job_role;
 INSERT INTO portal_resources SELECT * FROM legacy_resources ON CONFLICT DO NOTHING;
+UPDATE portal_access_requests r
+SET status=x.status, decision_by=x.decision_by, decision_note=x.decision_note, decided_at=x.decided_at
+FROM legacy_requests x WHERE r.id=x.id;
 INSERT INTO portal_access_requests OVERRIDING SYSTEM VALUE SELECT * FROM legacy_requests ON CONFLICT(id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('portal_access_requests','number'),
   COALESCE(MAX(number), 1), MAX(number) IS NOT NULL) FROM portal_access_requests;
