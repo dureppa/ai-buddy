@@ -19,7 +19,10 @@ DateString = Annotated[str, Field(pattern=r"^\d{4}-\d{2}-\d{2}$")]
 class ServiceContextArguments(ClosedModel):
     service: ServiceName
     board_id: Identifier | None = None
-    issue_id: UUIDString | None = None
+    issue_id: UUIDString | None = Field(
+        default=None,
+        description="UUID из поля id задачи. DEL-1 — ключ: сначала читай service=jira без issue_id.",
+    )
 
     @model_validator(mode="after")
     def resource_scope(self) -> "ServiceContextArguments":
@@ -205,7 +208,9 @@ class JiraChanges(ClosedModel):
 
 class UpdateJiraIssue(ClosedModel):
     operation: Literal["update_jira_issue"]
-    issue_id: UUIDString
+    issue_id: UUIDString = Field(
+        description="UUID из поля id доступной задачи; не человекочитаемый ключ DEL-1."
+    )
     version: Annotated[int, Field(ge=1)]
     changes: JiraChanges
 
