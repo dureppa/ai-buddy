@@ -43,8 +43,8 @@ func TestWorkToolBridgeGrantsAndActor(t *testing.T) {
 			response := call(mux, "GET", "/internal/v1/ai/work-tools", ctx.Token, "")
 			require.Equal(t, 200, response.Code)
 			require.Contains(t, response.Body.String(), `"id":"`+own+`"`)
-			if profile != "olga" {
-				require.NotContains(t, response.Body.String(), `"id":"redash"`)
+			for _, tool := range []string{"mattermost", "redash", "trino", "trisigma", "bitbucket", "paas", "grafana", "tms", "postman", "test-stand", "figma", "design-system", "design-review"} {
+				require.Contains(t, response.Body.String(), `"id":"`+tool+`"`)
 			}
 			response = call(mux, "POST", "/internal/v1/ai/work-tools/context", ctx.Token, `{"service":"`+own+`","profile_id":"other"}`)
 			require.Equal(t, 400, response.Code)
