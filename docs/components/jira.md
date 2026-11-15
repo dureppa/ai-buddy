@@ -22,13 +22,13 @@ AI Buddy: http://localhost:5173, Jira: http://localhost:5189. Карточка J
 База `jira` хранится в отдельном томе `jira-postgres`. `COMPOSE_JIRA_DB_PASSWORD`
 и `COMPOSE_JIRA_SESSION_SECRET` задаются в корневом `.env`. Последний минимум
 32 символа, отличается от SESSION_SECRET AI Buddy. База не публикует порт наружу.
-Миграции применяются через существующий docker/migrate.sh под advisory lock;
+Миграции применяются через существующий ops/docker/migrate.sh под advisory lock;
 сид выполняется один раз и не перезаписывает правки. Смена пароля существующего
 PostgreSQL-тома требует ALTER ROLE, как для обычного PostgreSQL.
 
-Локально: применить `services/jira/migrations/*.up.sql` и `seeds/demo.sql` к
+Локально: применить `tools/jira/migrations/*.up.sql` и `seeds/demo.sql` к
 отдельной БД через psql; экспортировать переменные из `.env.example` сервиса;
-из `services/jira` запустить `go run .`. Фронтенд из корня:
+из `tools/jira` запустить `go run .`. Фронтенд из корня:
 `npm run dev --workspace=@ai-buddy/corporate-services -- jira`.
 Vite проксирует `/jira-api` в API на 8189; nginx делает то же в Compose.
 Адрес карточки задаётся `VITE_JIRA_URL`.
@@ -48,7 +48,7 @@ erDiagram
 
 ## Файлы и данные
 
-- `services/jira/main.go`: HTTP, JWT, валидация, PostgreSQL-запросы и транзакции.
+- `tools/jira/main.go`: HTTP, JWT, валидация, PostgreSQL-запросы и транзакции.
 - `migrations/001.up.sql`: пользователи, пространства, участие в пространствах,
   доски, участие в досках, задачи; `001.down.sql` — обратная миграция.
 - `seeds/demo.sql`: четыре команды, по три доски (одна закрытая для наставников).
@@ -82,7 +82,7 @@ erDiagram
 на 5189 перед ready. На сервере должны быть доступны порт 5189 и обновлённый
 доверенный worker: он установлен root-owned вне release и не обновляется
 произвольным исходным кодом PR. Администратор однократно устанавливает новую
-версию через scripts/deploy/install.sh. После этого слияния запускают Jira
+версию через ops/deploy/install.sh. После этого слияния запускают Jira
 обычным CD. Без обновления установленного worker автоматический запуск нового
 API не гарантируется. Серверный overlay использует уже заданные DB/session
 секреты как fallback; рекомендуется задать отдельные COMPOSE_JIRA_* до первого

@@ -1,11 +1,11 @@
 # Проверка Jira, 14.11.2026
 
 Локально использованы PostgreSQL 17.12, Go 1.27.4 и Node 24.22.3; CI использует
-закреплённые в репозитории версии (.nvmrc и services/backend-go/go.mod).
+закреплённые в репозитории версии (.nvmrc и web/backend/go.mod).
 Новые runtime-зависимости не добавлены: pgx/JWT/React/Zod уже использовались.
 
 - `go vet ./...` и `JIRA_TEST_DATABASE_URL=… go test -race -coverprofile=… ./...`
-  в services/jira: успешно, покрытие 83,1% операторов. Тесты разворачивают схему
+  в tools/jira: успешно, покрытие 83,1% операторов. Тесты разворачивают схему
   в отдельной тестовой PostgreSQL и удаляют её после прогона.
 - Frontend часть `just check`: Prettier, ESLint, tsc всех workspace, 65 Vitest
   тестов, сборки веба, расширения и всех девяти сервисов — успешно.

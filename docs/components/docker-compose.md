@@ -8,7 +8,7 @@ Python, Go, nginx и PostgreSQL.
 
 В корневом `.env` укажите DEEPSEEK_API_KEY, DEEPSEEK_MODEL=deepseek-flash и
 DEEPSEEK_BASE_URL=https://api.deepseek.com; пример — `.env.example`. Файл
-`services/ai-python/.env` сам по себе не подставляет значения в Compose.
+`ai-agent/.env` сам по себе не подставляет значения в Compose.
 Не публикуйте вывод `docker compose config` с реальным ключом.
 
 ```bash
@@ -33,7 +33,7 @@ Python и PostgreSQL не публикуют порты на хосте. Сек�
 ```bash
 docker compose ps
 curl -fsS http://127.0.0.1:5173/
-sh docker/check-agent.sh
+sh ops/docker/check-agent.sh
 ```
 
 Последняя команда делает платный запрос через Go→Flask→DeepSeek→MCP→Go на

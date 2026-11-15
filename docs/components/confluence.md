@@ -35,9 +35,9 @@ API Go 8080. Общая сборка corporate-services создаёт dist/conf
 профиль hr публикует сайт в hr-web, отдельного контейнера/БД нет. Нужен Go с
 миграцией 09, DEMO_MODE и серверными сессиями. Выход Buddy закрывает сервис.
 
-- `services/confluence/frontend/api.ts`: HTTP/Zod, типы и разбор текстовых секций.
+- `tools/confluence/frontend/api.ts`: HTTP/Zod, типы и разбор текстовых секций.
 - `page.tsx/style.css`: дерево, поиск, статья, ошибки и deep link ?page=ID.
-- `services/backend-go/internal/portal/knowledge.go`: ACL, чтение и поиск.
+- `web/backend/internal/portal/knowledge.go`: ACL, чтение и поиск.
 - `pages.json`: начальные учебные материалы, связи и версии.
 
 Vitest проверяет HTTP и экранирование HTML; Go PostgreSQL-тесты — разделение

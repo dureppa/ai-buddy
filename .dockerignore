@@ -11,8 +11,8 @@
 **/.pytest_cache
 **/.mypy_cache
 **/.ruff_cache
-services/ai-python/evals
-services/ai-python/experiments
+ai-agent/evals
+ai-agent/experiments
 # Server-only credentials, generated auth files and database backups
 .deploy
 backups

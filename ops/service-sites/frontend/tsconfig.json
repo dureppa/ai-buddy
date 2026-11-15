@@ -1,0 +1,14 @@
+{
+  "extends": "../../../web/frontend/tsconfig.json",
+  "include": [
+    "src",
+    "../../../corporate-services/*/frontend/**/*.ts",
+    "../../../corporate-services/*/frontend/**/*.tsx",
+    "../../../tools/jira/frontend/**/*.ts",
+    "../../../tools/jira/frontend/**/*.tsx",
+    "../../../corporate-services/access/frontend/**/*.ts",
+    "../../../corporate-services/access/frontend/**/*.tsx",
+    "../../../tools/confluence/frontend/**/*.ts",
+    "../../../tools/confluence/frontend/**/*.tsx"
+  ]
+}

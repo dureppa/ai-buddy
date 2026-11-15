@@ -21,7 +21,7 @@ POST `/internal/v1/assessments`, `Content-Type: application/json`, `Authorizatio
 AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-service-token uv run --locked flask --app ai_buddy:create_app run --host 127.0.0.1 --port 8001
 ```
 
-Команда из `services/ai-python`; локальная Ollama должна работать отдельно. MCP_URL для assessment не нужен. GET `/health/ready/assessments` возвращает 200/503 с `{"ready": true/false}` по локальным настройкам, без сети. Это не проверка качества или доступности модели. Старый `/health/ready` относится к чату и требует MCP_URL.
+Команда из `ai-agent`; локальная Ollama должна работать отдельно. MCP_URL для assessment не нужен. GET `/health/ready/assessments` возвращает 200/503 с `{"ready": true/false}` по локальным настройкам, без сети. Это не проверка качества или доступности модели. Старый `/health/ready` относится к чату и требует MCP_URL.
 
 ## Входной snapshot
 
@@ -192,4 +192,4 @@ Python не хранит БД, не обеспечивает идемпотен�
 
 ## Проверка качества
 
-[Dataset и правила оценки](../../services/ai-python/evals/README.md), [результаты development](../../services/ai-python/experiments/assessment-quality.md), [границы OpenSpec](../../openspec/changes/implement-python-agent/assessment-scope.md). Структурная корректность, покрытие тестами и смысловая точность — разные показатели. Для включения автоматического оценивания нужно выбрать модель, пройти размеченные примеры и ручную приёмку. [Общий development](../../services/ai-python/evals/reports/README.md) не заменяет такую приёмку.
+[Dataset и правила оценки](../../ai-agent/evals/README.md), [результаты development](../../ai-agent/experiments/assessment-quality.md), [границы OpenSpec](../../openspec/changes/implement-python-agent/assessment-scope.md). Структурная корректность, покрытие тестами и смысловая точность — разные показатели. Для включения автоматического оценивания нужно выбрать модель, пройти размеченные примеры и ручную приёмку. [Общий development](../../ai-agent/evals/reports/README.md) не заменяет такую приёмку.

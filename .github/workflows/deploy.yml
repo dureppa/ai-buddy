@@ -39,7 +39,7 @@ jobs:
         run: |
           set -euo pipefail
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN/attempts/$CI_ATTEMPT/jobs?per_page=100" > "$RUNNER_TEMP/ci-jobs.json"
-          python3 scripts/deploy/check_ci.py "$RUNNER_TEMP/ci-jobs.json"
+          python3 ops/deploy/check_ci.py "$RUNNER_TEMP/ci-jobs.json"
           latest=$(git ls-remote origin refs/heads/main | cut -f1)
           if [ "$latest" != "$DEPLOY_SHA" ]; then
             echo "Current main has advanced; this deployment is skipped."
@@ -55,4 +55,4 @@ jobs:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: bash scripts/deploy/send.sh
+        run: bash ops/deploy/send.sh

@@ -11,7 +11,7 @@ x-python: &python
   image: ai-buddy-python:local
   build:
     context: .
-    dockerfile: docker/Dockerfile.python
+    dockerfile: ops/docker/Dockerfile.python
 
 x-hr: &hr
   profiles: [hr]
@@ -56,15 +56,15 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./docker/migrate.sh:/migrate.sh:ro
-      - ./services/backend-go/migrations:/migrations:ro
-      - ./services/backend-go/seeds:/seeds:ro
+      - ./ops/docker/migrate.sh:/migrate.sh:ro
+      - ./web/backend/migrations:/migrations:ro
+      - ./web/backend/seeds:/seeds:ro
     entrypoint: ["sh", "/migrate.sh"]
 
   go:
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
     environment:
       <<: *database-env
       DEMO_MODE: "true"
@@ -144,7 +144,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: docker/Dockerfile.web
+      dockerfile: ops/docker/Dockerfile.web
       target: web
       args:
         PUBLIC_HR_ORIGIN: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}
@@ -163,7 +163,7 @@ services:
     profiles: [hr]
     build:
       context: .
-      dockerfile: docker/Dockerfile.web
+      dockerfile: ops/docker/Dockerfile.web
       target: hr-web
       args:
         PUBLIC_WEB_ORIGIN: ${PUBLIC_WEB_ORIGIN:-http://127.0.0.1:${AI_BUDDY_WEB_PORT:-5173}}
@@ -180,9 +180,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/absences
+        MODULE: corporate-services/absences
         ENTRY: .
     environment:
       <<: *hr-env
@@ -198,9 +198,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/trips
+        MODULE: corporate-services/trips
         ENTRY: .
     environment:
       <<: *hr-env
@@ -216,9 +216,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/hiring
+        MODULE: corporate-services/hiring
         ENTRY: .
     environment:
       <<: *hr-env
@@ -234,9 +234,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/offboarding
+        MODULE: corporate-services/offboarding
         ENTRY: .
     environment:
       <<: *hr-env
@@ -252,9 +252,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/consents
+        MODULE: corporate-services/consents
         ENTRY: .
     environment:
       <<: *hr-env
@@ -270,9 +270,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/benefits
+        MODULE: corporate-services/benefits
         ENTRY: .
     environment:
       <<: *hr-env
@@ -288,9 +288,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/documents
+        MODULE: corporate-services/documents
         ENTRY: .
     environment:
       <<: *hr-env
@@ -306,9 +306,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/events
+        MODULE: corporate-services/events
         ENTRY: .
     environment:
       <<: *hr-env
@@ -348,18 +348,18 @@ services:
       jira-db:
         condition: service_healthy
     volumes:
-      - ./docker/migrate.sh:/migrate.sh:ro
-      - ./services/jira/migrations:/migrations:ro
-      - ./services/jira/seeds:/seeds:ro
+      - ./ops/docker/migrate.sh:/migrate.sh:ro
+      - ./tools/jira/migrations:/migrations:ro
+      - ./tools/jira/seeds:/seeds:ro
     entrypoint: ['sh', '/migrate.sh']
 
   jira:
     profiles: [jira]
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/jira
+        MODULE: tools/jira
         ENTRY: .
     environment:
       PGHOST: jira-db

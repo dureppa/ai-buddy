@@ -10,11 +10,11 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     files: [
-      'apps/**/frontend/**/*.{ts,tsx}',
-      'services/hr/**/frontend/**/*.{ts,tsx}',
-      'services/jira/frontend/**/*.{ts,tsx}',
-      'services/access/frontend/**/*.{ts,tsx}',
-      'services/confluence/frontend/**/*.{ts,tsx}',
+      '{web,extension,ops/service-sites}/frontend/**/*.{ts,tsx}',
+      'corporate-services/**/frontend/**/*.{ts,tsx}',
+      'tools/jira/frontend/**/*.{ts,tsx}',
+      'corporate-services/access/frontend/**/*.{ts,tsx}',
+      'tools/confluence/frontend/**/*.{ts,tsx}',
     ],
     languageOptions: {
       parserOptions: {

@@ -22,7 +22,7 @@ HR-сервисов, общая модель этапов и полная UI/e2e
 | Python HTTP-вход для Go | Работает: auth, закрытый контракт, request/conversation IDs, история, ready/live, ограничения. |
 | LLM-агент | Прямой цикл подключён к Flask через явную конфигурацию Ollama. Локальная Qwen3 4B проверена; финальная production LLM ещё не выбрана. |
 | Инструкции и команда | MCP-клиент/сервер поддерживают search_knowledge/get_team_context. Python Go HTTP-адаптер с resolve проверен на HTTP-моках через настоящий SDK и Flask. Источники из живого Go ещё не подключены. |
-| Надёжность и качество | Ограничения LLM/MCP, типизированные ошибки, таймауты, отсутствие автоматических повторов, изоляция ходов, проверка цитат и эвристический фильтр инструкций. Проверки assessment и [черновой эталонный набор](../../../services/ai-python/evals/README.md) добавлены отдельно от оценки чат-агента; [live-результат оценщика](../../../services/ai-python/experiments/assessment-quality.md) пока неудовлетворителен. Точные code coverage и test count записываются в PR по текущему запуску, не подменяют смысловую точность. |
+| Надёжность и качество | Ограничения LLM/MCP, типизированные ошибки, таймауты, отсутствие автоматических повторов, изоляция ходов, проверка цитат и эвристический фильтр инструкций. Проверки assessment и [черновой эталонный набор](../../../ai-agent/evals/README.md) добавлены отдельно от оценки чат-агента; [live-результат оценщика](../../../ai-agent/experiments/assessment-quality.md) пока неудовлетворителен. Точные code coverage и test count записываются в PR по текущему запуску, не подменяют смысловую точность. |
 | Чек-лист и данные Go | В текущем коде есть PostgreSQL-схема, сиды, HTTP API и идемпотентные отметки прогресса. Это не подтверждённая здесь работа БД и не переход, одобренный наставником. |
 | Старый сценарий доступа | В Go есть черновики/заявки и mock корпоративного действия по legacy SDD 001. Это не реализация новых шести HR-сервисов. |
 
@@ -41,8 +41,8 @@ HR-сервисов, общая модель этапов и полная UI/e2e
 
 Сначала подключить Go chat → Python и два Go HTTP backend read-tools. Затем согласовать progress/evidence/assessment и один HR-мок для завершённого шага чек-листа. Маршрут приёмки: запрос стажёра → инструкция/черновик → явное действие пользователя → результат мока сохранён Go → проверка знаний агентом → одобрение наставника → переход Go. Остальные HR-темы можно добавить как справочные инструменты после этого среза.
 
-[Контракт Flask runner](flask-runner-scope.md), [Python: запуск и ограничения](../../../docs/components/ai-python.md), [Go-компонент](../../../docs/components/backend-go.md), [сохранённый smoke](../../../services/ai-python/experiments/flask-smoke.json).
+[Контракт Flask runner](flask-runner-scope.md), [Python: запуск и ограничения](../../../docs/components/ai-python.md), [Go-компонент](../../../docs/components/backend-go.md), [сохранённый smoke](../../../ai-agent/experiments/flask-smoke.json).
 
-Подготовлен [общий agent-v1 20/10](../../../services/ai-python/evals/agent-v1/README.md): разметка требует review, live не запускался. 26 контрактно доступных и 4 blocked-кейса не являются числом пройденных агентом сценариев. Исследование и следующие меры — [quality-control](../../../docs/ai/quality-control.md).
+Подготовлен [общий agent-v1 20/10](../../../ai-agent/evals/agent-v1/README.md): разметка требует review, live не запускался. 26 контрактно доступных и 4 blocked-кейса не являются числом пройденных агентом сценариев. Исследование и следующие меры — [quality-control](../../../docs/ai/quality-control.md).
 
-Новый срез: локальный Python MCP и общий development harness реализованы. [Финальные результаты](../../../services/ai-python/evals/reports/README.md): 18 executed + 2 blocked, 14 structural / 11 assisted-review pass; human approval и Go/UI e2e не выполнены.
+Новый срез: локальный Python MCP и общий development harness реализованы. [Финальные результаты](../../../ai-agent/evals/reports/README.md): 18 executed + 2 blocked, 14 structural / 11 assisted-review pass; human approval и Go/UI e2e не выполнены.
