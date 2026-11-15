@@ -1,4 +1,1330 @@
 {
+  "get_service_context": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {
+        "service": {
+          "enum": [
+            "hiring",
+            "offboarding",
+            "benefits",
+            "jira"
+          ],
+          "title": "Service",
+          "type": "string"
+        },
+        "board_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Board Id"
+        },
+        "issue_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Issue Id"
+        }
+      },
+      "required": [
+        "service"
+      ],
+      "title": "ServiceContextArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "Benefit": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            },
+            "amount": {
+              "minimum": 0,
+              "title": "Amount",
+              "type": "integer"
+            },
+            "available": {
+              "title": "Available",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "description",
+            "amount",
+            "available"
+          ],
+          "title": "Benefit",
+          "type": "object"
+        },
+        "BenefitRequest": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "benefit": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Benefit",
+              "type": "string"
+            },
+            "amount": {
+              "minimum": 0,
+              "title": "Amount",
+              "type": "integer"
+            },
+            "status": {
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "benefit",
+            "amount",
+            "status"
+          ],
+          "title": "BenefitRequest",
+          "type": "object"
+        },
+        "BenefitsContext": {
+          "additionalProperties": false,
+          "properties": {
+            "service": {
+              "const": "benefits",
+              "title": "Service",
+              "type": "string"
+            },
+            "benefit_budget": {
+              "minimum": 0,
+              "title": "Benefit Budget",
+              "type": "integer"
+            },
+            "benefit_left": {
+              "title": "Benefit Left",
+              "type": "integer"
+            },
+            "options": {
+              "items": {
+                "$ref": "#/$defs/Benefit"
+              },
+              "maxItems": 50,
+              "title": "Options",
+              "type": "array"
+            },
+            "requests": {
+              "items": {
+                "$ref": "#/$defs/BenefitRequest"
+              },
+              "maxItems": 30,
+              "title": "Requests",
+              "type": "array"
+            },
+            "has_more": {
+              "title": "Has More",
+              "type": "boolean"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "service",
+            "benefit_budget",
+            "benefit_left",
+            "options",
+            "requests",
+            "has_more",
+            "references"
+          ],
+          "title": "BenefitsContext",
+          "type": "object"
+        },
+        "ExitDraft": {
+          "additionalProperties": false,
+          "properties": {
+            "date": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "title": "Date",
+              "type": "string"
+            }
+          },
+          "required": [
+            "date"
+          ],
+          "title": "ExitDraft",
+          "type": "object"
+        },
+        "ExitStep": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "description"
+          ],
+          "title": "ExitStep",
+          "type": "object"
+        },
+        "HiringContext": {
+          "additionalProperties": false,
+          "properties": {
+            "service": {
+              "const": "hiring",
+              "title": "Service",
+              "type": "string"
+            },
+            "referral_slots": {
+              "minimum": 0,
+              "title": "Referral Slots",
+              "type": "integer"
+            },
+            "referral_left": {
+              "title": "Referral Left",
+              "type": "integer"
+            },
+            "vacancies": {
+              "items": {
+                "$ref": "#/$defs/Vacancy"
+              },
+              "maxItems": 50,
+              "title": "Vacancies",
+              "type": "array"
+            },
+            "referrals": {
+              "items": {
+                "$ref": "#/$defs/Referral"
+              },
+              "maxItems": 30,
+              "title": "Referrals",
+              "type": "array"
+            },
+            "has_more": {
+              "title": "Has More",
+              "type": "boolean"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "service",
+            "referral_slots",
+            "referral_left",
+            "vacancies",
+            "referrals",
+            "has_more",
+            "references"
+          ],
+          "title": "HiringContext",
+          "type": "object"
+        },
+        "JiraBoard": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "space_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Space Id",
+              "type": "string"
+            },
+            "key": {
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "space_id",
+            "key"
+          ],
+          "title": "JiraBoard",
+          "type": "object"
+        },
+        "JiraContext": {
+          "additionalProperties": false,
+          "properties": {
+            "service": {
+              "const": "jira",
+              "title": "Service",
+              "type": "string"
+            },
+            "current_user_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Current User Id",
+              "type": "string"
+            },
+            "spaces": {
+              "items": {
+                "$ref": "#/$defs/JiraSpace"
+              },
+              "maxItems": 20,
+              "title": "Spaces",
+              "type": "array"
+            },
+            "boards": {
+              "items": {
+                "$ref": "#/$defs/JiraBoard"
+              },
+              "maxItems": 30,
+              "title": "Boards",
+              "type": "array"
+            },
+            "issues": {
+              "items": {
+                "$ref": "#/$defs/JiraIssue"
+              },
+              "maxItems": 20,
+              "title": "Issues",
+              "type": "array"
+            },
+            "members": {
+              "items": {
+                "$ref": "#/$defs/JiraMember"
+              },
+              "maxItems": 50,
+              "title": "Members",
+              "type": "array"
+            },
+            "has_more": {
+              "title": "Has More",
+              "type": "boolean"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "service",
+            "current_user_id",
+            "spaces",
+            "boards",
+            "issues",
+            "members",
+            "has_more",
+            "references"
+          ],
+          "title": "JiraContext",
+          "type": "object"
+        },
+        "JiraIssue": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "board_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Board Id",
+              "type": "string"
+            },
+            "space_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Space Id",
+              "type": "string"
+            },
+            "key": {
+              "title": "Key",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            },
+            "description_truncated": {
+              "title": "Description Truncated",
+              "type": "boolean"
+            },
+            "status": {
+              "enum": [
+                "todo",
+                "in_progress",
+                "review",
+                "done"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "priority": {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "title": "Priority",
+              "type": "string"
+            },
+            "assignee_id": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Assignee Id"
+            },
+            "reporter_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Reporter Id",
+              "type": "string"
+            },
+            "due_date": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Due Date"
+            },
+            "version": {
+              "minimum": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "board_id",
+            "space_id",
+            "key",
+            "title",
+            "description",
+            "description_truncated",
+            "status",
+            "priority",
+            "assignee_id",
+            "reporter_id",
+            "due_date",
+            "version"
+          ],
+          "title": "JiraIssue",
+          "type": "object"
+        },
+        "JiraMember": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ],
+          "title": "JiraMember",
+          "type": "object"
+        },
+        "JiraSpace": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ],
+          "title": "JiraSpace",
+          "type": "object"
+        },
+        "OffboardingContext": {
+          "additionalProperties": false,
+          "properties": {
+            "service": {
+              "const": "offboarding",
+              "title": "Service",
+              "type": "string"
+            },
+            "exit_notice_days": {
+              "minimum": 0,
+              "title": "Exit Notice Days",
+              "type": "integer"
+            },
+            "earliest_exit": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "title": "Earliest Exit",
+              "type": "string"
+            },
+            "steps": {
+              "items": {
+                "$ref": "#/$defs/ExitStep"
+              },
+              "maxItems": 50,
+              "title": "Steps",
+              "type": "array"
+            },
+            "checklist": {
+              "items": {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                "type": "string"
+              },
+              "maxItems": 50,
+              "title": "Checklist",
+              "type": "array"
+            },
+            "draft": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ExitDraft"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "service",
+            "exit_notice_days",
+            "earliest_exit",
+            "steps",
+            "checklist",
+            "draft",
+            "references"
+          ],
+          "title": "OffboardingContext",
+          "type": "object"
+        },
+        "Referral": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "vacancy": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Vacancy",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "email": {
+              "title": "Email",
+              "type": "string"
+            },
+            "status": {
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "vacancy",
+            "name",
+            "email",
+            "status"
+          ],
+          "title": "Referral",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        },
+        "Vacancy": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "description"
+          ],
+          "title": "Vacancy",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "discriminator": {
+            "mapping": {
+              "benefits": "#/$defs/BenefitsContext",
+              "hiring": "#/$defs/HiringContext",
+              "jira": "#/$defs/JiraContext",
+              "offboarding": "#/$defs/OffboardingContext"
+            },
+            "propertyName": "service"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HiringContext"
+            },
+            {
+              "$ref": "#/$defs/OffboardingContext"
+            },
+            {
+              "$ref": "#/$defs/BenefitsContext"
+            },
+            {
+              "$ref": "#/$defs/JiraContext"
+            }
+          ],
+          "title": "Data"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "ServiceContextEnvelope",
+      "type": "object"
+    }
+  },
+  "prepare_service_action": {
+    "arguments": {
+      "$defs": {
+        "CreateJiraIssue": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "create_jira_issue",
+              "title": "Operation",
+              "type": "string"
+            },
+            "board_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Board Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "description": {
+              "default": "",
+              "maxLength": 4000,
+              "title": "Description",
+              "type": "string"
+            },
+            "status": {
+              "default": "todo",
+              "enum": [
+                "todo",
+                "in_progress",
+                "review",
+                "done"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "priority": {
+              "default": "medium",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "title": "Priority",
+              "type": "string"
+            },
+            "assignee_id": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Assignee Id"
+            },
+            "due_date": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Due Date"
+            }
+          },
+          "required": [
+            "operation",
+            "board_id",
+            "title"
+          ],
+          "title": "CreateJiraIssue",
+          "type": "object"
+        },
+        "JiraChanges": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Title"
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "maxLength": 4000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Description"
+            },
+            "status": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "todo",
+                    "in_progress",
+                    "review",
+                    "done"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Status"
+            },
+            "priority": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Priority"
+            },
+            "assignee_id": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Assignee Id"
+            },
+            "due_date": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Due Date"
+            }
+          },
+          "title": "JiraChanges",
+          "type": "object"
+        },
+        "ReferCandidate": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "refer_candidate",
+              "title": "Operation",
+              "type": "string"
+            },
+            "vacancy": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Vacancy",
+              "type": "string"
+            },
+            "name": {
+              "maxLength": 100,
+              "minLength": 2,
+              "title": "Name",
+              "type": "string"
+            },
+            "email": {
+              "maxLength": 200,
+              "minLength": 3,
+              "title": "Email",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "vacancy",
+            "name",
+            "email"
+          ],
+          "title": "ReferCandidate",
+          "type": "object"
+        },
+        "RequestBenefit": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "request_benefit",
+              "title": "Operation",
+              "type": "string"
+            },
+            "benefit": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Benefit",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "benefit"
+          ],
+          "title": "RequestBenefit",
+          "type": "object"
+        },
+        "SaveExitDraft": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "save_exit_draft",
+              "title": "Operation",
+              "type": "string"
+            },
+            "date": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "title": "Date",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "date"
+          ],
+          "title": "SaveExitDraft",
+          "type": "object"
+        },
+        "SetExitStep": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "set_exit_step",
+              "title": "Operation",
+              "type": "string"
+            },
+            "step": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Step",
+              "type": "string"
+            },
+            "checked": {
+              "title": "Checked",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "operation",
+            "step",
+            "checked"
+          ],
+          "title": "SetExitStep",
+          "type": "object"
+        },
+        "UpdateJiraIssue": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "update_jira_issue",
+              "title": "Operation",
+              "type": "string"
+            },
+            "issue_id": {
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+              "title": "Issue Id",
+              "type": "string"
+            },
+            "version": {
+              "minimum": 1,
+              "title": "Version",
+              "type": "integer"
+            },
+            "changes": {
+              "$ref": "#/$defs/JiraChanges"
+            }
+          },
+          "required": [
+            "operation",
+            "issue_id",
+            "version",
+            "changes"
+          ],
+          "title": "UpdateJiraIssue",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "discriminator": {
+            "mapping": {
+              "create_jira_issue": "#/$defs/CreateJiraIssue",
+              "refer_candidate": "#/$defs/ReferCandidate",
+              "request_benefit": "#/$defs/RequestBenefit",
+              "save_exit_draft": "#/$defs/SaveExitDraft",
+              "set_exit_step": "#/$defs/SetExitStep",
+              "update_jira_issue": "#/$defs/UpdateJiraIssue"
+            },
+            "propertyName": "operation"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ReferCandidate"
+            },
+            {
+              "$ref": "#/$defs/SetExitStep"
+            },
+            {
+              "$ref": "#/$defs/SaveExitDraft"
+            },
+            {
+              "$ref": "#/$defs/RequestBenefit"
+            },
+            {
+              "$ref": "#/$defs/CreateJiraIssue"
+            },
+            {
+              "$ref": "#/$defs/UpdateJiraIssue"
+            }
+          ],
+          "title": "Action"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "PrepareServiceActionArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "ActionField": {
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 12000,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "label",
+            "value"
+          ],
+          "title": "ActionField",
+          "type": "object"
+        },
+        "ServiceActionData": {
+          "additionalProperties": false,
+          "properties": {
+            "draft": {
+              "$ref": "#/$defs/ServiceActionDraft"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "draft",
+            "references"
+          ],
+          "title": "ServiceActionData",
+          "type": "object"
+        },
+        "ServiceActionDraft": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "service": {
+              "enum": [
+                "hiring",
+                "offboarding",
+                "benefits",
+                "jira"
+              ],
+              "title": "Service",
+              "type": "string"
+            },
+            "operation": {
+              "enum": [
+                "refer_candidate",
+                "set_exit_step",
+                "save_exit_draft",
+                "request_benefit",
+                "create_jira_issue",
+                "update_jira_issue"
+              ],
+              "title": "Operation",
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "prepared",
+                "executing",
+                "succeeded",
+                "failed",
+                "uncertain",
+                "cancelled",
+                "expired"
+              ],
+              "title": "State",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "fields": {
+              "items": {
+                "$ref": "#/$defs/ActionField"
+              },
+              "maxItems": 15,
+              "title": "Fields",
+              "type": "array"
+            },
+            "expires_at": {
+              "title": "Expires At",
+              "type": "string"
+            },
+            "service_url": {
+              "title": "Service Url",
+              "type": "string"
+            },
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "service",
+            "operation",
+            "state",
+            "title",
+            "fields",
+            "expires_at",
+            "service_url",
+            "result"
+          ],
+          "title": "ServiceActionDraft",
+          "type": "object"
+        },
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/ServiceActionData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "ServiceActionEnvelope",
+      "type": "object"
+    }
+  },
   "get_access_catalog": {
     "arguments": {
       "additionalProperties": false,

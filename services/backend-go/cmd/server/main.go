@@ -20,6 +20,7 @@ import (
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/config"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/httpapi"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/portal"
+	"github.com/dureppa/ai-buddy/services/backend-go/internal/serviceactions"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/store"
 )
 
@@ -70,6 +71,16 @@ func runContext(ctx context.Context) error {
 	if err := portalService.EnsureSeed(ctx); err != nil {
 		return fmt.Errorf("seed portal knowledge: %w", err)
 	}
+	actions, err := serviceactions.New(&serviceactions.PGStore{Pool: pool}, serviceactions.Config{
+		HRSecret: cfg.SessionSecret, JiraSecret: os.Getenv("JIRA_SESSION_SECRET"),
+		Hiring:      serviceactions.Endpoint{URL: os.Getenv("HR_HIRING_URL"), PublicURL: os.Getenv("HR_HIRING_PUBLIC_URL")},
+		Offboarding: serviceactions.Endpoint{URL: os.Getenv("HR_OFFBOARDING_URL"), PublicURL: os.Getenv("HR_OFFBOARDING_PUBLIC_URL")},
+		Benefits:    serviceactions.Endpoint{URL: os.Getenv("HR_BENEFITS_URL"), PublicURL: os.Getenv("HR_BENEFITS_PUBLIC_URL")},
+		Jira:        serviceactions.Endpoint{URL: os.Getenv("JIRA_API_URL"), PublicURL: os.Getenv("JIRA_PUBLIC_URL")},
+	})
+	if err != nil {
+		return fmt.Errorf("service actions: %w", err)
+	}
 	st := store.New(pool)
 	tokens := buddy.NewTokens(cfg.SessionSecret, cfg.SessionTTL)
 	onboarding := buddy.NewOnboarding(st)
@@ -117,12 +128,13 @@ func runContext(ctx context.Context) error {
 				return err
 			}
 		}
+		bridge.Actions = actions
 		bridge.Portal = portalService
 		bridge.HRSecret = cfg.SessionSecret
 		bridge.DemoMode = cfg.DemoMode
 		chat = buddy.NewChat(bridge)
 	}
-	api := httpapi.NewAPI(sessions, onboarding, access, notifications, chat).WithPortal(portalService)
+	api := httpapi.NewAPI(sessions, onboarding, access, notifications, chat).WithPortal(portalService).WithServiceActions(actions)
 
 	if bridge != nil {
 		api.WithInternalRoutes(bridge.Register).WithTeamGuide(st).WithHRToday(bridge.TodayHR)

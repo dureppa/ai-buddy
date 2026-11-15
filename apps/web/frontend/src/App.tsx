@@ -1,3 +1,4 @@
+import { ServiceActionPage } from './ServiceActionPage';
 import { accountCookieValue } from './service-session';
 import { readHrToday } from './hr-schedule';
 import { Schedule } from './EventsPage';
@@ -620,6 +621,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                   path="/resources"
                   element={<Resources directory={<CorporateDirectory profileId={profileId} />} />}
                 />
+                <Route path="/actions/:actionId" element={<ServiceActionPage profileId={profileId} />} />
                 <Route path="/chat" element={<ChatPage {...chatProps} />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
               </Routes>

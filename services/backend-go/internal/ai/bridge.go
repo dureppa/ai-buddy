@@ -16,6 +16,7 @@ import (
 
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/buddy"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/portal"
+	"github.com/dureppa/ai-buddy/services/backend-go/internal/serviceactions"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -36,6 +37,7 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 type Bridge struct {
+	Actions                                                  *serviceactions.Service
 	Portal                                                   *portal.Service
 	PublicConsentURL, PublicDocumentsURL, PublicEventsURL    string
 	DemoMode                                                 bool
@@ -206,7 +208,7 @@ func bearer(r *http.Request) string {
 func (b *Bridge) Register(mux *http.ServeMux) {
 	b.registerReview(mux)
 	mux.HandleFunc("POST /internal/v1/ai/context/resolve", b.resolve)
-	for path, tool := range map[string]string{"POST /internal/v1/ai/knowledge/search": "search_knowledge", "GET /internal/v1/ai/team-context": "get_team_context", "GET /internal/v1/ai/onboarding/progress": "get_onboarding_progress", "POST /internal/v1/ai/onboarding/task-context": "get_task_context", "POST /internal/v1/ai/onboarding/task-evidence": "get_task_evidence", "GET /internal/v1/ai/access/catalog": "get_access_catalog", "POST /internal/v1/ai/access/requests": "submit_access_request", "GET /internal/v1/ai/access/requests": "get_access_requests", "POST /internal/v1/ai/knowledge/page": "get_knowledge_page"} {
+	for path, tool := range map[string]string{"POST /internal/v1/ai/service-context": "get_service_context", "POST /internal/v1/ai/service-actions/prepare": "prepare_service_action", "POST /internal/v1/ai/knowledge/search": "search_knowledge", "GET /internal/v1/ai/team-context": "get_team_context", "GET /internal/v1/ai/onboarding/progress": "get_onboarding_progress", "POST /internal/v1/ai/onboarding/task-context": "get_task_context", "POST /internal/v1/ai/onboarding/task-evidence": "get_task_evidence", "GET /internal/v1/ai/access/catalog": "get_access_catalog", "POST /internal/v1/ai/access/requests": "submit_access_request", "GET /internal/v1/ai/access/requests": "get_access_requests", "POST /internal/v1/ai/knowledge/page": "get_knowledge_page"} {
 		mux.HandleFunc(path, b.read(tool))
 	}
 }
@@ -256,6 +258,9 @@ func (b *Bridge) resolve(w http.ResponseWriter, r *http.Request) {
 			allowed = append(allowed, "submit_access_request")
 		}
 	}
+	if b.Actions != nil {
+		allowed = append(allowed, "get_service_context", "prepare_service_action")
+	}
 	write(w, 200, map[string]any{"active": true, "subject_id": c.Subject, "request_id": c.RequestID, "conversation_id": c.ConversationID, "expires_at": c.ExpiresAt.Time.UTC().Format(time.RFC3339), "api_token": resource, "allowed_tools": allowed})
 }
 func (b *Bridge) read(tool string) http.HandlerFunc {
@@ -283,7 +288,15 @@ func (b *Bridge) read(tool string) http.HandlerFunc {
 			failure(w, 403, "FORBIDDEN")
 			return
 		}
-		if b.Portal != nil && (tool == "get_access_catalog" || tool == "submit_access_request" || tool == "get_access_requests" || tool == "get_knowledge_page") {
+		if tool == "get_service_context" || tool == "prepare_service_action" {
+			if b.Actions == nil {
+				err = buddy.ErrUnavailable
+			} else if tool == "get_service_context" {
+				data, err = b.Actions.Context(r.Context(), c.Subject, args)
+			} else {
+				data, err = b.Actions.Prepare(r.Context(), c.Subject, c.RequestID, args)
+			}
+		} else if b.Portal != nil && (tool == "get_access_catalog" || tool == "submit_access_request" || tool == "get_access_requests" || tool == "get_knowledge_page") {
 			data, err = b.Portal.Tool(r.Context(), c.Subject, tool, args, c.RequestID)
 		} else if b.Portal != nil && tool == "search_knowledge" {
 			query, qok := args["query"].(string)
@@ -299,11 +312,11 @@ func (b *Bridge) read(tool string) http.HandlerFunc {
 			data, err = b.Store.ReadAI(r.Context(), c.Subject, tool, args)
 		}
 		if err != nil {
-			if err == buddy.ErrNotFound {
+			if err == buddy.ErrNotFound || err == serviceactions.ErrNotFound {
 				failure(w, 404, "NOT_FOUND")
-			} else if err == buddy.ErrForbidden {
+			} else if err == buddy.ErrForbidden || err == serviceactions.ErrForbidden {
 				failure(w, 403, "FORBIDDEN")
-			} else if err == buddy.ErrInvalidInput || err == portal.ErrConflict {
+			} else if err == buddy.ErrInvalidInput || err == portal.ErrConflict || err == serviceactions.ErrInvalid || err == serviceactions.ErrConflict {
 				failure(w, 400, "INVALID_ARGUMENTS")
 			} else {
 				failure(w, 503, "TEMPORARILY_UNAVAILABLE")

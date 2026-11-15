@@ -1,5 +1,7 @@
 # Локальный запуск через Docker Compose
 
+Go получает URL найма/увольнений/бенефитов/Jira и отдельный ключ Jira автоматически. Для Jira добавь профиль jira; server overlay уже включает её. Внешние ссылки строятся из PUBLIC_HR_ORIGIN. [Подтверждение действий](service-actions.md).
+
 Compose использует DeepSeek API. Ollama, контейнер загрузки модели и том весов
 удалены. Локальная LLM не скачивается. Docker скачивает обычные образы приложения,
 Python, Go, nginx и PostgreSQL.

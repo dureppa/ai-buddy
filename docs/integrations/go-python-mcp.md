@@ -1,5 +1,7 @@
 # Go HTTP API для Python-агента и Python MCP-сервера
 
+SDD 008 добавляет POST /internal/v1/ai/service-context и POST /internal/v1/ai/service-actions/prepare с прежней делегацией/resource-token и X-Request-ID. Схемы — contracts/agent-tools.json: get_service_context и prepare_service_action. prepare сохраняет черновик; выполняющий confirm не публикуется в MCP. [Подробности](../components/service-actions.md).
+
 ## Реализованный следующий срез
 
 Go/Flask/MCP теперь соединены кодом. Включение: AI_SERVICE_URL и отдельные
