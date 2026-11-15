@@ -592,3 +592,121 @@ it('opens an API record from a work tool reference', async () => {
   expect(selected.textContent).toContain('Учебный результат');
   expect(container.querySelector('article#missing')).toBeNull();
 });
+
+function mockToolRecords(
+  records: Array<{ id: string; title: string; status: string; description: string; fields: Record<string, string> }>,
+) {
+  localStorage.setItem(demoSessionKey, 'timur');
+  vi.mocked(apiFetch).mockResolvedValue(Response.json({ name: 'Учебный сервис', area: 'Рабочая область', records }));
+}
+
+it('shows fresh Postman responses from the stand and clears old results for unknown VINs', async () => {
+  localStorage.setItem(demoSessionKey, 'timur');
+  vi.mocked(apiFetch).mockImplementation(async (_profile, path) =>
+    Response.json({
+      name: 'Учебный API',
+      area: 'Коллекции',
+      records: path.endsWith('/postman')
+        ? [
+            {
+              id: 'request',
+              title: 'Поиск отчёта',
+              status: '404',
+              description: '',
+              fields: { Метод: 'GET', Сценарий: 'DEMO-VIN-017' },
+            },
+          ]
+        : [{ id: 'found', title: 'DEMO-VIN-018', status: '200', description: '', fields: { Ответ: 'REPORT_FOUND' } }],
+    }),
+  );
+  await mount('/work-tools/postman');
+  const vin = await waitForElement(() => container.querySelector<HTMLInputElement>('input[aria-label="Учебный VIN"]'));
+  await fill(vin, ' demo-vin-018 ');
+  await click(await button('Отправить'));
+  const response = await waitForElement(() => container.querySelector<HTMLElement>('.tool-response'));
+  expect(response.textContent).toContain('HTTP 200');
+  expect(response.textContent).toContain('REPORT_FOUND');
+  await fill(vin, 'unknown');
+  await click(await button('Отправить'));
+  await vi.waitFor(() => expect(container.textContent).toContain('Для этого VIN нет учебной фикстуры.'));
+  expect(container.querySelector<HTMLElement>('.tool-response')).toBeNull();
+});
+
+it.each([
+  ['redash', 'Таблица', '1000'],
+  ['grafana', 'Таблица', '3%'],
+  ['trisigma', 'Гипотеза', 'Описание записи'],
+  ['trino', '▶ Выполнить выборку', 'Результат выборки'],
+  ['bitbucket', 'Комментарии ревью', 'Проверить даты'],
+  ['tms', 'Пройден', 'Результат учебного прогона · Пройден'],
+  ['test-stand', 'Показать ответ стенда', 'REPORT_FOUND'],
+  ['figma', 'Ошибка', 'Не получилось отправить заявку'],
+  ['design-system', 'Ошибка', 'Не получилось отправить заявку'],
+  ['design-review', 'Отметить решённым', 'Открыть замечание снова'],
+])('supports the primary interaction for %s', async (service, action, visible) => {
+  mockToolRecords([
+    {
+      id: 'record',
+      title: 'Учебная запись',
+      status: '200',
+      description: 'Описание записи',
+      fields: {
+        Сессии: '1000',
+        'До релиза': '1%',
+        'После релиза': '3%',
+        Контроль: '68%',
+        'Вариант B': '72%',
+        Ответ: 'REPORT_FOUND',
+        Замечание: 'Проверить даты',
+      },
+    },
+  ]);
+  await mount('/work-tools/' + service);
+  await click(await button(action));
+  expect(container.querySelector('article')?.textContent).toContain(visible);
+});
+
+it('filters channel navigation and posts a message in the open demo channel', async () => {
+  mockToolRecords([
+    { id: 'delivery', title: 'Доставка', status: 'Закреплено', description: 'Состояние релиза', fields: {} },
+    { id: 'travel', title: 'Бронирование', status: 'Закреплено', description: 'План работ', fields: {} },
+  ]);
+  await mount('/work-tools/mattermost');
+  const search = await waitForElement(() =>
+    container.querySelector<HTMLInputElement>('input[aria-label="Поиск записей"]'),
+  );
+  await fill(search, 'брони');
+  const links = container.querySelectorAll<HTMLAnchorElement>('.work-tool__sidebar nav a');
+  expect(links).toHaveLength(1);
+  await click(links[0]);
+  const draft = await waitForElement(() => container.querySelector<HTMLTextAreaElement>('textarea'));
+  await fill(draft, 'Готово к проверке');
+  await click(await button('Отправить'));
+  expect(container.querySelector('.tool-channel ul')?.textContent).toContain('Готово к проверке');
+  expect(draft.value).toBe('');
+});
+
+it('switches between the current and previous PaaS releases', async () => {
+  mockToolRecords([
+    {
+      id: 'stage',
+      title: 'booking-api · stage',
+      status: 'Развёрнуто',
+      description: 'Текущий релиз',
+      fields: {
+        Версия: '1.8.4',
+        Предыдущая: '1.8.3',
+      },
+    },
+  ]);
+  await mount('/work-tools/paas');
+  const select = await waitForElement(() =>
+    container.querySelector<HTMLSelectElement>('select[aria-label="Версия релиза"]'),
+  );
+  await act(async () => {
+    select.value = 'previous';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  expect(container.querySelector('.tool-thread h3')?.textContent).toBe('1.8.3');
+  expect(container.querySelector('.tool-thread')?.textContent).toContain('Предыдущий релиз окружения');
+});
