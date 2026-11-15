@@ -1,27 +1,16 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { z } from 'zod';
+import { pageSchema } from './work-tool-data';
 import { apiFetch } from './backend';
 import type { ProfileId } from './demo-accounts';
+import { toolViews } from './WorkToolViews';
 import './work-tools.css';
-
-const pageSchema = z.object({
-  name: z.string(),
-  area: z.string(),
-  records: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      status: z.string(),
-      description: z.string(),
-      fields: z.record(z.string(), z.string()),
-    }),
-  ),
-});
 
 export function WorkToolPage({ profileId }: { profileId: ProfileId }) {
   const { service = '' } = useParams();
   const { hash } = useLocation();
+  const [search, setSearch] = useState('');
   const result = useQuery({
     queryKey: ['work-tool', profileId, service],
     queryFn: async () => {
@@ -31,12 +20,19 @@ export function WorkToolPage({ profileId }: { profileId: ProfileId }) {
   });
   const page = result.data;
   const selected = hash ? page?.records.find(({ id }) => '#' + id === hash) : page?.records[0];
+  const view = Object.hasOwn(toolViews, service) ? toolViews[service] : undefined;
+  const records = page?.records.filter(({ title, status, fields }) =>
+    [title, status, ...Object.values(fields)].join(' ').toLowerCase().includes(search.trim().toLowerCase()),
+  );
+  const Workspace = view?.component;
   return (
     <section className={'work-tool work-tool--' + service}>
       <header className="work-tool__header">
-        <Link to="/tools">‹ Инструменты</Link>
+        <span className="work-tool__mark" aria-hidden="true">
+          {view?.icon ?? '▦'}
+        </span>
         <h1>{page?.name ?? 'Рабочий сервис'}</h1>
-        <p>{page?.area ?? 'Учебная среда'}</p>
+        <Link to="/tools">‹ Инструменты</Link>
       </header>
       {result.isPending && <p role="status">Загружаем записи…</p>}
       {result.isError && (
@@ -46,38 +42,37 @@ export function WorkToolPage({ profileId }: { profileId: ProfileId }) {
       )}
       {page && (
         <div className="work-tool__layout">
-          <nav aria-label={page.area}>
-            {page.records.map((record) => (
-              <Link key={record.id} to={{ hash: record.id }} aria-current={record === selected ? 'true' : undefined}>
-                {record.title}
-              </Link>
-            ))}
-          </nav>
-          {selected ? (
-            <article id={selected.id}>
-              <small>{selected.status}</small>
-              <h2>{selected.title}</h2>
-              <p>{selected.description}</p>
-              <dl>
-                {Object.entries(selected.fields).map(([key, value]) => (
-                  <div key={key}>
-                    <dt>{key}</dt>
-                    <dd>{value}</dd>
-                    {['redash', 'grafana', 'trisigma'].includes(service) && /^\d+%?$/.test(value) && (
-                      <meter
-                        min={0}
-                        max={value.endsWith('%') ? 100 : 1000}
-                        value={Number.parseInt(value)}
-                        aria-label={key}
-                      />
-                    )}
-                  </div>
-                ))}
-              </dl>
-            </article>
-          ) : (
-            <p>{hash ? 'Запись не найдена.' : 'В этом разделе пока нет записей.'}</p>
-          )}
+          <aside className="work-tool__sidebar">
+            <h2>{view?.section ?? page.area}</h2>
+            <input
+              aria-label="Поиск записей"
+              placeholder="Поиск…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <nav aria-label={page.area}>
+              {records?.map((record) => (
+                <Link key={record.id} to={{ hash: record.id }} aria-current={record === selected ? 'true' : undefined}>
+                  {service === 'mattermost' && <span aria-hidden="true"># </span>}
+                  {record.title}
+                </Link>
+              ))}
+              {records?.length === 0 && <p>Ничего не найдено</p>}
+            </nav>
+          </aside>
+          <div className="work-tool__main">
+            {selected && Workspace ? (
+              <article id={selected.id}>
+                <div className="work-tool__path">
+                  {page.area} {selected.fields.Задача && ' / ' + selected.fields.Задача}
+                </div>
+                <h2>{selected.title}</h2>
+                <Workspace key={selected.id} record={selected} profileId={profileId} />
+              </article>
+            ) : (
+              <p>{hash ? 'Запись не найдена.' : 'В этом разделе пока нет записей.'}</p>
+            )}
+          </div>
         </div>
       )}
     </section>
