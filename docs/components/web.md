@@ -86,3 +86,6 @@ SelectionAssistant.tsx и selection-context.ts добавляют кнопку �
 
 Кнопка и панель SelectionAssistant используют Popover API для размещения над
 содержимым native dialog. Закрытие исходной карточки отменяет ожидание пояснения.
+
+Все 15 инструментов видны каждому профилю и ранжируются по специальности.
+[Порядок и границы](../specs/role-tool-ranking.md).

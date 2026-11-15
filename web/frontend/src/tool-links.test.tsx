@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Tools } from './screens';
-import { toolProfileUrl } from './tool-links';
+import { toolsFor, toolProfileUrl } from './tool-links';
 
 it.each(['maria', 'sasha'] as const)('opens Jira from tools for %s', (profileId) => {
   const html = renderToStaticMarkup(<Tools profileId={profileId} onOpen={() => {}} />);
@@ -38,6 +38,25 @@ it.each([
 ] as const)('shows the role tools before shared services for %s', (profileId, roleTools) => {
   const html = renderToStaticMarkup(<Tools profileId={profileId} onOpen={() => {}} />);
   const title = [...html.matchAll(/<strong>([^<]+)<\/strong>/g)].map((match) => match[1]);
-  expect(title).toEqual([...roleTools, 'Jira', 'Confluence', 'Mattermost']);
+  expect(title.slice(0, 6)).toEqual([...roleTools, 'Jira', 'Confluence', 'Mattermost']);
+  expect(title).toHaveLength(15);
   expect(html).not.toMatch(/Мои заявки|Есть доступ|Требуется запрос|Ожидают подтверждения/);
+});
+
+it('shows the same complete catalogue without duplicates for every profile and ranks Git last for analysts', () => {
+  const profiles = ['olga', 'sasha', 'timur', 'maria'] as const;
+  const expected = toolsFor('olga')
+    .map((tool) => tool.id)
+    .sort();
+  for (const profile of profiles) {
+    const tools = toolsFor(profile);
+    expect(tools.map((tool) => tool.id).sort()).toEqual(expected);
+    expect(new Set(tools.map((tool) => tool.id)).size).toBe(15);
+  }
+  expect(toolsFor('olga').at(-1)?.id).toBe('bitbucket');
+  expect(toolsFor('sasha')[0].id).toBe('bitbucket');
+  expect(toolsFor('maria')[0].id).toBe('figma');
+  expect(toolsFor('timur')[0].id).toBe('tms');
+  const foreign = toolsFor('olga').find((tool) => tool.id === 'bitbucket')!;
+  expect(foreign.description).not.toContain('бронирования');
 });
