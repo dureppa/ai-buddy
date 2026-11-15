@@ -26,13 +26,22 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	mux := http.NewServeMux()
 	sessions := shared.Sessions{
 		Secret: []byte(secret), DelegationSecret: []byte(delegation),
 		Audience: "access", Demo: os.Getenv("DEMO_MODE") == "true",
 	}
-	if err := accessapi.Register(ctx, db, mux, sessions.Subject); err != nil {
+	handler, err := routes(ctx, db, sessions)
+	if err != nil {
 		log.Fatal(err)
+	}
+	server := &http.Server{Addr: addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second}
+	log.Fatal(server.ListenAndServe())
+}
+
+func routes(ctx context.Context, db *pgxpool.Pool, sessions shared.Sessions) (http.Handler, error) {
+	mux := http.NewServeMux()
+	if err := accessapi.Register(ctx, db, mux, sessions.Subject); err != nil {
+		return nil, err
 	}
 	mux.HandleFunc("POST /api/v1/demo/sessions", sessions.Login)
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -44,6 +53,5 @@ func main() {
 		}
 		shared.Write(w, 200, map[string]string{"status": "ok"})
 	})
-	server := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second}
-	log.Fatal(server.ListenAndServe())
+	return mux, nil
 }

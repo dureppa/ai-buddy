@@ -1,3 +1,4 @@
+import { taskSelectionResource } from './task-selection';
 import { HrDayEvents } from './HrDayEvents';
 import type { HrToday } from './hr-schedule';
 import { eventDay, eventMonth, eventTime, upcomingEvents, type ScheduleEvent } from './schedule';
@@ -30,6 +31,7 @@ type ChecklistProps = {
 };
 
 function TaskRow({
+  profileId,
   task,
   checked,
   saving,
@@ -37,6 +39,7 @@ function TaskRow({
   onOpen,
   onToggle,
 }: {
+  profileId: ProfileId;
   task: Task;
   checked: boolean;
   saving: boolean;
@@ -45,7 +48,10 @@ function TaskRow({
   onToggle: (id: string) => void;
 }) {
   return (
-    <li className={'task-row' + (checked ? ' task-row--done' : '')}>
+    <li
+      className={'task-row' + (checked ? ' task-row--done' : '')}
+      data-agent-resource={JSON.stringify(taskSelectionResource(profileId, task))}
+    >
       <button
         type="button"
         role="checkbox"
@@ -213,6 +219,7 @@ export function Dashboard({
           <ul className="task-list">
             {dashboardTasks.map((task) => (
               <TaskRow
+                profileId={profileId}
                 key={task.id}
                 task={task}
                 checked={workspace.completed.includes(task.id)}
@@ -403,6 +410,7 @@ export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask 
                       <ul className="task-list">
                         {stageTasks.map((task) => (
                           <TaskRow
+                            profileId={profileId}
                             key={task.id}
                             task={task}
                             checked={workspace.completed.includes(task.id)}
@@ -482,7 +490,12 @@ export function Team({ profileId, onOpen }: { profileId: ProfileId; onOpen: Open
 export function Tools({ profileId, onOpen }: { profileId: ProfileId; onOpen: OpenDetail }) {
   return (
     <>
-      <PageIntro title="Инструменты" text="Рабочие сервисы для твоих задач и команды." tone="blue" icon="grid" />
+      <PageIntro
+        title="Инструменты"
+        text="Все рабочие сервисы. Сначала — наиболее полезные для твоей специальности."
+        tone="blue"
+        icon="grid"
+      />
       <div className="tile-grid">
         {toolsFor(profileId).map((tool) => {
           const isLink = 'url' in tool;

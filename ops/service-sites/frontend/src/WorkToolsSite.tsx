@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { WorkToolPage } from '../../../../web/frontend/src/WorkToolPage';
-import { standaloneWorkToolFetch, WorkToolTransport } from '../../../../web/frontend/src/work-tool-transport';
+import { WorkToolPage } from '../../../../tools/shared/frontend/WorkToolPage';
+import { standaloneWorkToolFetch, WorkToolTransport } from '../../../../tools/shared/frontend/work-tool-transport';
 import { ServiceSession } from './ServiceSession';
 
 const cache = new QueryClient();

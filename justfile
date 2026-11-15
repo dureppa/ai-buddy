@@ -9,10 +9,10 @@ frontend-test:
 	npm test --workspaces
 
 frontend-lint:
-	npm exec -- eslint web/frontend extension/frontend ops/service-sites/frontend ops/service-sites/sites.mjs corporate-services/*/frontend tools/jira/frontend corporate-services/access/frontend tools/confluence/frontend
+	npm exec -- eslint web/frontend extension/frontend ops/service-sites/frontend ops/service-sites/sites.mjs corporate-services/*/frontend tools/*/frontend
 
 frontend-format:
-	npm exec -- prettier --check web/frontend extension/frontend ops/service-sites/frontend ops/service-sites/sites.mjs corporate-services/*/frontend tools/jira/frontend corporate-services/access/frontend tools/confluence/frontend eslint.config.mjs prettier.config.mjs
+	npm exec -- prettier --check web/frontend extension/frontend ops/service-sites/frontend ops/service-sites/sites.mjs corporate-services/*/frontend tools/*/frontend eslint.config.mjs prettier.config.mjs
 
 frontend-build:
 	npm run build --workspaces
@@ -51,10 +51,16 @@ typecheck: frontend-typecheck python-check go-check
 
 build: frontend-build
 
-check: tools-check jira-check frontend-check python-check go-check hr-consents-check repository-check compose-check
+check: service-go-check frontend-check python-check go-check repository-check compose-check
 
 jira-check:
 	cd tools/jira && test -z "$(gofmt -l .)" && go vet ./... && go test -race ./...
 
 tools-check:
 	cd tools && test -z "$(gofmt -l shared confluence)" && go vet ./... && go test -race ./...
+
+external-check:
+	sh ops/checks/external-services.sh
+
+service-go-check:
+	sh ops/checks/service-go.sh

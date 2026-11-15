@@ -32,6 +32,7 @@ type Repository interface {
 	ReadAI(context.Context, string, string, map[string]any) (map[string]any, error)
 }
 type Claims struct {
+	ReadOnly       bool   `json:"read_only,omitempty"`
 	AccessIntent   bool   `json:"access_intent,omitempty"`
 	RequestID      string `json:"request_id"`
 	ConversationID string `json:"conversation_id"`
@@ -105,7 +106,7 @@ func uuid() string {
 }
 func (b *Bridge) token(subject, request, conversation, audience string, access ...bool) (string, error) {
 	now := time.Now()
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{AccessIntent: len(access) > 0 && access[0], RequestID: request, ConversationID: conversation, RegisteredClaims: jwt.RegisteredClaims{Subject: subject, Audience: jwt.ClaimStrings{audience}, IssuedAt: jwt.NewNumericDate(now), ExpiresAt: jwt.NewNumericDate(now.Add(time.Minute))}}).SignedString([]byte(b.Secret))
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{ReadOnly: len(access) > 1 && access[1], AccessIntent: len(access) > 0 && access[0], RequestID: request, ConversationID: conversation, RegisteredClaims: jwt.RegisteredClaims{Subject: subject, Audience: jwt.ClaimStrings{audience}, IssuedAt: jwt.NewNumericDate(now), ExpiresAt: jwt.NewNumericDate(now.Add(time.Minute))}}).SignedString([]byte(b.Secret))
 }
 func (b *Bridge) claims(raw, audience string) (*Claims, error) {
 	c := &Claims{}
@@ -120,7 +121,7 @@ func (b *Bridge) Ask(ctx context.Context, profile string, msg buddy.ChatMessage)
 	defer cancel()
 	return b.Store.ChatTurn(ctx, profile, msg, func(conversation string, history []buddy.HistoryMessage) (buddy.ChatReply, error) {
 		request := uuid()
-		delegation, err := b.token(profile, request, conversation, "mcp-delegation", AccessIntent(msg.Text, history))
+		delegation, err := b.token(profile, request, conversation, "mcp-delegation", msg.Selection == nil && AccessIntent(msg.Text, history), msg.Selection != nil)
 		if err != nil {
 			return buddy.ChatReply{}, err
 		}
@@ -129,7 +130,11 @@ func (b *Bridge) Ask(ctx context.Context, profile string, msg buddy.ChatMessage)
 			payload["hr_today"] = b.TodayHR(ctx, profile)
 		}
 		if msg.PageURL != "" {
-			payload["page_context"] = map[string]string{"url": msg.PageURL}
+			page := map[string]any{"url": msg.PageURL}
+			if msg.Selection != nil {
+				page["selection"] = msg.Selection
+			}
+			payload["page_context"] = page
 		}
 		var out struct {
 			RequestID      string `json:"request_id"`
@@ -257,12 +262,15 @@ func (b *Bridge) resolve(w http.ResponseWriter, r *http.Request) {
 	allowed := []string{"search_knowledge", "get_team_context", "get_onboarding_progress", "get_task_context", "get_task_evidence"}
 	if b.Portal != nil {
 		allowed = append(allowed, "get_access_catalog", "get_access_requests", "get_knowledge_page")
-		if c.AccessIntent {
+		if c.AccessIntent && !c.ReadOnly {
 			allowed = append(allowed, "submit_access_request")
 		}
 	}
 	if b.Actions != nil {
-		allowed = append(allowed, "get_service_context", "prepare_service_action")
+		allowed = append(allowed, "get_service_context")
+		if !c.ReadOnly {
+			allowed = append(allowed, "prepare_service_action")
+		}
 	}
 	if b.WorkTools != nil {
 		allowed = append(allowed, "get_work_tools", "get_work_tool_context")
@@ -291,7 +299,7 @@ func (b *Bridge) read(tool string) http.HandlerFunc {
 			return
 		}
 		var data map[string]any
-		if tool == "submit_access_request" && !c.AccessIntent {
+		if (tool == "submit_access_request" && !c.AccessIntent) || (c.ReadOnly && (tool == "submit_access_request" || tool == "prepare_service_action")) {
 			failure(w, 403, "FORBIDDEN")
 			return
 		}

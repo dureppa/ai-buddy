@@ -33,3 +33,10 @@
 - [Чек-лист сдачи](submission-checklist.md)
 - [Пробелы ответов](ai/answer-gaps.md), [контроль качества](ai/quality-control.md)
 - [Инструменты направлений](specs/009-agent-role-tools.md), [проверка прогона](ai/role-tools-check.md)
+
+- [Уточнить у агента по выделению](specs/010-selection-explanation.md): боковая панель, контекст задачи/сервиса и чтение источников.
+
+- [Проверка пояснений выделения](ai/selection-explanation-check.md): UI, контракты, LLM и границы измерения.
+
+Все 15 инструментов видны каждому профилю и ранжируются по специальности.
+[Порядок и границы](specs/role-tool-ranking.md).

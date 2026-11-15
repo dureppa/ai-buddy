@@ -7,9 +7,8 @@ COPY extension/package.json extension/
 RUN --mount=type=cache,target=/root/.npm npm ci
 COPY web/ web/
 COPY ops/service-sites/ ops/service-sites/
-COPY tools/jira/frontend/ tools/jira/frontend/
+COPY tools/ tools/
 COPY corporate-services/access/frontend/ corporate-services/access/frontend/
-COPY tools/confluence/frontend/ tools/confluence/frontend/
 COPY web/backend/internal/portal/catalog.json web/backend/internal/portal/
 COPY corporate-services/ corporate-services/
 

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dureppa/ai-buddy/tools/shared"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -49,9 +50,11 @@ func main() {
 	}
 
 	ctx := context.Background()
-	if err := ensureCluster(ctx); err != nil {
-		slog.Error("подготовка роли и базы", "error", err)
-		os.Exit(1)
+	if os.Getenv("PGADMIN_USER") != "" {
+		if err := ensureCluster(ctx); err != nil {
+			slog.Error("подготовка роли и базы", "error", err)
+			os.Exit(1)
+		}
 	}
 
 	pool, err := pgxpool.New(ctx, "")
@@ -72,8 +75,20 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/me/documents", requireAuth(secret, handleList(pool)))
-	mux.HandleFunc("PUT /api/v1/me/documents/{id}", requireAuth(secret, handleSet(pool)))
+	isDemo := os.Getenv("DEMO_MODE") == "true"
+	demoSecret := os.Getenv("HR_DEMO_SIGNING_SECRET")
+	if isDemo && (len(demoSecret) < 32 || demoSecret == secret) {
+		slog.Error("для демосессий нужен отдельный HR_DEMO_SIGNING_SECRET длиной от 32 байт")
+		os.Exit(1)
+	}
+	sessions := shared.Sessions{Secret: []byte(demoSecret), Audience: "hr-documents", Demo: isDemo}
+	mux.HandleFunc("POST /api/v1/demo/sessions", sessions.Login)
+	auth := func(next func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
+		return sessions.WithDemoSession(next, requireAuth(secret, next))
+	}
+
+	mux.HandleFunc("GET /api/v1/me/documents", auth(handleList(pool)))
+	mux.HandleFunc("PUT /api/v1/me/documents/{id}", auth(handleSet(pool)))
 
 	slog.Info("hr-documents слушает", "addr", addr, "db", os.Getenv("PGDATABASE"))
 	srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second}

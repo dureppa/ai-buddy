@@ -1,5 +1,5 @@
 {
-  "status": "python_http_adapter_implemented_mock_tested_live_go_integration_pending",
+  "status": "python_http_adapter_implemented_selection_context_added",
   "schema_snapshot_commit": "a51531510fd73f7a170b59cc76dc12cd9ab262cf",
   "architecture": "Flask agent -> Python MCP adapter -> Go HTTP API; Go does not implement MCP.",
   "http": {
@@ -321,6 +321,68 @@
   "schemas": {
     "TurnRequest": {
       "$defs": {
+        "HRDay": {
+          "additionalProperties": false,
+          "properties": {
+            "events": {
+              "items": {
+                "$ref": "#/$defs/HRDayEvent"
+              },
+              "title": "Events",
+              "type": "array"
+            },
+            "unavailable": {
+              "items": {
+                "enum": [
+                  "absences",
+                  "trips"
+                ],
+                "type": "string"
+              },
+              "title": "Unavailable",
+              "type": "array"
+            }
+          },
+          "required": [
+            "events",
+            "unavailable"
+          ],
+          "title": "HRDay",
+          "type": "object"
+        },
+        "HRDayEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "detail": {
+              "title": "Detail",
+              "type": "string"
+            },
+            "service": {
+              "enum": [
+                "absences",
+                "trips"
+              ],
+              "title": "Service",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "detail",
+            "service"
+          ],
+          "title": "HRDayEvent",
+          "type": "object"
+        },
         "HistoryMessage": {
           "additionalProperties": false,
           "properties": {
@@ -349,6 +411,17 @@
         "PageContext": {
           "additionalProperties": false,
           "properties": {
+            "selection": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Selection"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
             "url": {
               "maxLength": 2048,
               "minLength": 1,
@@ -360,6 +433,96 @@
             "url"
           ],
           "title": "PageContext",
+          "type": "object"
+        },
+        "Selection": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 1200,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "title": "Title",
+              "type": "string"
+            },
+            "resource": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/SelectionResource"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "text",
+            "title"
+          ],
+          "title": "Selection",
+          "type": "object"
+        },
+        "SelectionResource": {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "task",
+                "confluence",
+                "work_tool",
+                "jira",
+                "service"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "id": {
+              "default": "",
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]*$",
+              "title": "Id",
+              "type": "string"
+            },
+            "service": {
+              "default": "",
+              "maxLength": 32,
+              "title": "Service",
+              "type": "string"
+            },
+            "label": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Label",
+              "type": "string"
+            },
+            "description": {
+              "default": "",
+              "maxLength": 800,
+              "title": "Description",
+              "type": "string"
+            },
+            "page_ids": {
+              "items": {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              "maxItems": 3,
+              "title": "Page Ids",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "title": "SelectionResource",
           "type": "object"
         }
       },
@@ -401,6 +564,17 @@
           "anyOf": [
             {
               "$ref": "#/$defs/PageContext"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hr_today": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HRDay"
             },
             {
               "type": "null"

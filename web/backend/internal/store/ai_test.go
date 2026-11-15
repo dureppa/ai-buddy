@@ -104,3 +104,23 @@ func TestAIKnowledgeSearchNaturalQuestions(t *testing.T) {
 		})
 	}
 }
+
+func TestSelectionQuoteSurvivesConversation(t *testing.T) {
+	pool := testPool(t)
+	st := New(pool)
+	ctx := context.Background()
+	msg := buddy.ChatMessage{Text: "Что это?", Selection: &buddy.Selection{Text: "p95 времени ответа", Title: "Метрики", Resource: &buddy.SelectionResource{Kind: "task", ID: "metrics", Label: "Изучить метрики", Description: "Не сохранять полное описание"}}}
+	reply, err := st.ChatTurn(ctx, "olga", msg, func(id string, history []buddy.HistoryMessage) (buddy.ChatReply, error) {
+		return buddy.ChatReply{ConversationID: id, Kind: "answer", Text: "Пояснение", References: []buddy.Reference{}}, nil
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM conversations WHERE id=$1`, reply.ConversationID)
+	})
+	history, err := st.Conversation(ctx, "olga", reply.ConversationID)
+	require.NoError(t, err)
+	require.Len(t, history, 2)
+	require.Contains(t, history[0].Content, "p95 времени ответа")
+	require.Contains(t, history[0].Content, "Изучить метрики")
+	require.NotContains(t, history[0].Content, "Не сохранять полное описание")
+}
