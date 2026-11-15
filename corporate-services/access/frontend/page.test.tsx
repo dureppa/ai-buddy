@@ -112,6 +112,7 @@ it('loads the catalog and opens a review on an HTTP-like origin without randomUU
   await fillForm();
   await submitForm();
   await hasText('Проверьте заявку');
+  expect(accessClient).toHaveBeenCalledWith('olga');
   expect(container.textContent).toContain('delivery.orders_mart');
   expect(api.submit).not.toHaveBeenCalled();
 });
@@ -149,4 +150,30 @@ it('opens the requests tab from a chat link without a Buddy cookie or business w
   expect(container.querySelector('[aria-selected="true"]')?.textContent ?? container.textContent).toContain(
     'Мои заявки',
   );
+});
+
+it.each([true, false])('opens a prefilled review with Buddy cookie=%s, submitting only on click', async (cookie) => {
+  if (!cookie) document.cookie = 'ai_buddy_account=; Max-Age=0; Path=/';
+  window.history.replaceState(null, '', '/?template=dwh&profile=olga');
+  await mount();
+  await hasText('Проверьте заявку');
+  expect(accessClient).toHaveBeenCalledWith('olga');
+  expect(container.textContent).toContain('delivery.orders_mart');
+  expect(api.submit).not.toHaveBeenCalled();
+  await act(async () => window.dispatchEvent(new Event('focus')));
+  expect(api.submit).not.toHaveBeenCalled();
+  api.submit.mockResolvedValue(record);
+  await submitForm();
+  expect(api.submit).toHaveBeenCalledWith(
+    expect.objectContaining({ resource_key: 'delivery.orders_mart', permission: 'read', duration_days: 30 }),
+    expect.any(String),
+  );
+  window.history.replaceState(null, '', '/');
+});
+it('rejects unknown preset links without creating a request', async () => {
+  window.history.replaceState(null, '', '/?template=foreign-resource');
+  await mount();
+  await hasText('Этот раздел доступов недоступен');
+  expect(api.submit).not.toHaveBeenCalled();
+  window.history.replaceState(null, '', '/');
 });

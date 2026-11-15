@@ -1,3 +1,4 @@
+import { prefilledRequest } from './prefill';
 import { SelectionAssistant } from '../../../web/frontend/src/SelectionAssistant';
 
 import { readServiceProfileQuery } from '../../../web/frontend/src/service-session';
@@ -46,23 +47,27 @@ export function AccessForm({
   template,
   onSubmit,
   onClose,
+  initialInput,
 }: {
+  initialInput?: RequestInput;
   template: AccessTemplate & { resources?: LiveTemplate['resources'] };
   onSubmit: (input: RequestInput) => void | Promise<void>;
   onClose: () => void;
 }) {
-  const [input, setInput] = useState<RequestInput>({
-    template_id: template.id,
-    catalog_version: catalogVersion,
-    system: template.system,
-    resource_key: '',
-    justification: '',
-    permission: template.levels[0],
-    duration_days: 30,
-    fields: {},
-  });
+  const [input, setInput] = useState<RequestInput>(
+    initialInput || {
+      template_id: template.id,
+      catalog_version: catalogVersion,
+      system: template.system,
+      resource_key: '',
+      justification: '',
+      permission: template.levels[0],
+      duration_days: 30,
+      fields: {},
+    },
+  );
   const [pending, setPending] = useState(false);
-  const [review, setReview] = useState(false);
+  const [review, setReview] = useState(Boolean(initialInput));
   const [error, setError] = useState('');
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -338,6 +343,8 @@ function Portal({ account }: { account: AccountId }) {
   const [notice, setNotice] = useState('');
   const [pending, setPending] = useState(true);
   const [template, setTemplate] = useState<LiveTemplate>();
+  const [initialInput, setInitialInput] = useState<RequestInput>();
+  const presetHandled = useRef(false);
   const [selected, setSelected] = useState<string | undefined>(
     () => new URLSearchParams(window.location.search).get('request') || undefined,
   );
@@ -358,6 +365,23 @@ function Portal({ account }: { account: AccountId }) {
         });
         setLiveTemplates(catalog.templates as LiveTemplate[]);
         setRequests(records);
+        if (!presetHandled.current) {
+          presetHandled.current = true;
+          const params = new URLSearchParams(window.location.search);
+          const target = params.get('template');
+          if (target) {
+            try {
+              if (!isProfileId(account) || (params.get('profile') && params.get('profile') !== account))
+                throw new Error('Откройте ссылку из своего аккаунта стажёра.');
+              const chosen = catalog.templates.find((item) => item.id === target) as LiveTemplate | undefined;
+              if (!chosen) throw new Error('Этот раздел доступов недоступен вашему профилю.');
+              setInitialInput(prefilledRequest(account, chosen));
+              setTemplate(chosen);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : 'Не удалось заполнить заявку.');
+            }
+          }
+        }
       })
       .catch((e: unknown) => {
         if (active) setError(e instanceof Error ? e.message : 'Не удалось прочитать серверные заявки.');
@@ -557,7 +581,17 @@ function Portal({ account }: { account: AccountId }) {
           </>
         )}
       </main>
-      {template && <AccessForm template={template} onSubmit={submit} onClose={() => setTemplate(undefined)} />}
+      {template && (
+        <AccessForm
+          template={template}
+          initialInput={initialInput?.template_id === template.id ? initialInput : undefined}
+          onSubmit={submit}
+          onClose={() => {
+            setTemplate(undefined);
+            setInitialInput(undefined);
+          }}
+        />
+      )}
       {selectedRequest && (
         <RequestDetails
           request={selectedRequest}
