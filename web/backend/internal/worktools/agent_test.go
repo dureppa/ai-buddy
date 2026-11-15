@@ -12,6 +12,7 @@ import (
 	"github.com/dureppa/ai-buddy/web/backend/internal/buddy"
 	"github.com/stretchr/testify/require"
 )
+
 func testCatalog(t *testing.T) *Catalog {
 	t.Helper()
 	c, err := NewExternal("https://tools.example.com", "test-work-tool-secret-32-characters")

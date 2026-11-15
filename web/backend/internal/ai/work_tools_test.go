@@ -10,6 +10,7 @@ import (
 	"github.com/dureppa/ai-buddy/web/backend/internal/worktools"
 	"github.com/stretchr/testify/require"
 )
+
 type workRepo struct{ *fakeRepo }
 
 func (r *workRepo) ProfileByID(ctx context.Context, id string) (buddy.Profile, error) {
