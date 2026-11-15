@@ -21,7 +21,7 @@ uv run --locked python -m evals.harness --provider deepseek --model deepseek-fla
 uv run --locked python -m evals.harness --provider ollama --model qwen3:4b-q4_K_M --allow-live-llm
 ```
 
-Используются настоящий Flask test client, текущий DirectRunner/provider и production-фабрика MCP в режиме go_http с синтетическим authenticator/backend. MCP SDK работает через ASGITransport внутри процесса; настоящий Go/MCP HTTP и БД не вызываются. Каталог — все 11 CONTRACTS, кроме submit_access_request без явного permission `access:submit` в fixture context. Это тестовая выдача разрешений, не проверка Go AccessIntent/ACL. Поля личности и ожидаемые calls/facts не передаются LLM.
+Используются настоящий Flask test client, текущий DirectRunner/provider и production-фабрика MCP в режиме go_http с синтетическим authenticator/backend. MCP SDK работает через ASGITransport внутри процесса; настоящий Go/MCP HTTP и БД не вызываются. Каталог — все 13 CONTRACTS, кроме submit_access_request без явного permission `access:submit` в fixture context. Это тестовая выдача разрешений, не проверка Go AccessIntent/ACL. Поля личности и ожидаемые calls/facts не передаются LLM.
 
 Backend harness выдаёт синтетические fixtures соответствующего кейса, сохраняет реально вызванные tools/args/results и явно инъецирует предусмотренные отказы. Он **не измеряет качество реального поиска Go или demo-поиска**: документы сценария заданы заранее. Он не вызывает инструменты по эталонному плану вместо модели. Смысл запроса query проверяется отдельно assisted/human review, совпадение имени tool само по себе не означает правильный выбор данных.
 
@@ -31,7 +31,7 @@ Backend harness выдаёт синтетические fixtures соответ�
 Схемы ready-fixtures проверяются до первого запроса к LLM. При неизвестном
 инструменте/аргументах нет успешного fallback.
 
-`current-tools.json` содержит синтетические контрактные примеры всех 11 tools.
+`current-tools.json` содержит синтетические контрактные примеры всех 13 tools.
 `tests/test_current_harness.py` проводит их через Flask/DeepSeek wire format/SDK
 с mock LLM. Это не новый размеченный golden-набор и не результат живой LLM.
 CLI по-прежнему использует прежний agent-v1; кейсов новых действий в нём нет.

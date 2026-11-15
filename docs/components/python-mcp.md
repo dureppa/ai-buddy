@@ -79,7 +79,7 @@ HTTP-адаптер: `uv run --locked pytest tests/test_go_http.py` провер
 
 [SDD 007](../specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
 get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
-Максимум — 11 tools; submit_access_request объявляется только при AccessIntent текущего turn.
+Максимум — 13 tools; submit_access_request объявляется только при AccessIntent текущего turn.
 Два новых инструмента чтения/подготовки доступны при настройке serviceactions.
 Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
 POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
@@ -87,3 +87,8 @@ X-Request-ID, TTL и ACL. local_demo остаётся с двумя read tools.
 Поиск включает сохранённые Confluence-страницы продукта и общие гайды; заявки
 портала/чата общие в PostgreSQL. Повторы идемпотентны; receipt из БД, approved
 не является granted. Исторические ограничения выше относятся к предыдущим срезам.
+
+SDD 009 добавляет get_work_tools и get_work_tool_context; максимум grants — 13.
+Каталог соответствует текущему профилю, контекст читает один самостоятельный
+рабочий сервис и возвращает записи с якорями. Новых выполняющих tools нет.
+Длинные данные ограничены и маркируются has_more/truncated. local_demo прежний.

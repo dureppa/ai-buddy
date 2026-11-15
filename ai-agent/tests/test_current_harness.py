@@ -188,7 +188,9 @@ def test_deepseek_report_metadata_no_ollama_or_holdout(
         "requested-model", tmp_path, provider="deepseek", allow_live_llm=True
     )
     report = json.loads(path.read_text())
-    assert report["provider"] == "deepseek" and len(report["runtime_tools"]) == 11
+    assert report["provider"] == "deepseek" and set(report["runtime_tools"]) == set(
+        CONTRACTS
+    )
     assert report["tool_schema_sha256"] != report["dataset_tool_schema_sha256"]
     assert report["summary"]["blocked"] == 2 and report["holdout_executed"] is False
     assert "private-report-key" not in path.read_text()
@@ -324,7 +326,7 @@ def test_submit_is_not_advertised_without_fixture_permission(
 
     def model(request: httpx.Request) -> httpx.Response:
         names = {t["function"]["name"] for t in json.loads(request.content)["tools"]}
-        assert "submit_access_request" not in names and len(names) == 10
+        assert set(names) == set(CONTRACTS) - {"submit_access_request"}
         return httpx.Response(
             200,
             json={

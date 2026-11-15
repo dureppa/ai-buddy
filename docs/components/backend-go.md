@@ -295,3 +295,9 @@ X-Request-ID, TTL и ACL. local_demo остаётся с двумя read tools.
 Поиск MCP по knowledge_articles использует русский полнотекстовый поиск
 PostgreSQL: значимые слова объединяются через OR, заголовок имеет больший вес,
 чем содержимое. Полный вопрос не обязан встречаться в статье дословно.
+
+`internal/worktools/agent.go` предоставляет каталог и проекцию записей для MCP.
+GET /internal/v1/ai/work-tools и POST /internal/v1/ai/work-tools/context используют
+тот же resource-token, X-Request-ID и проверенный TeamID. Новых профилей/URL в
+аргументах нет. Клиент проверяет team ответа, ограничивает размер/время,
+не следует redirect и не использует env proxy. [SDD 009](../specs/009-agent-role-tools.md).
