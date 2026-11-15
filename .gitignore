@@ -21,20 +21,26 @@ __pycache__/
 .coverage.*
 htmlcov/
 *.egg-info/
-/services/ai-python/build/
-/services/ai-python/dist/
+/ai-agent/build/
+/ai-agent/dist/
 
 # JavaScript and TypeScript
 node_modules
 *.tsbuildinfo
-/apps/*/build/
-/apps/*/dist/
-/apps/*/coverage/
+/web/build/
+/extension/build/
+/ops/service-sites/build/
+/web/dist/
+/extension/dist/
+/ops/service-sites/dist/
+/web/coverage/
+/extension/coverage/
+/ops/service-sites/coverage/
 
 # Go
 *.test
-/services/backend-go/bin/
-/services/backend-go/coverage.out
+/web/backend/bin/
+/web/backend/coverage.out
 
 # Server-only credentials and nginx authentication
 /.deploy/

@@ -1,0 +1,260 @@
+{
+  "search_knowledge": {
+    "arguments": {
+      "query": "учебная инструкция",
+      "limit": 3
+    },
+    "data": {
+      "documents": [
+        {
+          "source": {
+            "id": "synthetic",
+            "title": "Учебный источник",
+            "url": "https://demo.example/source",
+            "version": "1",
+            "is_demo": true
+          },
+          "excerpt": "Демонстрационные данные для проверки контракта."
+        }
+      ]
+    }
+  },
+  "get_team_context": {
+    "arguments": {},
+    "data": {
+      "team": null,
+      "mentor": null,
+      "lead": null,
+      "references": []
+    }
+  },
+  "get_onboarding_progress": {
+    "arguments": {},
+    "data": {
+      "tasks": [
+        {
+          "id": "consent-news",
+          "title": "Учебное ознакомление",
+          "status": "pending"
+        }
+      ],
+      "next_task_id": "consent-news",
+      "references": []
+    }
+  },
+  "get_task_context": {
+    "arguments": {
+      "task_id": "consent-news"
+    },
+    "data": {
+      "task_id": "consent-news",
+      "title": "Учебное ознакомление",
+      "guidance": "Прочитать учебную карточку.",
+      "action_url": "/consents",
+      "references": []
+    }
+  },
+  "get_task_evidence": {
+    "arguments": {
+      "task_id": "consent-news"
+    },
+    "data": {
+      "task_id": "consent-news",
+      "items": [
+        {
+          "version": "1",
+          "kind": "consent",
+          "confirmed": false,
+          "summary": "Подтверждения нет."
+        }
+      ],
+      "references": []
+    }
+  },
+  "get_knowledge_page": {
+    "arguments": {
+      "page_id": "demo-page"
+    },
+    "data": {
+      "page": {
+        "id": "demo-page",
+        "product_id": null,
+        "parent_id": null,
+        "kind": "guide",
+        "title": "Учебный гайд",
+        "body": "Учебная инструкция.",
+        "version": 1,
+        "updated_at": "2026-11-15T00:00:00Z"
+      },
+      "references": []
+    }
+  },
+  "get_access_catalog": {
+    "arguments": {},
+    "data": {
+      "version": 1,
+      "templates": [],
+      "context": {
+        "profile_id": "demo",
+        "product_id": "demo",
+        "job_role": "intern",
+        "name": "Тест",
+        "team_name": "Учебная команда",
+        "can_review": false
+      },
+      "references": []
+    }
+  },
+  "get_access_requests": {
+    "arguments": {},
+    "data": {
+      "requests": [],
+      "references": []
+    }
+  },
+  "submit_access_request": {
+    "arguments": {
+      "template_id": "dwh",
+      "catalog_version": 1,
+      "system": "DWH",
+      "resource_key": "demo.table",
+      "justification": "Учебное исследование данных",
+      "permission": "read",
+      "duration_days": 30,
+      "fields": {
+        "usage": "Исследование"
+      }
+    },
+    "data": {
+      "request": {
+        "id": "11111111-1111-4111-8111-111111111111",
+        "number": "ДОС-DEMO-1",
+        "status": "submitted",
+        "system": "DWH",
+        "resource_key": "demo.table",
+        "permission": "read",
+        "duration_days": 30
+      },
+      "references": [
+        {
+          "id": "access-demo",
+          "title": "Учебная заявка",
+          "url": "https://demo.example/requests/1",
+          "version": "1",
+          "is_demo": true
+        }
+      ]
+    }
+  },
+  "get_service_context": {
+    "arguments": {
+      "service": "benefits"
+    },
+    "data": {
+      "service": "benefits",
+      "benefit_budget": 100,
+      "benefit_left": 100,
+      "options": [
+        {
+          "id": "book",
+          "title": "Учебник",
+          "description": "Учебный бенефит",
+          "amount": 10,
+          "available": true
+        }
+      ],
+      "requests": [],
+      "has_more": false,
+      "references": []
+    }
+  },
+  "prepare_service_action": {
+    "arguments": {
+      "action": {
+        "operation": "request_benefit",
+        "benefit": "book"
+      }
+    },
+    "data": {
+      "draft": {
+        "id": "22222222-2222-4222-8222-222222222222",
+        "service": "benefits",
+        "operation": "request_benefit",
+        "state": "prepared",
+        "title": "Учебный черновик",
+        "fields": [
+          {
+            "label": "Бенефит",
+            "value": "Учебник"
+          }
+        ],
+        "expires_at": "2099-01-01T00:00:00Z",
+        "service_url": "https://demo.example/benefits",
+        "result": ""
+      },
+      "references": [
+        {
+          "id": "action-demo",
+          "title": "Подтвердить учебное действие",
+          "url": "/actions/22222222-2222-4222-8222-222222222222",
+          "version": "1",
+          "is_demo": true
+        }
+      ]
+    }
+  },
+  "get_work_tools": {
+    "arguments": {},
+    "data": {
+      "tools": [
+        {
+          "id": "redash",
+          "name": "Redash",
+          "area": "Аналитика",
+          "read_tool": "get_work_tool_context"
+        }
+      ],
+      "references": [
+        {
+          "id": "work-tools:demo",
+          "title": "Инструменты",
+          "url": "/tools",
+          "version": "1",
+          "is_demo": true
+        }
+      ]
+    }
+  },
+  "get_work_tool_context": {
+    "arguments": {
+      "service": "redash"
+    },
+    "data": {
+      "service": "redash",
+      "name": "Redash",
+      "area": "Аналитика",
+      "records": [
+        {
+          "id": "funnel",
+          "title": "Воронка",
+          "status": "Готов",
+          "description": "Учебная метрика",
+          "fields": {
+            "Конверсия": "68%"
+          },
+          "truncated": false
+        }
+      ],
+      "has_more": false,
+      "references": [
+        {
+          "id": "work-tools:demo",
+          "title": "Инструменты",
+          "url": "/tools",
+          "version": "1",
+          "is_demo": true
+        }
+      ]
+    }
+  }
+}

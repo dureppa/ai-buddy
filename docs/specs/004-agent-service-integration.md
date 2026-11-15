@@ -1,7 +1,7 @@
 # SDD 004. DeepSeek и живые сервисы
 
-`AI_LLM_PROVIDER=deepseek` выбирает облачный Chat Completions через существующий
-httpx; ollama остаётся вариантом по умолчанию. Обязателен DEEPSEEK_API_KEY,
+Продуктовый запуск задаёт `AI_LLM_PROVIDER=deepseek` и вызывает Chat Completions через существующий
+httpx. Обязателен DEEPSEEK_API_KEY,
 DEEPSEEK_MODEL=deepseek-flash, фиксированный HTTPS DEEPSEEK_BASE_URL.
 Ключи, история и сырые ответы не логируются. Thinking выключен. Каждый tool
 result связан с исходным tool_call_id. Assessment использует JSON mode и
@@ -51,15 +51,14 @@ awaiting_review / needs_revision → completed. Стажёр отправляе�
 Отзыв согласия до review блокирует одобрение. После завершения задания отзыв
 добровольного согласия не отменяет факт пройденного обучения.
 
-## DeepSeek-only Compose
+## Compose
 
-Compose запускает только DeepSeek API: сервисы ollama/model, образ Ollama,
-скачивание весов и том модели удалены. Flask имеет собственный сетевой namespace;
+Compose запускает DeepSeek. Flask имеет собственный сетевой namespace;
 MCP использует namespace Flask и loopback:8002. Go вызывает http://agent:8001.
 Agent readiness проверяет конфигурацию; MCP стартует после запуска agent.
 MCP остаётся loopback-only, Python-порты не публикуются на хосте.
-Корневой .env содержит DEEPSEEK_API_KEY; настройки локальной модели не используются.
-check-agent.sh проверяет маршрут через Go и не прогревает локальную модель.
+Корневой .env содержит DEEPSEEK_API_KEY.
+check-agent.sh проверяет маршрут через Go.
 
 ### Исправление пропуска инструментов и лишней панели
 

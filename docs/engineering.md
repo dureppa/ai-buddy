@@ -14,7 +14,7 @@
 - Оформляй код в стиле PEP 8 с учётом настроек Ruff. Аннотируй аргументы и возвращаемые значения новых функций. Для данных из HTTP, MCP и LLM проверяй форму и значения при получении. Аннотации помогают статической проверке, а входные данные проверяются при выполнении. [PEP 8](https://peps.python.org/pep-0008/), [mypy](https://mypy.readthedocs.io/en/stable/getting_started.html)
 - Группируй проверки однотипных входов через параметризацию pytest. Используй фикстуры для повторяющейся подготовки и очистки состояния. [Параметризация pytest](https://pytest.org/en/latest/how-to/parametrize.html), [фикстуры pytest](https://pytest.org/en/latest/how-to/fixtures.html)
 
-| Команда из `services/ai-python/` | Проверка |
+| Команда из `ai-agent/` | Проверка |
 | --- | --- |
 | `uv run --locked ruff format --check .` | Форматирование. |
 | `uv run --locked ruff check .` | Линтинг. |
@@ -28,7 +28,7 @@
 - Используй конкретные типы и обрабатывай возвращённые ошибки. Передавай `context.Context` первым параметром в операции, которым нужны отмена или дедлайн, и сохраняй контекст входящего запроса при обращении к другим сервисам. [Go Code Review Comments](https://go.dev/wiki/CodeReviewComments)
 - Пиши тесты в `*_test.go` со стандартным пакетом `testing`. Для нескольких вариантов одного поведения используй табличный тест и именованные подтесты через `t.Run`. В сообщении об ошибке показывай вход, фактический и ожидаемый результат. [Go Test Comments](https://go.dev/wiki/TestComments)
 
-| Команда из `services/backend-go/` | Проверка |
+| Команда из `web/backend/` | Проверка |
 | --- | --- |
 | `gofmt -l .` | Список файлов, которым нужно форматирование. Ожидается пустой вывод. |
 | `go vet ./...` | Статический анализ подозрительных конструкций. |
@@ -41,7 +41,7 @@
 
 - Используй TypeScript в строгом режиме и проверяй внешние данные на границе API. Для серверного состояния веба используй TanStack Query, для проверки формы ответа и входных данных — Zod.
 - Добавляй тесты на Vitest для логики, обработки ответов и состояний интерфейса. Настрой `tsc --noEmit` и `vitest run` при появлении конфигурации и исходников. [Vitest](https://vitest.dev/guide/)
-- Текущая фронтенд-версия работает с локальным demo-adapter. Не подменяй его фиктивным HTTP-сервисом внутри `apps/web` и не переноси сюда Go или Python логику. API-клиент подключится отдельной задачей по [OpenAPI-контракту](../contracts/openapi.yaml).
+- В сборке Compose чат и страница подтверждения действия ходят в Go. Не подменяй ответ модели локальным текстом при ошибке API. Логику Go и Python во фронтенд не переноси.
 - Проверяй веб и расширение командами `npm run typecheck --workspaces`, `npm test --workspaces`, `npm run build --workspace=@ai-buddy/web` и `npm run build --workspace=@ai-buddy/extension`.
 
 ## Полный локальный набор
@@ -66,6 +66,6 @@ Go job CI запускает временную PostgreSQL 17, применяе�
 поэтому store-тесты и HR-регрессии больше не пропускаются из-за отсутствия БД.
 Для локального повторения задайте TEST_DATABASE_URL отдельной тестовой базы.
 
-Python CI/just проверяют также stdlib-скрипты scripts/deploy (Ruff, mypy и
-coverage). Тесты CD находятся в services/ai-python/tests/test_cd.py и проверяют
+Python CI/just проверяют также stdlib-скрипты ops/deploy (Ruff, mypy и
+coverage). Тесты CD находятся в ai-agent/tests/test_cd.py и проверяют
 archive validation, секреты, backup, идемпотентность и rollback без сервера.

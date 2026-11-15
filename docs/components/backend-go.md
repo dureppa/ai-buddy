@@ -2,7 +2,7 @@
 
 `internal/serviceactions` подключает четыре API, сохраняет подтверждения в PostgreSQL (миграция 11) и выполняет одну попытку после ручного confirm. Два внутренних POST-маршрута: /internal/v1/ai/service-context и /internal/v1/ai/service-actions/prepare. [Настройки и публичные маршруты](service-actions.md).
 
-## Живая AI-интеграция (14.11.2026)
+## Интеграция с агентом
 
 При AI_SERVICE_URL включается Go → Flask → Python MCP → Go. Обязательны отдельные
 AI_SERVICE_TOKEN, MCP_ADAPTER_SERVICE_TOKEN и AI_DELEGATION_SECRET (32+ символа).
@@ -27,40 +27,27 @@ evaluation_id, approve, note. Одобрение проверяет актуал
 сохраняет решение и completion вместе. Обход через обычный completion запрещён.
 Это переход учебного задания, не глобальная модель этапов стажировки.
 
-[SDD 004](../specs/004-agent-service-integration.md) заменяет прежние утверждения
-ниже о заглушке чата. Остальные baseline API сохраняются.
-
 
 ## Статус
 
-В компоненте реализованы **схема PostgreSQL, демонстрационные данные и HTTP API**.
-Веб-приложение и расширение могут переключиться с локального demo-adapter на реальный бэкенд.
+Go хранит профили, сессии, диалоги и черновики действий в PostgreSQL и отдаёт их вебу. При `AI_SERVICE_URL` чат идёт в Flask. Без адреса AI-сервиса ход возвращает `503` и не подменяется локальным текстом.
 
-Реализованные срезы:
-- Демонстрационные сессии с JWT и хэшированием токенов в БД.
-- Чек-лист адаптации с идемпотентной отметкой шагов.
-- Заявки на доступ с полной таблицей приёмки SDD 001 и моком корпоративного сервиса.
-- Системные уведомления.
-- Чат Buddy: Flask, история, источники и безопасные ошибки; без конфигурации AI — `503`.
-
-Реализованы пять MCP-чтений через Python MCP и учебный assessment/review согласий; остальные HR-интеграции не подключены. Схема и API подготовлены под [черновик OpenAPI](../../contracts/openapi.yaml) и сценарии [заявки на доступ](../specs/001-access-request.md) и [онбординга](../specs/002-onboarding-and-context.md). Дополнения контракта описаны в SDD 004.
+Чтения для агента включают команду, знания, прогресс, каталог доступов и страницы Confluence. `internal/serviceactions` читает найм, увольнения, бенефиты и Jira и сохраняет черновик до ручного подтверждения. Контракты: [OpenAPI](../../contracts/openapi.yaml), [SDD 001](../specs/001-access-request.md), [SDD 004](../specs/004-agent-service-integration.md), [SDD 008](../specs/008-remaining-agent-services.md).
 
 ## Назначение
 
 Для [запуска через Docker Compose](docker-compose.md) PostgreSQL, миграции и Go API настраиваются одной конфигурацией.
 
-Go-бэкенд предоставит API веб-приложению и расширению, проверит права пользователя,
-выполнит бизнес-операции и сохранит заявки и прогресс адаптации. Корпоративные сервисы
-имитируются.Responsibility разделена по [архитектуре](../architecture.md).
+Go API проверяет права, выполняет операции и хранит диалоги и черновики. Корпоративные сервисы имитируются отдельными процессами. Ответственность компонентов описана в [архитектуре](../architecture.md).
 
 ## Стек и требования
 
 - PostgreSQL **13+** — используется встроенный `gen_random_uuid()`.
 - Файлы миграций, сидов и кода в **UTF-8** (в номере заявки кириллическая `Д`).
-- Версии Go и библиотек зафиксированы в [go.mod](../../services/backend-go/go.mod),
-  [go.sum](../../services/backend-go/go.sum) и [стеке проекта](../stack.md):
+- Версии Go и библиотек зафиксированы в [go.mod](../../web/backend/go.mod),
+  [go.sum](../../web/backend/go.sum) и [стеке проекта](../stack.md):
   `pgx/v5 v5.12.0` (драйвер БД), `golang-jwt/jwt/v5 v5.3.1` (аутентификация),
-  `testify v1.11.1` (тесты). Официальный MCP Go SDK пока отсутствует в go.mod; версию нужно закрепить при реализации MCP.
+  `testify v1.11.1` (тесты). MCP реализован на Python, Go MCP SDK в модуль не входит.
 - Отдельный CLI для миграций не используется: файлы применяются через `psql` или GUI-клиент.
 
 ## Архитектура
@@ -75,16 +62,13 @@ Go-бэкенд предоставит API веб-приложению и рас
 ## Карта файлов
 
 ```text
-services/backend-go/
-├── migrations/
-│   ├── 01_identity.up.sql / .down.sql
-│   ├── 02_onboarding.up.sql / .down.sql
-│   ├── 03_access_requests.up.sql / .down.sql
-│   ├── 04_chat.up.sql / .down.sql
-│   └── 05_notifications_and_guides.up.sql / .down.sql
+web/backend/
+├── migrations/    # 01–11, актуальная схема — эти файлы
 └── seeds/
     └── demo.sql
 ```
+
+Миграции 06–11 добавляют учебное согласие, оценку наставника, команды четырёх продуктов, доступы и Confluence, черновики действий. Таблица ниже описывает исходные объекты 01–05. Для полного состава смотри файлы миграций.
 
 Создание схемы и наполнение разделены: `migrations/` — только DDL, `seeds/` — только данные.
 
@@ -138,7 +122,7 @@ services/backend-go/
 ## Демонстрационные данные
 
 `seeds/demo.sql` идемпотентен (`ON CONFLICT DO NOTHING`), выполняется в одной транзакции
-и согласован с `apps/web/frontend/src/data.ts`.
+и согласован с `web/frontend/src/data.ts`.
 
 ### Профили и права
 
@@ -203,11 +187,11 @@ done
 ```bash
 export DATABASE_URL="postgres://aibuddy:aibuddy@localhost:5432/aibuddy?sslmode=disable"
 
-for f in services/backend-go/migrations/*.up.sql; do
+for f in web/backend/migrations/*.up.sql; do
   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -1 -f "$f" || break
 done
 
-for f in $(ls -1r services/backend-go/migrations/*.down.sql); do
+for f in $(ls -1r web/backend/migrations/*.down.sql); do
   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -1 -f "$f" || break
 done
 ```
@@ -215,7 +199,7 @@ done
 Сид содержит собственные `BEGIN`/`COMMIT`, поэтому флаг `-1` для него не используется:
 
 ```bash
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f services/backend-go/seeds/demo.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f web/backend/seeds/demo.sql
 ```
 
 Откат удаляет таблицы вместе с данными — выполнять только на демонстрационной базе.
@@ -225,14 +209,14 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f services/backend-go/seeds/demo.sql
 
 ### Автоматические тесты
 ```bash
-cd services/backend-go
+cd web/backend
 go test -race ./...
 ```
 Три уровня тестов: Unit (buddy) с fake-хранилищами, HTTP (httpapi) через httptest, Интеграционные (store) против реальной БД aibuddy_test.
 
 ### Ручная проверка API
 ```bash
-cd services/backend-go
+cd web/backend
 go run ./cmd/server
 ```
 В другом терминале:
@@ -283,7 +267,7 @@ grafana — maria t, olga t, sasha f; прогресс — maria 12, olga 3, sas
 
 [SDD 007](../specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
 get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
-Максимум — 11 tools; submit_access_request объявляется только при AccessIntent текущего turn.
+Максимум — 13 tools; submit_access_request объявляется только при AccessIntent текущего turn.
 Два новых инструмента чтения/подготовки доступны при настройке serviceactions.
 Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
 POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
@@ -295,3 +279,9 @@ X-Request-ID, TTL и ACL. local_demo остаётся с двумя read tools.
 Поиск MCP по knowledge_articles использует русский полнотекстовый поиск
 PostgreSQL: значимые слова объединяются через OR, заголовок имеет больший вес,
 чем содержимое. Полный вопрос не обязан встречаться в статье дословно.
+
+`internal/worktools/agent.go` предоставляет каталог и проекцию записей для MCP.
+GET /internal/v1/ai/work-tools и POST /internal/v1/ai/work-tools/context используют
+тот же resource-token, X-Request-ID и проверенный TeamID. Новых профилей/URL в
+аргументах нет. Клиент проверяет team ответа, ограничивает размер/время,
+не следует redirect и не использует env proxy. [SDD 009](../specs/009-agent-role-tools.md).

@@ -12,33 +12,32 @@ CONFLUENCE_PUBLIC_URL — цитируемые ссылки Go; сервер и�
 
 ## Хранение и агент
 
-При WORK_TOOLS_ENABLED=true страницы читаются из отдельной БД buddy_tool_confluence.
-Существующие страницы переносятся при запуске с сохранением ссылок.
+Confluence запускается отдельным Go-процессом в Compose. Он читает таблицу
+`confluence_pages` в базе `buddy_tool_confluence` под ролью `buddy_confluence`.
+Миграция сохраняет страницы и версии, которые уже есть в этой базе.
+Если в основной базе остались более новые версии, миграция переносит их.
+Недостающие страницы добавляются из начального каталога.
 
-Используется существующая PostgreSQL Buddy, таблица confluence_pages: id,
-product_id, parent_id, kind, title, body, version, updated_at. Миграция 09 создаёт
-таблицу. Go при старте вставляет недостающие страницы из internal/portal/pages.json
-и ресурсы из каталога; существующие записи не перезаписывает. Изменения seed-файла
-не обновляют уже сохранённый текст: для обновления существующей страницы нужна
-явная миграция с новой версией.
+Buddy обращается к Confluence по `CONFLUENCE_API_URL`. Для чтения и поиска
+он выдаёт короткий токен с профилем и назначением `confluence`. Confluence
+проверяет токен локально и фильтрует результаты по продукту. Ссылки в чате
+указывают на `CONFLUENCE_PUBLIC_URL` и сохраняют параметр `page`.
 
-[HTTP-контракт](../../contracts/confluence.openapi.yaml),
-[спецификация](../specs/007-agent-access-confluence.md). search_knowledge выполняет
-PostgreSQL full-text поиск по доступным страницам и прежним общим статьям;
-get_knowledge_page читает полный текст по id. Оба проверяют профиль заново и
-возвращают id/версию/URL источника. Текст документа не даёт права на операции.
+[HTTP-контракт](../../contracts/confluence.openapi.yaml) и
+[спецификация](../specs/007-agent-access-confluence.md).
 
 ## Запуск и проверки
 
-`npm run dev --workspace=@ai-buddy/corporate-services -- confluence` — Vite 5191,
-API Go 8080. Общая сборка corporate-services создаёт dist/confluence. В Compose
-профиль hr публикует сайт в hr-web, отдельного контейнера/БД нет. Нужен Go с
-миграцией 09, DEMO_MODE и серверными сессиями. Выход Buddy закрывает сервис.
+```bash
+docker compose --profile hr up -d --build --wait confluence hr-web
+```
 
-- `services/confluence/frontend/api.ts`: HTTP/Zod, типы и разбор текстовых секций.
-- `page.tsx/style.css`: дерево, поиск, статья, ошибки и deep link ?page=ID.
-- `services/backend-go/internal/portal/knowledge.go`: ACL, чтение и поиск.
-- `pages.json`: начальные учебные материалы, связи и версии.
+Сайт открывается на 5191. Из открытой сессии Buddy используется её профиль.
+Для самостоятельного входа выбери демопрофиль на странице Confluence.
+API принимает выданные Confluence сессии и позволяет читать страницы при
+выключенном Buddy. Для разработки API доступен на 8191 и проксируется Vite.
 
-Vitest проверяет HTTP и экранирование HTML; Go PostgreSQL-тесты — разделение
-продуктов, поиск, источники, страницы и ошибки. Запускаются в существующих CI jobs.
+`COMPOSE_CONFLUENCE_DB_PASSWORD` задаёт пароль базы,
+`COMPOSE_CONFLUENCE_SESSION_SECRET` подписывает демосессии, а
+`COMPOSE_CONFLUENCE_DELEGATION_SECRET` связывает только Buddy и Confluence.
+Для серверного запуска задай отдельные значения в `.env`.

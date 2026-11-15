@@ -1,0 +1,18 @@
+{
+  "name": "Postman",
+  "area": "Коллекции запросов",
+  "records": [
+    {
+      "team": "autoteca",
+      "id": "report-lookup",
+      "title": "Автотека / поиск отчёта",
+      "status": "Последний ответ 404",
+      "description": "Последний учебный запрос вернул REPORT_NOT_FOUND.",
+      "fields": {
+        "Метод": "GET",
+        "Сценарий": "DEMO-VIN-017",
+        "Задача": "AUTO-1"
+      }
+    }
+  ]
+}

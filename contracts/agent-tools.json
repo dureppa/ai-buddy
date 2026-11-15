@@ -1,4 +1,393 @@
 {
+  "get_work_tools": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "EmptyArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        },
+        "WorkToolSummary": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "mattermost",
+                    "redash",
+                    "trino",
+                    "trisigma",
+                    "bitbucket",
+                    "paas",
+                    "grafana",
+                    "tms",
+                    "postman",
+                    "test-stand",
+                    "figma",
+                    "design-system",
+                    "design-review"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "jira",
+                    "confluence"
+                  ],
+                  "type": "string"
+                }
+              ],
+              "title": "Id"
+            },
+            "name": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Name",
+              "type": "string"
+            },
+            "area": {
+              "maxLength": 200,
+              "title": "Area",
+              "type": "string"
+            },
+            "read_tool": {
+              "enum": [
+                "get_work_tool_context",
+                "get_service_context",
+                "search_knowledge"
+              ],
+              "title": "Read Tool",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "area",
+            "read_tool"
+          ],
+          "title": "WorkToolSummary",
+          "type": "object"
+        },
+        "WorkToolsData": {
+          "additionalProperties": false,
+          "properties": {
+            "tools": {
+              "items": {
+                "$ref": "#/$defs/WorkToolSummary"
+              },
+              "maxItems": 15,
+              "title": "Tools",
+              "type": "array"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "minItems": 1,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "tools",
+            "references"
+          ],
+          "title": "WorkToolsData",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/WorkToolsData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "WorkToolsEnvelope",
+      "type": "object"
+    }
+  },
+  "get_work_tool_context": {
+    "arguments": {
+      "additionalProperties": false,
+      "properties": {
+        "service": {
+          "enum": [
+            "mattermost",
+            "redash",
+            "trino",
+            "trisigma",
+            "bitbucket",
+            "paas",
+            "grafana",
+            "tms",
+            "postman",
+            "test-stand",
+            "figma",
+            "design-system",
+            "design-review"
+          ],
+          "title": "Service",
+          "type": "string"
+        },
+        "record_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Id"
+        }
+      },
+      "required": [
+        "service"
+      ],
+      "title": "WorkContextArguments",
+      "type": "object"
+    },
+    "result": {
+      "$defs": {
+        "Source": {
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "version": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Version",
+              "type": "string"
+            },
+            "is_demo": {
+              "title": "Is Demo",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "url",
+            "id",
+            "version",
+            "is_demo"
+          ],
+          "title": "Source",
+          "type": "object"
+        },
+        "WorkContextData": {
+          "additionalProperties": false,
+          "properties": {
+            "service": {
+              "enum": [
+                "mattermost",
+                "redash",
+                "trino",
+                "trisigma",
+                "bitbucket",
+                "paas",
+                "grafana",
+                "tms",
+                "postman",
+                "test-stand",
+                "figma",
+                "design-system",
+                "design-review"
+              ],
+              "title": "Service",
+              "type": "string"
+            },
+            "name": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Name",
+              "type": "string"
+            },
+            "area": {
+              "maxLength": 200,
+              "title": "Area",
+              "type": "string"
+            },
+            "records": {
+              "items": {
+                "$ref": "#/$defs/WorkRecord"
+              },
+              "maxItems": 5,
+              "title": "Records",
+              "type": "array"
+            },
+            "has_more": {
+              "title": "Has More",
+              "type": "boolean"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "minItems": 1,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "service",
+            "name",
+            "area",
+            "records",
+            "has_more",
+            "references"
+          ],
+          "title": "WorkContextData",
+          "type": "object"
+        },
+        "WorkRecord": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "status": {
+              "maxLength": 200,
+              "title": "Status",
+              "type": "string"
+            },
+            "description": {
+              "maxLength": 2000,
+              "title": "Description",
+              "type": "string"
+            },
+            "fields": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "maxProperties": 24,
+              "title": "Fields",
+              "type": "object"
+            },
+            "truncated": {
+              "title": "Truncated",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "status",
+            "description",
+            "fields",
+            "truncated"
+          ],
+          "title": "WorkRecord",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "data": {
+          "$ref": "#/$defs/WorkContextData"
+        }
+      },
+      "required": [
+        "ok",
+        "data"
+      ],
+      "title": "WorkContextEnvelope",
+      "type": "object"
+    }
+  },
   "get_service_context": {
     "arguments": {
       "additionalProperties": false,

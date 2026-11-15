@@ -1,0 +1,18 @@
+{
+  "name": "PaaS",
+  "area": "Окружения и релизы",
+  "records": [
+    {
+      "team": "travel",
+      "id": "booking-stage",
+      "title": "booking-api · stage",
+      "status": "Развёрнуто",
+      "description": "Релиз 1.8.4 завершился в 12:00, пока проверяется на stage.",
+      "fields": {
+        "Версия": "1.8.4",
+        "Предыдущая": "1.8.3",
+        "Задача": "TRV-1"
+      }
+    }
+  ]
+}

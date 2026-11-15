@@ -1,65 +1,38 @@
-# Локальный запуск через Docker Compose
+# Запуск через Docker Compose
 
-Go получает URL найма/увольнений/бенефитов/Jira и отдельный ключ Jira автоматически. Для Jira добавь профиль jira; server overlay уже включает её. Внешние ссылки строятся из PUBLIC_HR_ORIGIN. [Подтверждение действий](service-actions.md).
+Проверка для жюри описана в [README](../../README.md). Эта страница — состав контейнеров.
 
-Compose использует DeepSeek API. Ollama, контейнер загрузки модели и том весов
-удалены. Локальная LLM не скачивается. Docker скачивает обычные образы приложения,
-Python, Go, nginx и PostgreSQL.
-
-В корневом `.env` укажите DEEPSEEK_API_KEY, DEEPSEEK_MODEL=deepseek-flash и
-DEEPSEEK_BASE_URL=https://api.deepseek.com; пример — `.env.example`. Файл
-`services/ai-python/.env` сам по себе не подставляет значения в Compose.
-Не публикуйте вывод `docker compose config` с реальным ключом.
+В корневом `.env` укажи `DEEPSEEK_API_KEY`. Модель и адрес берутся из `.env.example`: `deepseek-flash` и `https://api.deepseek.com`. Файл `ai-agent/.env` в Compose не подставляется. Не публикуй вывод `docker compose config` с настоящим ключом.
 
 ```bash
-docker compose --profile hr up -d --build --remove-orphans --wait --wait-timeout 900
+docker compose --profile hr --profile jira up -d --build --wait --wait-timeout 900
 ```
 
-Веб: http://127.0.0.1:5173/. Go API доступен через `/api/v1/`.
-Чат, учебная оценка знаний и review согласий используют сервер. Остальные
-baseline-экраны пока используют браузерное демо.
+Веб: http://127.0.0.1:5173/. В этой сборке чат ходит в Go и DeepSeek. Без ключа ответ модели не подменяется.
 
-PostgreSQL поднимается первым. `migrate` применяет миграции и сиды с журналом
-`schema_migrations`. Данные БД сохраняются в томе postgres. Обычный `down` их
-сохраняет; `down -v` удаляет данные и не нужен для смены LLM.
+PostgreSQL поднимается первым. `migrate` применяет миграции и сиды. Обычный `down` сохраняет том, `down -v` удаляет данные.
 
-Flask работает в контейнере agent; MCP использует его сетевой namespace и
-слушает loopback:8002. Go вызывает `http://agent:8001`, MCP читает `http://go:8080`.
-Python и PostgreSQL не публикуют порты на хосте. Секреты Go→Flask, MCP→Go и
-подписи делегаций разделены в `.env.example`.
+Flask слушает в контейнере `agent` на порту 8001. MCP в режиме `go_http` слушает loopback:8002 и читает `http://go:8080`. На хост порты Python и PostgreSQL не публикуются. Секреты Go→Flask, MCP→Go и подписи делегаций разделены в `.env.example`.
 
 ## Проверка
 
 ```bash
 docker compose ps
 curl -fsS http://127.0.0.1:5173/
-sh docker/check-agent.sh
 ```
 
-Последняя команда делает платный запрос через Go→Flask→DeepSeek→MCP→Go на
-синтетическом профиле olga. Локального прогрева и скачивания модели нет.
-Отсутствующий/неверный API-ключ даёт ошибку вместо demo-ответа.
+`sh ops/docker/check-agent.sh` делает платный запрос Go → Flask → DeepSeek → MCP → Go от профиля `olga`. Для маршрута жюри достаточно интерфейса.
 
-## Внешние корпоративные сервисы
+## Сервисы
 
-Профиль `hr` включает сайты 5181–5188 и Go API 8181–8188. Каждый HR API использует
-отдельную БД. Согласия, документы и мероприятия подключены к серверу; остальные
-пять сайтов пока работают на браузерных данных. [Подробности](corporate-services.md).
+Профиль `hr` поднимает учебные HR-сайты и их API. Профиль `jira` добавляет Jira со своей базой. UI Jira — http://127.0.0.1:5189/. Портал доступов — 5190, Confluence — 5191. Остальные учебные инструменты — с 5192. Карта адресов: [corporate-services](corporate-services.md), [jira](jira.md), [доступы](access-portal.md), [Confluence](confluence.md).
 
-Для учебного маршрута выберите один профиль в Buddy и на сайте согласий,
-предоставьте учебное согласие, спросите о подтверждении consent-news, отправьте
-ответ в блоке проверки знаний на странице чата. Затем войдите наставником,
-одобрите оценку и обновите статус стажёра. Глобальный этап стажировки не меняется.
+Агент читает эти API и готовит черновик. Подтверждение в вебе описано в [service-actions](service-actions.md).
+
+Остановка:
 
 ```bash
-docker compose --profile hr down
+docker compose --profile hr --profile jira down
 ```
 
-[Публикация на сервере](server-deployment.md) использует отдельный overlay с
-паролем nginx; PUBLIC_HR_ORIGIN/PUBLIC_WEB_ORIGIN задают внешние ссылки при сборке.
-
-## Jira
-
-`docker compose --profile hr --profile jira up --build -d` добавляет самостоятельную БД, миграции и API Jira. UI на 5189, API внутри сети на 8189. [Настройки и ограничения CD](jira.md).
-
-Портал доступов входит в hr-web на 5190, Confluence — на 5191. Оба используют Go API и PostgreSQL Buddy после миграции 09. [Доступы](access-portal.md), [база знаний](confluence.md).
+Публикация на сервере с паролем nginx описана в [server-deployment](server-deployment.md). Jira в этом же запуске открывается на http://127.0.0.1:5189/, портал доступов — на 5190, Confluence — на 5191.

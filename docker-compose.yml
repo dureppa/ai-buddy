@@ -11,7 +11,7 @@ x-python: &python
   image: ai-buddy-python:local
   build:
     context: .
-    dockerfile: docker/Dockerfile.python
+    dockerfile: ops/docker/Dockerfile.python
 
 x-hr: &hr
   profiles: [hr]
@@ -32,6 +32,28 @@ x-hr-env: &hr-env
   PGADMIN_PASSWORD: ${COMPOSE_DB_PASSWORD:-local-aibuddy-secret}
   SESSION_SECRET: ${COMPOSE_SESSION_SECRET:-local-demo-session-change-for-shared-host}
   TZ: Europe/Moscow
+
+x-work-tool: &work-tool
+  image: ${COMPOSE_PROJECT_NAME:-ai-buddy}-work-tool:local
+  build:
+    context: .
+    dockerfile: ops/docker/Dockerfile.go
+    args: { MODULE: tools, ENTRY: ./work-tool }
+  depends_on:
+    work-tool-migrate:
+      condition: service_completed_successfully
+  healthcheck:
+    test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8200/health"]
+    interval: 3s
+    timeout: 3s
+    retries: 15
+
+x-work-tool-env: &work-tool-env
+  PGHOST: db
+  HTTP_ADDR: ":8200"
+  DEMO_MODE: "true"
+  SESSION_SECRET: ${COMPOSE_WORK_TOOL_SESSION_SECRET:-local-work-tool-session-secret-change-me}
+  TOOL_DELEGATION_SECRET: ${COMPOSE_WORK_TOOL_DELEGATION_SECRET:-local-work-tool-delegation-secret-change-me}
 
 services:
   db:
@@ -56,26 +78,33 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./docker/migrate.sh:/migrate.sh:ro
-      - ./services/backend-go/migrations:/migrations:ro
-      - ./services/backend-go/seeds:/seeds:ro
+      - ./ops/docker/migrate.sh:/migrate.sh:ro
+      - ./web/backend/migrations:/migrations:ro
+      - ./web/backend/seeds:/seeds:ro
     entrypoint: ["sh", "/migrate.sh"]
 
   go:
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
     environment:
       <<: *database-env
       DEMO_MODE: "true"
       JIRA_API_URL: ${JIRA_API_URL:-http://jira:8189}
       JIRA_PUBLIC_URL: ${JIRA_PUBLIC_URL:-${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5189}
+      WORK_TOOLS_EXTERNAL: "true"
+      WORK_TOOL_DELEGATION_SECRET: ${COMPOSE_WORK_TOOL_DELEGATION_SECRET:-local-work-tool-delegation-secret-change-me}
+      WORK_TOOLS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5192
       WORK_TOOLS_ENABLED: ${COMPOSE_WORK_TOOLS_ENABLED:-true}
       AI_SERVICE_URL: http://agent:8001
       AI_SERVICE_TOKEN: ${COMPOSE_AI_TOKEN:-local-demo-flask-token}
       MCP_ADAPTER_SERVICE_TOKEN: ${COMPOSE_MCP_ADAPTER_TOKEN:-local-demo-adapter-token}
       AI_DELEGATION_SECRET: ${COMPOSE_DELEGATION_SECRET:-local-demo-delegation-change-for-shared-host}
+      ACCESS_API_URL: http://access:8190
+      ACCESS_DELEGATION_SECRET: ${COMPOSE_ACCESS_DELEGATION_SECRET:-local-access-delegation-secret-change-me}
       ACCESS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5190/
+      CONFLUENCE_API_URL: http://confluence:8191
+      CONFLUENCE_DELEGATION_SECRET: ${COMPOSE_CONFLUENCE_DELEGATION_SECRET:-local-confluence-delegation-secret-change-me}
       CONFLUENCE_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5191/
       HR_ABSENCES_URL: http://hr-absences:8181
       HR_TRIPS_URL: http://hr-trips:8182
@@ -144,7 +173,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: docker/Dockerfile.web
+      dockerfile: ops/docker/Dockerfile.web
       target: web
       args:
         PUBLIC_HR_ORIGIN: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}
@@ -163,12 +192,12 @@ services:
     profiles: [hr]
     build:
       context: .
-      dockerfile: docker/Dockerfile.web
+      dockerfile: ops/docker/Dockerfile.web
       target: hr-web
       args:
         PUBLIC_WEB_ORIGIN: ${PUBLIC_WEB_ORIGIN:-http://127.0.0.1:${AI_BUDDY_WEB_PORT:-5173}}
     ports:
-      - "127.0.0.1:5181-5191:5181-5191"
+      - "127.0.0.1:5181-5192:5181-5192"
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5181/"]
       interval: 3s
@@ -180,9 +209,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/absences
+        MODULE: corporate-services/absences
         ENTRY: .
     environment:
       <<: *hr-env
@@ -198,9 +227,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/trips
+        MODULE: corporate-services/trips
         ENTRY: .
     environment:
       <<: *hr-env
@@ -216,9 +245,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/hiring
+        MODULE: corporate-services/hiring
         ENTRY: .
     environment:
       <<: *hr-env
@@ -234,9 +263,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/offboarding
+        MODULE: corporate-services/offboarding
         ENTRY: .
     environment:
       <<: *hr-env
@@ -252,9 +281,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/consents
+        MODULE: corporate-services/consents
         ENTRY: .
     environment:
       <<: *hr-env
@@ -270,9 +299,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/benefits
+        MODULE: corporate-services/benefits
         ENTRY: .
     environment:
       <<: *hr-env
@@ -288,9 +317,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/documents
+        MODULE: corporate-services/documents
         ENTRY: .
     environment:
       <<: *hr-env
@@ -306,9 +335,9 @@ services:
     <<: *hr
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/hr/events
+        MODULE: corporate-services/events
         ENTRY: .
     environment:
       <<: *hr-env
@@ -319,6 +348,249 @@ services:
       PGDATABASE: hr_events
     ports:
       - "127.0.0.1:8188:8188"
+
+  access-migrate:
+    image: postgres:17-alpine
+    environment:
+      <<: *database-env
+      ACCESS_DB_PASSWORD: ${COMPOSE_ACCESS_DB_PASSWORD:-local-access-db-password}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./corporate-services/access:/data:ro
+    entrypoint: [sh, /data/migrate.sh]
+
+  access:
+    build:
+      context: .
+      dockerfile: ops/docker/Dockerfile.access
+    environment:
+      PGHOST: db
+      PGUSER: buddy_access
+      PGDATABASE: buddy_access
+      PGPASSWORD: ${COMPOSE_ACCESS_DB_PASSWORD:-local-access-db-password}
+      HTTP_ADDR: ":8190"
+      SESSION_SECRET: ${COMPOSE_ACCESS_SESSION_SECRET:-local-access-session-secret-change-me}
+      ACCESS_DELEGATION_SECRET: ${COMPOSE_ACCESS_DELEGATION_SECRET:-local-access-delegation-secret-change-me}
+      DEMO_MODE: "true"
+    ports:
+      - "127.0.0.1:8190:8190"
+    depends_on:
+      access-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8190/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  confluence-migrate:
+    image: postgres:17-alpine
+    environment:
+      <<: *database-env
+      CONFLUENCE_DB_PASSWORD: ${COMPOSE_CONFLUENCE_DB_PASSWORD:-local-confluence-db-password}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./tools/confluence/migrate.sh:/migrate-confluence.sh:ro
+      - ./web/backend/internal/portal/pages.json:/data/confluence-pages.json:ro
+    entrypoint: [sh, /migrate-confluence.sh]
+
+  confluence:
+    build:
+      context: .
+      dockerfile: ops/docker/Dockerfile.go
+      args:
+        MODULE: tools
+        ENTRY: ./confluence
+    environment:
+      PGHOST: db
+      PGUSER: buddy_confluence
+      PGDATABASE: buddy_tool_confluence
+      PGPASSWORD: ${COMPOSE_CONFLUENCE_DB_PASSWORD:-local-confluence-db-password}
+      HTTP_ADDR: ":8191"
+      SESSION_SECRET: ${COMPOSE_CONFLUENCE_SESSION_SECRET:-local-confluence-session-secret-change-me}
+      CONFLUENCE_DELEGATION_SECRET: ${COMPOSE_CONFLUENCE_DELEGATION_SECRET:-local-confluence-delegation-secret-change-me}
+      DEMO_MODE: "true"
+    ports:
+      - "127.0.0.1:8191:8191"
+    depends_on:
+      confluence-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8191/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  work-tool-migrate:
+    image: postgres:17-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      <<: *database-env
+      TOOL_MATTERMOST_DB_PASSWORD: ${COMPOSE_TOOL_MATTERMOST_DB_PASSWORD:-local-mattermost-db-password}
+      TOOL_REDASH_DB_PASSWORD: ${COMPOSE_TOOL_REDASH_DB_PASSWORD:-local-redash-db-password}
+      TOOL_TRINO_DB_PASSWORD: ${COMPOSE_TOOL_TRINO_DB_PASSWORD:-local-trino-db-password}
+      TOOL_TRISIGMA_DB_PASSWORD: ${COMPOSE_TOOL_TRISIGMA_DB_PASSWORD:-local-trisigma-db-password}
+      TOOL_BITBUCKET_DB_PASSWORD: ${COMPOSE_TOOL_BITBUCKET_DB_PASSWORD:-local-bitbucket-db-password}
+      TOOL_PAAS_DB_PASSWORD: ${COMPOSE_TOOL_PAAS_DB_PASSWORD:-local-paas-db-password}
+      TOOL_GRAFANA_DB_PASSWORD: ${COMPOSE_TOOL_GRAFANA_DB_PASSWORD:-local-grafana-db-password}
+      TOOL_TMS_DB_PASSWORD: ${COMPOSE_TOOL_TMS_DB_PASSWORD:-local-tms-db-password}
+      TOOL_POSTMAN_DB_PASSWORD: ${COMPOSE_TOOL_POSTMAN_DB_PASSWORD:-local-postman-db-password}
+      TOOL_TEST_STAND_DB_PASSWORD: ${COMPOSE_TOOL_TEST_STAND_DB_PASSWORD:-local-test-stand-db-password}
+      TOOL_FIGMA_DB_PASSWORD: ${COMPOSE_TOOL_FIGMA_DB_PASSWORD:-local-figma-db-password}
+      TOOL_DESIGN_SYSTEM_DB_PASSWORD: ${COMPOSE_TOOL_DESIGN_SYSTEM_DB_PASSWORD:-local-design-system-db-password}
+      TOOL_DESIGN_REVIEW_DB_PASSWORD: ${COMPOSE_TOOL_DESIGN_REVIEW_DB_PASSWORD:-local-design-review-db-password}
+    volumes:
+      - ./tools:/data:ro
+    entrypoint: [sh, /data/work-tool/migrate.sh]
+
+  tool-mattermost:
+    <<: *work-tool
+    environment:
+      <<: *work-tool-env
+      WORK_TOOL: mattermost
+      PGUSER: buddy_tool_mattermost
+      PGDATABASE: buddy_tool_mattermost
+      PGPASSWORD: ${COMPOSE_TOOL_MATTERMOST_DB_PASSWORD:-local-mattermost-db-password}
+    volumes:
+      - ./tools/mattermost:/data/mattermost:ro
+
+  tool-redash:
+    <<: *work-tool
+    environment:
+      <<: *work-tool-env
+      WORK_TOOL: redash
+      PGUSER: buddy_tool_redash
+      PGDATABASE: buddy_tool_redash
+      PGPASSWORD: ${COMPOSE_TOOL_REDASH_DB_PASSWORD:-local-redash-db-password}
+    volumes:
+      - ./tools/redash:/data/redash:ro
+
+  tool-trino:
+    <<: *work-tool
+    environment:
+      <<: *work-tool-env
+      WORK_TOOL: trino
+      PGUSER: buddy_tool_trino
+      PGDATABASE: buddy_tool_trino
+      PGPASSWORD: ${COMPOSE_TOOL_TRINO_DB_PASSWORD:-local-trino-db-password}
+    volumes:
+      - ./tools/trino:/data/trino:ro
+
+  tool-trisigma:
+    <<: *work-tool
+    environment:
+      <<: *work-tool-env
+      WORK_TOOL: trisigma
+      PGUSER: buddy_tool_trisigma
+      PGDATABASE: buddy_tool_trisigma
+      PGPASSWORD: ${COMPOSE_TOOL_TRISIGMA_DB_PASSWORD:-local-trisigma-db-password}
+    volumes:
+      - ./tools/trisigma:/data/trisigma:ro
+
+  tool-bitbucket:
+    <<: *work-tool
+    environment:
+      <<: *work-tool-env
+      WORK_TOOL: bitbucket
+      PGUSER: buddy_tool_bitbucket
+      PGDATABASE: buddy_tool_bitbucket
+      PGPASSWORD: ${COMPOSE_TOOL_BITBUCKET_DB_PASSWORD:-local-bitbucket-db-password}
+    volumes:
+      - ./tools/bitbucket:/data/bitbucket:ro
+
+  tool-paas:
+    <<: *work-tool
+    environment:
+      <<: *work-tool-env
+      WORK_TOOL: paas
+      PGUSER: buddy_tool_paas
+      PGDATABASE: buddy_tool_paas
+      PGPASSWORD: ${COMPOSE_TOOL_PAAS_DB_PASSWORD:-local-paas-db-password}
+    volumes:
+      - ./tools/paas:/data/paas:ro
+
+  tool-grafana:
+    <<: *work-tool
+    environment:
+      <<: *work-tool-env
+      WORK_TOOL: grafana
+      PGUSER: buddy_tool_grafana
+      PGDATABASE: buddy_tool_grafana
+      PGPASSWORD: ${COMPOSE_TOOL_GRAFANA_DB_PASSWORD:-local-grafana-db-password}
+    volumes:
+      - ./tools/grafana:/data/grafana:ro
+
+  tool-tms:
+    <<: *work-tool
+    environment:
+      <<: *work-tool-env
+      WORK_TOOL: tms
+      PGUSER: buddy_tool_tms
+      PGDATABASE: buddy_tool_tms
+      PGPASSWORD: ${COMPOSE_TOOL_TMS_DB_PASSWORD:-local-tms-db-password}
+    volumes:
+      - ./tools/tms:/data/tms:ro
+
+  tool-postman:
+    <<: *work-tool
+    environment:
+      <<: *work-tool-env
+      WORK_TOOL: postman
+      PGUSER: buddy_tool_postman
+      PGDATABASE: buddy_tool_postman
+      PGPASSWORD: ${COMPOSE_TOOL_POSTMAN_DB_PASSWORD:-local-postman-db-password}
+    volumes:
+      - ./tools/postman:/data/postman:ro
+
+  tool-test-stand:
+    <<: *work-tool
+    environment:
+      <<: *work-tool-env
+      WORK_TOOL: test-stand
+      PGUSER: buddy_tool_test_stand
+      PGDATABASE: buddy_tool_test_stand
+      PGPASSWORD: ${COMPOSE_TOOL_TEST_STAND_DB_PASSWORD:-local-test-stand-db-password}
+    volumes:
+      - ./tools/test-stand:/data/test-stand:ro
+
+  tool-figma:
+    <<: *work-tool
+    environment:
+      <<: *work-tool-env
+      WORK_TOOL: figma
+      PGUSER: buddy_tool_figma
+      PGDATABASE: buddy_tool_figma
+      PGPASSWORD: ${COMPOSE_TOOL_FIGMA_DB_PASSWORD:-local-figma-db-password}
+    volumes:
+      - ./tools/figma:/data/figma:ro
+
+  tool-design-system:
+    <<: *work-tool
+    environment:
+      <<: *work-tool-env
+      WORK_TOOL: design-system
+      PGUSER: buddy_tool_design_system
+      PGDATABASE: buddy_tool_design_system
+      PGPASSWORD: ${COMPOSE_TOOL_DESIGN_SYSTEM_DB_PASSWORD:-local-design-system-db-password}
+    volumes:
+      - ./tools/design-system:/data/design-system:ro
+
+  tool-design-review:
+    <<: *work-tool
+    environment:
+      <<: *work-tool-env
+      WORK_TOOL: design-review
+      PGUSER: buddy_tool_design_review
+      PGDATABASE: buddy_tool_design_review
+      PGPASSWORD: ${COMPOSE_TOOL_DESIGN_REVIEW_DB_PASSWORD:-local-design-review-db-password}
+    volumes:
+      - ./tools/design-review:/data/design-review:ro
 
   jira-db:
     profiles: [jira]
@@ -348,18 +620,18 @@ services:
       jira-db:
         condition: service_healthy
     volumes:
-      - ./docker/migrate.sh:/migrate.sh:ro
-      - ./services/jira/migrations:/migrations:ro
-      - ./services/jira/seeds:/seeds:ro
+      - ./ops/docker/migrate.sh:/migrate.sh:ro
+      - ./tools/jira/migrations:/migrations:ro
+      - ./tools/jira/seeds:/seeds:ro
     entrypoint: ['sh', '/migrate.sh']
 
   jira:
     profiles: [jira]
     build:
       context: .
-      dockerfile: docker/Dockerfile.go
+      dockerfile: ops/docker/Dockerfile.go
       args:
-        MODULE: services/jira
+        MODULE: tools/jira
         ENTRY: .
     environment:
       PGHOST: jira-db

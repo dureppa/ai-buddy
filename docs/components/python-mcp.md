@@ -1,41 +1,25 @@
 # Python MCP: demo и Go HTTP
 
-Актуальный go_http поддерживает максимум 11 tools, включая get_service_context и prepare_service_action. Последний сохраняет только черновик: confirm отсутствует в MCP. Jira patch передаётся с exclude_unset на всех трёх границах; явный null очищает только исполнителя/срок. [Подключение](service-actions.md).
+Актуальный go_http поддерживает максимум 13 tools, включая get_service_context и prepare_service_action. Последний сохраняет только черновик: confirm отсутствует в MCP. Jira patch передаётся с exclude_unset на всех трёх границах; явный null очищает только исполнителя/срок. [Подключение](service-actions.md).
 
-## Дополнение: живой Go и личный прогресс
+## Что читает Go
 
-Go реализует resolve и пять чтений из [SDD 004](../specs/004-agent-service-integration.md).
-Go HTTP backend дополнен get_onboarding_progress, get_task_context(task_id),
-get_task_evidence(task_id); последняя функция читает актуальные согласия из HR API.
-GET /internal/v1/ai/onboarding/progress, POST task-context/task-evidence находятся
-под /internal/v1/ai/onboarding/. Все результаты содержат references.
-Модель не получает профиль или токены как аргументы tools.
-ActiveContext допускает до 11 grants. В локальном demo выдаются только два исходных
-инструмента; новые данные не подменяются фикстурами. Для Compose GO_API_URL может
-быть http://go:8080 — это единственное дополнение к прежним HTTP loopback origins.
+Go проверяет делегацию и отдаёт чтения из [SDD 004](../specs/004-agent-service-integration.md), [SDD 008](../specs/008-remaining-agent-services.md) и [SDD 009](../specs/009-agent-role-tools.md): прогресс, контекст задачи, свидетельство согласия, команда, знания, найм, увольнения, бенефиты, Jira и рабочие инструменты направления. Модель не получает профиль или токены аргументами. В Compose `GO_API_URL=http://go:8080`. Учебный корпус `demo` не подменяет ответ, если Go недоступен.
 
 
-Реализован отдельный сервер с двумя инструментами search_knowledge/get_team_context. SDK 1.30.0, stateless Streamable HTTP, JSON-ответы; Flask остаётся отдельным HTTP-входом агента. Доступны явные backend-режимы demo и go_http. Python HTTP-адаптер проверен на моках; настоящие Go endpoints и сквозной Go/UI-маршрут здесь не проверены. Шесть бизнес-интеграций не добавлены этими двумя чтениями. [Инструкция для Go](../integrations/go-python-mcp.md).
+В Compose MCP запущен в режиме `go_http` и читает Go. Flask остаётся отдельным входом агента. SDK 1.30.0, stateless Streamable HTTP. Режим `demo` с учебным корпусом нужен только для изолированной проверки инструментов без Go. [Инструкция для Go](../integrations/go-python-mcp.md).
 
 ## Запуск
 
-В [Docker Compose](docker-compose.md) MCP запускается в режиме demo и использует синтетический корпус.
+Рабочий запуск — [Docker Compose](docker-compose.md): `MCP_BACKEND=go_http`, `GO_API_URL=http://go:8080`.
 
-Из `services/ai-python`, после `uv sync --locked`:
-
-```bash
-MCP_DEMO_ENABLED=true MCP_DEMO_TOKEN=local-demo-token MCP_DEMO_PROFILE=alex uv run --locked python -m ai_buddy.mcp_server
-```
-
-Слушает только `127.0.0.1:8002`. Проверка: GET `http://127.0.0.1:8002/health/live` → mode=local_demo, go_connected=false. Для MCP нужен `Authorization: Bearer local-demo-token`. Другой профиль demo — nina; профиль выбирается при запуске, не аргументом LLM. Токен примера локальный, не использовать его в общей среде. Сервер не запускается без явного включения/непустого секрета.
-
-Для Flask в другом терминале:
+Локально из `ai-agent` после `uv sync --locked`:
 
 ```bash
-AI_AGENT_ENABLED=true AI_SERVICE_TOKEN=local-flask-token OLLAMA_MODEL=qwen3:4b-q4_K_M MCP_URL=http://127.0.0.1:8002/mcp uv run --locked flask --app ai_buddy:create_app run --host 127.0.0.1 --port 8001
+MCP_BACKEND=go_http GO_API_URL=http://127.0.0.1:8080 MCP_ADAPTER_SERVICE_TOKEN=replace-with-shared-adapter-secret uv run --locked python -m ai_buddy.mcp_server
 ```
 
-Ollama и установленная модель нужны отдельно. В TurnRequest передать delegation_token, равный выбранному локальному MCP_DEMO_TOKEN; bearer вызова Flask — AI_SERVICE_TOKEN. Это **demo-привязка**, не реализация будущей делегации Go с TTL/audience. Запросы двух клиентов могут выполняться параллельно; контекст не хранится в глобальном mutable user field. Сервер не требует установленной LLM для прямых вызовов инструментов.
+Слушает только `127.0.0.1:8002`. Flask рядом запускается командой из [ai-python](ai-python.md) с `MCP_URL=http://127.0.0.1:8002/mcp`. В ход передаётся делегация Go, а не демотокен. `AI_SERVICE_TOKEN` и `MCP_ADAPTER_SERVICE_TOKEN` — разные секреты.
 
 ## Данные и ограничения
 
@@ -45,15 +29,9 @@ Ollama и установленная модель нужны отдельно. �
 
 ## Режим Go HTTP
 
-После реализации Go API по инструкции запусти MCP из services/ai-python:
+`GO_API_URL` — только фиксированный origin. HTTP допускается для localhost/127.0.0.1/::1, для других адресов нужен HTTPS; запрещены userinfo, пути, query и fragment. Новых библиотек нет. Настройки считываются из окружения; .env.example — образец, файл .env автоматически не загружается. MCP слушает только 127.0.0.1:8002; контейнерное/удалённое развёртывание и полноценный OAuth остаются отдельной задачей.
 
-```bash
-MCP_BACKEND=go_http GO_API_URL=http://127.0.0.1:8080 MCP_ADAPTER_SERVICE_TOKEN=replace-with-shared-adapter-secret uv run --locked python -m ai_buddy.mcp_server
-```
-
-GO_API_URL — только фиксированный origin. HTTP допускается для localhost/127.0.0.1/::1, для других адресов нужен HTTPS; запрещены userinfo, пути, query и fragment. Новых библиотек нет. Настройки считываются из окружения; .env.example — образец, файл .env автоматически не загружается. MCP слушает только 127.0.0.1:8002; контейнерное/удалённое развёртывание и полноценный OAuth остаются отдельной задачей.
-
-Flask запускается прежней командой с MCP_URL=http://127.0.0.1:8002/mcp. В delegation_token передаётся выпущенная Go короткоживущая делегация, а не MCP_DEMO_TOKEN. AI_SERVICE_TOKEN (Go → Flask) и MCP_ADAPTER_SERVICE_TOKEN (MCP → Go resolve) — разные секреты.
+Flask запускается командой из [ai-python](ai-python.md) с `MCP_URL=http://127.0.0.1:8002/mcp`. В `delegation_token` передаётся короткоживущая делегация Go. `AI_SERVICE_TOKEN` и `MCP_ADAPTER_SERVICE_TOKEN` — разные секреты.
 
 Каждый MCP HTTP-запрос проверяет делегацию через POST /internal/v1/ai/context/resolve. Активный контекст содержит subject, UUID запроса/диалога, allowed_tools, UTC-срок и отдельный api_token; исходный bearer не пересылается в ресурсные API. Discovery учитывает разрешения, tools/call дополнительно проверяет request-id из _meta, TTL и аргументы. ContextVar изолирует параллельных пользователей и сбрасывается при завершении/отмене. Кеширования делегаций нет; Go отвечает за привязки и актуальные ACL на каждом чтении.
 
@@ -79,7 +57,7 @@ HTTP-адаптер: `uv run --locked pytest tests/test_go_http.py` провер
 
 [SDD 007](../specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
 get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
-Максимум — 11 tools; submit_access_request объявляется только при AccessIntent текущего turn.
+Максимум — 13 tools; submit_access_request объявляется только при AccessIntent текущего turn.
 Два новых инструмента чтения/подготовки доступны при настройке serviceactions.
 Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
 POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
@@ -87,3 +65,8 @@ X-Request-ID, TTL и ACL. local_demo остаётся с двумя read tools.
 Поиск включает сохранённые Confluence-страницы продукта и общие гайды; заявки
 портала/чата общие в PostgreSQL. Повторы идемпотентны; receipt из БД, approved
 не является granted. Исторические ограничения выше относятся к предыдущим срезам.
+
+SDD 009 добавляет get_work_tools и get_work_tool_context; максимум grants — 13.
+Каталог соответствует текущему профилю, контекст читает один самостоятельный
+рабочий сервис и возвращает записи с якорями. Новых выполняющих tools нет.
+Длинные данные ограничены и маркируются has_more/truncated. local_demo прежний.
