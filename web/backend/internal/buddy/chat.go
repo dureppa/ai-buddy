@@ -100,3 +100,13 @@ func (s *Chat) SubmitReview(ctx context.Context, profile, answer string) (TaskRe
 	}
 	return a.SubmitReview(ctx, profile, answer)
 }
+
+// KnowledgeSearchQuery expands a colloquial term without generating an answer.
+func KnowledgeSearchQuery(query string) string {
+	if strings.Contains(strings.ToLower(query), "отгул") && !strings.Contains(strings.ToLower(query), "отпуск") {
+		const suffix = " отпуск"
+		runes := []rune(query)
+		return string(runes[:min(len(runes), 500-utf8.RuneCountInString(suffix))]) + suffix
+	}
+	return query
+}

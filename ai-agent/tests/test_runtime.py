@@ -415,9 +415,19 @@ def test_recovery_tool_failure_keeps_domain_error(
 
 
 @pytest.mark.parametrize("with_task", [False, True])
+@pytest.mark.parametrize(
+    ("message", "reply"),
+    [
+        ("салам алейкум", "Ва алейкум ассалам!"),
+        ("ты тут?", "Да, я тут. Чем помочь?"),
+        ("Чем можешь помочь?", "Помогу разобраться с задачами и инструментами."),
+    ],
+)
 def test_deepseek_greeting_skips_knowledge_search_and_returns_no_sources(
     monkeypatch: pytest.MonkeyPatch,
     with_task: bool,
+    message: str,
+    reply: str,
 ) -> None:
     from pydantic import SecretStr
 
@@ -427,7 +437,7 @@ def test_deepseek_greeting_skips_knowledge_search_and_returns_no_sources(
 
     def handle(request: httpx.Request) -> httpx.Response:
         sent.append(json.loads(request.content))
-        return httpx.Response(200, json=deepseek_response("Ва алейкум ассалам!"))
+        return httpx.Response(200, json=deepseek_response(reply))
 
     client, factory = runtime_client(
         monkeypatch,
@@ -451,7 +461,7 @@ def test_deepseek_greeting_skips_knowledge_search_and_returns_no_sources(
     )
     answer = post(
         client,
-        message="салам алейкум",
+        message=message,
         history=[
             {
                 "role": "assistant",
@@ -461,7 +471,7 @@ def test_deepseek_greeting_skips_knowledge_search_and_returns_no_sources(
         **extra,
     )
     assert answer.status_code == 200
-    assert answer.json["reply"] == {"text": "Ва алейкум ассалам!", "references": []}
+    assert answer.json["reply"] == {"text": reply, "references": []}
     assert len(sent) == 1
     assert not sent[0].get("tools")
     assert not factory.session.calls

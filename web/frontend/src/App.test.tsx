@@ -6,7 +6,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from './App';
 import { apiFetch, askBackend, readBackendConversation } from './backend';
-import { readWorkspace } from './demo';
+import { readWorkspace, writeWorkspace } from './demo';
+import { tasksFor } from './checklist';
 import { demoSessionKey } from './demo-session';
 import { profiles, type ProfileId } from './demo-accounts';
 import { surveys } from './surveys';
@@ -1152,4 +1153,146 @@ it('sends exactly the visible in-progress task and updates it after checking the
     status: 'in_progress',
     task: { label: next.querySelector('strong')!.textContent },
   });
+});
+
+it('completes the last practice memo by text, keeps retries idempotent and tells the next request the plan is complete', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  writeWorkspace(localStorage, 'olga', {
+    completed: tasksFor('olga')
+      .filter((t) => t.id !== 'practice-memo')
+      .map((t) => t.id),
+    requests: [],
+  });
+  vi.mocked(apiFetch).mockImplementation(async (_profile, path) =>
+    path === '/api/v1/onboarding/surveys' ? Response.json(['first', 'midpoint', 'final']) : defaultAPIResponse(path),
+  );
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Изучи памятку по закрытию практики.' });
+  await mount('/chat');
+  await enterMessage('С чего начать сегодня?');
+  await click(await button('Отправить сообщение'));
+  await waitForElement(() =>
+    container.querySelector('.chat-task-completion strong')?.textContent?.includes('закрытию практики'),
+  );
+  await vi.waitFor(async () => expect((await button('Отметить выполненной')).disabled).toBe(false));
+  await enterMessage('ознакомился');
+  await click(await button('Отправить сообщение'));
+  expect((await button('Выполнено ✓')).disabled).toBe(true);
+  const completed = readWorkspace(localStorage, 'olga');
+  expect(completed.completed).toContain('practice-memo');
+  expect(completed.requests).toEqual([]);
+  expect(askBackend).toHaveBeenCalledTimes(1);
+  await enterMessage('готово');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(readWorkspace(localStorage, 'olga')).toEqual(completed));
+  await enterMessage('Что делать дальше?');
+  await vi.waitFor(async () => expect((await button('Отправить сообщение')).disabled).toBe(false));
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(askBackend).mock.calls[1][2]?.checklist).toEqual({ status: 'completed' });
+});
+
+it('completes a task from the Buddy panel and restores its actual checklist checkbox after reload', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  await mount('/home');
+  await click(await button('Открыть панель Buddy'));
+  await click(await button('Отметить выполненной'));
+  await button('Выполнено ✓');
+  expect(readWorkspace(localStorage, 'olga').completed).toContain('dev-principles');
+  expect(askBackend).not.toHaveBeenCalled();
+  await act(async () => root.unmount());
+  root = createRoot(container);
+  client.clear();
+  await mount('/onboarding');
+  const checkbox = await waitForElement(() =>
+    container.querySelector('[role="checkbox"][aria-label="Принципы продуктовой аналитики"]'),
+  );
+  expect(checkbox.getAttribute('aria-checked')).toBe('true');
+});
+
+it('confirms the explicitly discussed task instead of a different current task', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Прочитай памятку.' });
+  await mount('/onboarding?task=practice-memo');
+  const detail = await waitForElement(() =>
+    container.querySelector('dialog[aria-label="Изучи памятку по закрытию практики"]'),
+  );
+  const discuss = [...detail.querySelectorAll('button')].find(
+    (item) => item.textContent?.trim() === 'Разобрать пункт',
+  )!;
+  await click(discuss);
+  await waitForElement(() => {
+    const title = container.querySelector('.chat-task-completion strong');
+    return title?.textContent?.includes('закрытию практики') ? title : null;
+  });
+  await click(await button('Отметить выполненной'));
+  await button('Выполнено ✓');
+  expect(readWorkspace(localStorage, 'olga').completed).toContain('practice-memo');
+  expect(readWorkspace(localStorage, 'olga').completed).not.toContain('dev-principles');
+});
+
+it('does not report success after a storage failure and allows a successful retry', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  await mount('/chat');
+  const confirm = await button('Отметить выполненной');
+  const save = vi.spyOn(localStorage, 'setItem').mockImplementationOnce(() => {
+    throw new Error('Storage unavailable');
+  });
+  await click(confirm);
+  await waitForElement(() =>
+    container.querySelector('[role="log"]')?.textContent?.includes('Не удалось сохранить отметку'),
+  );
+  expect(readWorkspace(localStorage, 'olga').completed).not.toContain('dev-principles');
+  save.mockRestore();
+  await click(await button('Отметить выполненной'));
+  await button('Выполнено ✓');
+  expect(readWorkspace(localStorage, 'olga').completed).toContain('dev-principles');
+});
+
+it('opens the required survey instead of faking its completion from chat', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  writeWorkspace(localStorage, 'olga', {
+    completed: tasksFor('olga')
+      .filter((t) => !t.id.startsWith('internship-survey'))
+      .map((t) => t.id),
+    requests: [],
+  });
+  await mount('/chat');
+  await click(await button('Заполнить анкету'));
+  await button('Далее');
+  expect(container.querySelector('dialog')?.getAttribute('aria-label')).toBe(surveys.first.title);
+  expect(readWorkspace(localStorage, 'olga').completed).not.toContain('internship-survey-first');
+  expect(askBackend).not.toHaveBeenCalled();
+  expect(vi.mocked(apiFetch).mock.calls.some(([, , init]) => init?.method === 'PUT')).toBe(false);
+});
+
+it('opens the absence service from a task discussion even without an LLM and never marks that task complete', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  const before = readWorkspace(localStorage, 'olga');
+  vi.mocked(askBackend).mockResolvedValueOnce({ kind: 'answer', text: 'Прочитай памятку.' });
+  await mount('/onboarding?task=practice-memo');
+  const detail = await waitForElement(() =>
+    container.querySelector('dialog[aria-label="Изучи памятку по закрытию практики"]'),
+  );
+  await click([...detail.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Разобрать пункт')!);
+  await waitForElement(() =>
+    container.querySelector('.chat-task-completion strong')?.textContent?.includes('закрытию практики'),
+  );
+  vi.mocked(askBackend).mockRejectedValue(new Error('LLM unavailable'));
+  await enterMessage('Как оформить отгул?');
+  await vi.waitFor(async () => expect((await button('Отправить сообщение')).disabled).toBe(false));
+  await click(await button('Отправить сообщение'));
+  const service = await waitForElement(() =>
+    container.querySelector<HTMLAnchorElement>('a[href^="http://localhost:5181/"]'),
+  );
+  expect(new URL(service.href).searchParams.get('profile')).toBe('olga');
+  await waitForElement(() => container.querySelector('.buddy-chat-error'));
+  expect(askBackend).toHaveBeenCalledTimes(2);
+  expect(vi.mocked(askBackend).mock.calls[1][2]?.selection).toBeUndefined();
+  expect(container.querySelector('.buddy-task-context')).toBeNull();
+  expect(container.querySelector('.chat-task-completion')).toBeNull();
+  await enterMessage('готово');
+  await click(await button('Отправить сообщение'));
+  await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('Выбери задачу в плане'));
+  expect(readWorkspace(localStorage, 'olga')).toEqual(before);
+  expect(askBackend).toHaveBeenCalledTimes(2);
 });

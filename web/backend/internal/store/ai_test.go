@@ -83,6 +83,7 @@ func TestAIKnowledgeSearchNaturalQuestions(t *testing.T) {
 		firstID string
 	}{
 		{"Как оформить отпуск?", "timeoff"},
+		{"Как оформить отгул?", "timeoff"},
 		{"ОТПУСКОМ", "timeoff"},
 		{"  отпуск!!!  ", "timeoff"},
 		{"Как проверить микрофон?", "equipment"},
