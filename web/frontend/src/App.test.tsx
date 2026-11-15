@@ -10,7 +10,7 @@ import { readWorkspace } from './demo';
 import { demoSessionKey } from './demo-session';
 import { readServiceQuestions } from './service-questions';
 import { saveMaterial } from './staff-data';
-import { toolViews } from './WorkToolViews';
+import { toolViews } from '../../../tools/shared/frontend/WorkToolViews';
 
 const backendMode = vi.hoisted(() => ({ enabled: true }));
 vi.mock('./backend', () => ({

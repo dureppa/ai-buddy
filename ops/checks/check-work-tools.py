@@ -1,4 +1,3 @@
-import glob
 import json
 import pathlib
 import urllib.error
@@ -21,11 +20,11 @@ def login(port, path, profile):
     return json.loads(call(port, path, payload={"profile_id": profile}))["access_token"]
 
 
-files = sorted(glob.glob("tools/*/demo.json"))
+files = sorted(pathlib.Path("tools").glob("*/demo.json"))
 assert len(files) == 13
 for filename in files:
-    name = pathlib.Path(filename).parent.name
-    fixture = json.loads(pathlib.Path(filename).read_text())
+    name = filename.parent.name
+    fixture = json.loads(filename.read_text())
     team = fixture["records"][0]["team"]
     path = "/api/v1/work-tools/" + name
     assert b'<div id="root">' in call(5192, "/work-tools/" + name)

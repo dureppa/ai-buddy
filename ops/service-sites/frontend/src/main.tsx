@@ -59,7 +59,11 @@ createRoot(root).render(
     ) : __CORPORATE_SERVICE__ === 'access' ? (
       <AccessPortal />
     ) : (
-      <ServiceSession standaloneTitle={__CORPORATE_SERVICE__ === 'confluence' ? 'Войти в Confluence' : undefined}>
+      <ServiceSession
+        standaloneTitle={
+          service ? 'Выбрать демопрофиль' : __CORPORATE_SERVICE__ === 'jira' ? 'Войти в Jira' : 'Войти в Confluence'
+        }
+      >
         {(profileId) =>
           __CORPORATE_SERVICE__ === 'confluence' ? (
             <ConfluencePage profile={profileId} />
