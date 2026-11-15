@@ -107,6 +107,14 @@ jobs:
           go test -coverprofile=coverage.out -covermode=atomic ./...
           go tool cover -func=coverage.out
 
+      - name: Verify external tools without Buddy
+        run: |
+          docker compose -p ci-work-tools --profile hr build tool-grafana hr-web
+          trap 'docker compose -p ci-work-tools --profile hr down --volumes' EXIT
+          tools=$(docker compose -p ci-work-tools --profile hr config --services | sed -n '/^tool-/p')
+          docker compose -p ci-work-tools --profile hr up -d --no-build --wait --wait-timeout 180 hr-web $tools
+          python3 ops/checks/check-work-tools.py
+
   repository:
     name: repository
     runs-on: ubuntu-latest

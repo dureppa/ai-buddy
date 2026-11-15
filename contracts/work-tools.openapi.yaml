@@ -61,6 +61,38 @@ paths:
           description: Сервис не найден или недоступен команде
         '503':
           description: Хранилище недоступно
+  /api/v1/work-tools/{service}/demo/sessions:
+    post:
+      summary: Выдать сессию для отдельного инструмента в деморежиме
+      parameters:
+        - name: service
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [profile_id]
+              properties:
+                profile_id: { type: string }
+      responses:
+        '200':
+          description: Демосессия инструмента
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [access_token, profile_id]
+                properties:
+                  access_token: { type: string }
+                  profile_id: { type: string }
+        '400':
+          description: Неизвестный профиль или некорректный запрос
+        '404':
+          description: Демовход выключен
 components:
   securitySchemes:
     bearerAuth:

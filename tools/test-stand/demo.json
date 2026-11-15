@@ -1,0 +1,27 @@
+{
+  "name": "Стенд Автотеки",
+  "area": "Учебные отчёты",
+  "records": [
+    {
+      "team": "autoteca",
+      "id": "fixture-017",
+      "title": "DEMO-VIN-017",
+      "status": "404",
+      "description": "Учебная запись для сценария отсутствующего отчёта.",
+      "fields": {
+        "Ответ": "REPORT_NOT_FOUND",
+        "Задача": "AUTO-1"
+      }
+    },
+    {
+      "team": "autoteca",
+      "id": "fixture-018",
+      "title": "DEMO-VIN-018",
+      "status": "200",
+      "description": "Пример найденного отчёта.",
+      "fields": {
+        "Ответ": "REPORT_FOUND"
+      }
+    }
+  ]
+}

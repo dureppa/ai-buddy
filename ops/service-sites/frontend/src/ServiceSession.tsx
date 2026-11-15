@@ -13,10 +13,10 @@ function subscribe(onChange: () => void) {
 
 export function ServiceSession({
   children,
-  standalone = false,
+  standaloneTitle,
 }: {
   children: (profile: ProfileId) => ReactNode;
-  standalone?: boolean;
+  standaloneTitle?: string;
 }) {
   const [selected, setSelected] = useState<ProfileId>();
   const buddyProfile = useSyncExternalStore(
@@ -25,11 +25,11 @@ export function ServiceSession({
     () => null,
   );
   const profile = buddyProfile ?? selected;
-  if (!profile && standalone) {
+  if (!profile && standaloneTitle) {
     return (
       <main className="hr-page">
         <section className="panel hr-panel">
-          <h1>Войти в Confluence</h1>
+          <h1>{standaloneTitle}</h1>
           {Object.keys(profiles)
             .filter(isProfileId)
             .map((id) => (

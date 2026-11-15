@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { pageSchema } from './work-tool-data';
-import { apiFetch } from './backend';
+import { useWorkToolTransport } from './work-tool-transport';
 import type { ProfileId } from './demo-accounts';
 import { toolViews } from './WorkToolViews';
 import './work-tools.css';
 
 export function WorkToolPage({ profileId }: { profileId: ProfileId }) {
+  const apiFetch = useWorkToolTransport();
   const { service = '' } = useParams();
   const { hash } = useLocation();
   const [search, setSearch] = useState('');

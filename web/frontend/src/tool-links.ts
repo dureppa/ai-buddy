@@ -175,12 +175,14 @@ const roleTools: Record<ProfileId, readonly ToolGuide[]> = {
   ],
 };
 
+export const workToolsOrigin = import.meta.env.VITE_WORK_TOOLS_URL?.replace(/\/$/, '') ?? '';
+
 export function toolsFor(profileId: ProfileId): Tool[] {
   const knowledge = new URL(confluenceService.url);
   if (!knowledge.searchParams.has('page')) knowledge.searchParams.set('page', 'team-' + profiles[profileId].productId);
   const guides = [...roleTools[profileId], mattermost];
   const links = backendEnabled
-    ? guides.map((tool) => ({ ...tool, url: '/work-tools/' + tool.id, action: 'Открыть сервис' }))
+    ? guides.map((tool) => ({ ...tool, url: workToolsOrigin + '/work-tools/' + tool.id, action: 'Открыть сервис' }))
     : guides;
   return [...links.slice(0, -1), jiraService, { ...confluenceService, url: knowledge.toString() }, links.at(-1)!];
 }
