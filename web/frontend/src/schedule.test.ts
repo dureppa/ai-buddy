@@ -23,4 +23,29 @@ describe('personal schedule', () => {
     expect(readSchedule(reader, 'sasha')).toEqual([]);
     expect(readSchedule(reader, 'timur', now)).toHaveLength(3);
   });
+
+  it.each([
+    ['Созвон', 'blue'],
+    ['Встреча', 'mint'],
+    ['Напоминание', 'lilac'],
+  ] as const)('restores %s with its type color instead of the previously saved color', (kind, tone) => {
+    const event = {
+      id: 'existing',
+      title: 'Событие команды',
+      kind,
+      startsAt: '2026-11-17T10:00:00.000Z',
+      tone: 'pink',
+      description: 'Сохранённое описание',
+    };
+    const saved = JSON.stringify([event]);
+    const storage = { getItem: () => saved };
+    expect(readSchedule(storage, 'olga')).toEqual([{ ...event, tone }]);
+    expect(storage.getItem()).toBe(saved);
+  });
+
+  it.each(['olga', 'sasha', 'timur', 'maria'] as const)('uses green for all demo meetings of %s', (profile) => {
+    const events = readSchedule({ getItem: () => null }, profile, now);
+    expect(events.length).toBeGreaterThan(0);
+    expect(events.every(({ kind, tone }) => kind === 'Встреча' && tone === 'mint')).toBe(true);
+  });
 });
