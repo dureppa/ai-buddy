@@ -12,7 +12,7 @@ COPY corporate-services/access/frontend/ corporate-services/access/frontend/
 COPY web/backend/internal/portal/catalog.json web/backend/internal/portal/
 COPY corporate-services/ corporate-services/
 
-FROM build AS web-build
+FROM build AS configured-build
 ENV VITE_API_ENABLED=true
 ARG PUBLIC_HR_ORIGIN=http://127.0.0.1
 ENV VITE_WORK_TOOLS_URL=${PUBLIC_HR_ORIGIN}:5192
@@ -27,15 +27,16 @@ ENV VITE_ABSENCES_URL=${PUBLIC_HR_ORIGIN}:5181/ \
     VITE_JIRA_URL=${PUBLIC_HR_ORIGIN}:5189/ \
     VITE_ACCESS_URL=${PUBLIC_HR_ORIGIN}:5190/ \
     VITE_CONFLUENCE_URL=${PUBLIC_HR_ORIGIN}:5191/
+FROM configured-build AS web-build
 RUN npm run build --workspace=@ai-buddy/web
 
 FROM nginx:1.28-alpine AS web
 COPY --from=web-build /src/web/dist /usr/share/nginx/html
 COPY ops/docker/web.conf /etc/nginx/conf.d/default.conf
 
-FROM build AS hr-build
-ENV VITE_API_ENABLED=true
+FROM configured-build AS hr-build
 ARG PUBLIC_WEB_ORIGIN=http://127.0.0.1:5173
+ENV VITE_BUDDY_URL=${PUBLIC_WEB_ORIGIN}
 RUN npm run build --workspace=@ai-buddy/corporate-services
 
 FROM nginx:1.28-alpine AS hr-web

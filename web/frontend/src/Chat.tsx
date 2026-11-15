@@ -1,6 +1,7 @@
 import { AgentAnswer } from './AgentAnswer';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { chatDestination } from './chat-links';
 import { services, suggestions, type ProfileId } from './data';
 import type { AccessDraft, BuddyReply } from './demo';
 import { Buddy, Icon } from './ui';
@@ -174,7 +175,7 @@ export function ChatWindow({
               <div>
                 <span className="sender">AI-buddy</span>
                 <div className="bubble">
-                  <AgentAnswer text={entry.reply.text} references={entry.reply.references} />
+                  <AgentAnswer text={entry.reply.text} references={entry.reply.references} profileId={profileId} />
                   {entry.reply.lines?.length ? (
                     <ul>
                       {entry.reply.lines.map((line) => (
@@ -182,8 +183,12 @@ export function ChatWindow({
                       ))}
                     </ul>
                   ) : null}
-                  {entry.reply.link && (
-                    <Link className="text-link bubble-link" to={entry.reply.link.to} onClick={onNavigate}>
+                  {entry.reply.link && chatDestination(entry.reply.link.to, profileId) && (
+                    <Link
+                      className="text-link bubble-link"
+                      to={chatDestination(entry.reply.link.to, profileId)!}
+                      onClick={onNavigate}
+                    >
                       {entry.reply.link.label} <Icon name="diagonal" size={16} />
                     </Link>
                   )}

@@ -1,4 +1,5 @@
 import { prefilledRequest } from './prefill';
+import { readServiceProfileQuery } from '../../../web/frontend/src/service-session';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { profiles, products, isProfileId, type AccountId } from '../../../web/frontend/src/demo-accounts';
 import { Icon } from '../../../web/frontend/src/ui';
@@ -301,7 +302,8 @@ export function AccessPortal() {
     () => readAccessAccount(document.cookie),
     () => null,
   );
-  const account = buddyAccount ?? selectedProfile;
+  const linkedProfile = typeof window === 'undefined' ? null : readServiceProfileQuery(window.location.search);
+  const account = buddyAccount ?? linkedProfile ?? selectedProfile;
   if (!account)
     return (
       <main className="access-app access-main">
@@ -327,7 +329,9 @@ function Portal({ account }: { account: AccountId }) {
   const [serverContext, setServerContext] = useState<typeof fallback>();
   const context = serverContext || fallback;
   const product = products[context.productId];
-  const [tab, setTab] = useState<'catalog' | 'requests'>('catalog');
+  const [tab, setTab] = useState<'catalog' | 'requests'>(() =>
+    new URLSearchParams(window.location.search).get('tab') === 'requests' ? 'requests' : 'catalog',
+  );
   const [query, setQuery] = useState('');
   const [recommended, setRecommended] = useState(true);
   const [requests, setRequests] = useState<AccessRequest[]>([]);

@@ -99,3 +99,5 @@ Confluence на 5191 добавлен в общую сборку/hr-web. Ссы�
 ServiceSession подключает общую SelectionAssistant для текущего стажёра, портал доступов — только для intern-аккаунта. Confluence, Jira и WorkToolPage размечают идентификаторы записей. /buddy-api/ направляется в Go Buddy отдельно от API сервиса; путь настроен в sites.mjs и ops/docker/hr-web.conf.
 
 [Сценарий и ограничения](../specs/010-selection-explanation.md).
+
+Источники панели пояснения с относительными путями Buddy открываются по `VITE_BUDDY_URL` (по умолчанию http://127.0.0.1:5173/). Для npm-разработки настройка лежит в `ops/service-sites/frontend/.env`. Compose подставляет существующий `PUBLIC_WEB_ORIGIN`; общий build-stage задаёт корпоративные URL из `PUBLIC_HR_ORIGIN` и для Buddy, и для HR, чтобы старые article-ссылки не отправляли на localhost пользователя. Адрес Buddy должен быть http(s) origin без пути/query/credentials.

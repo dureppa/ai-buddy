@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { accountCookieValue, readServiceProfile } from './service-session';
+import { accountCookieValue, readServiceProfile, readServiceProfileQuery } from './service-session';
 
 it.each(['olga', 'sasha', 'maria', 'timur'] as const)(
   'reads the current account %s across service ports',
@@ -22,3 +22,11 @@ it('clears the account cookie on logout and scopes it to the host', () => {
   expect(accountCookieValue('maria')).toContain('Path=/; SameSite=Lax');
   expect(accountCookieValue('maria')).not.toContain('Domain=');
 });
+
+it.each([
+  ['?profile=olga', 'olga'],
+  ['?profile=maria&page=guide', 'maria'],
+  ['?profile=admin', null],
+  ['?profile=olga&profile=maria', null],
+  ['', null],
+])('validates profile query %s', (search, expected) => expect(readServiceProfileQuery(search!)).toBe(expected));

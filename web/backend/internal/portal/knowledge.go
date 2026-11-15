@@ -169,7 +169,7 @@ func (s *Service) Tool(ctx context.Context, subject, tool string, args map[strin
 			}
 			items = append(items, summary(r))
 		}
-		return map[string]any{"requests": items, "references": []any{s.Source("access-requests:"+subject, "Мои заявки", s.AccessURL, 1)}}, nil
+		return map[string]any{"requests": items, "references": []any{s.Source("access-requests:"+subject, "Мои заявки", s.AccessURL+"?tab=requests", 1)}}, nil
 	case "get_knowledge_page":
 		id, ok := args["page_id"].(string)
 		if !ok || len(args) != 1 {
