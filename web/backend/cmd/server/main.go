@@ -155,7 +155,17 @@ func runContext(ctx context.Context) error {
 	}
 	api := httpapi.NewAPI(sessions, onboarding, access, notifications, chat).WithPortal(portalService).WithServiceActions(actions)
 
-	if cfg.DemoMode && os.Getenv("WORK_TOOLS_ENABLED") == "true" {
+	if cfg.DemoMode && os.Getenv("WORK_TOOLS_ENABLED") == "true" && os.Getenv("WORK_TOOLS_EXTERNAL") == "true" {
+		catalog, err := worktools.NewExternal(os.Getenv("WORK_TOOLS_PUBLIC_URL"), os.Getenv("WORK_TOOL_DELEGATION_SECRET"))
+		if err != nil {
+			return err
+		}
+		api.WithWorkTools(catalog)
+		if bridge != nil {
+			bridge.WorkTools = catalog
+		}
+	}
+	if cfg.DemoMode && os.Getenv("WORK_TOOLS_ENABLED") == "true" && os.Getenv("WORK_TOOLS_EXTERNAL") != "true" {
 		setupCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
 		defer cancel()
 		if portalService.ExternalKnowledge == nil {

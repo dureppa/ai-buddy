@@ -32,6 +32,7 @@ SERVICES = (
     "hr-events",
     "jira",
     "confluence",
+    "tool-grafana",
 )
 COMPOSE = [
     "docker",

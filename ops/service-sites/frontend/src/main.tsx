@@ -1,3 +1,4 @@
+import { WorkToolsSite } from './WorkToolsSite';
 import { ServiceSession } from './ServiceSession';
 import { LiveScheduleHr } from './LiveScheduleHr';
 import { StrictMode } from 'react';
@@ -21,7 +22,7 @@ declare const __CORPORATE_SERVICE__: string;
 
 const service = [...hrServices, ...guideServices].find((item) => item.id === __CORPORATE_SERVICE__);
 const root = document.getElementById('root');
-if (!root || (!service && !['jira', 'access', 'confluence'].includes(__CORPORATE_SERVICE__)))
+if (!root || (!service && !['jira', 'access', 'confluence', 'work-tools'].includes(__CORPORATE_SERVICE__)))
   throw new Error('Не удалось открыть корпоративный сервис.');
 
 document.title =
@@ -30,7 +31,9 @@ document.title =
       ? 'Управление доступами'
       : __CORPORATE_SERVICE__ === 'confluence'
         ? 'Confluence'
-        : 'Jira')) + ' · Демосервис';
+        : __CORPORATE_SERVICE__ === 'work-tools'
+          ? 'Рабочие инструменты'
+          : 'Jira')) + ' · Демосервис';
 
 function isGuideService(value: { id: string }): value is GuideService {
   return guideServices.some((item) => item.id === value.id);
@@ -51,10 +54,12 @@ function Page({ profileId }: { profileId: ProfileId }) {
 }
 createRoot(root).render(
   <StrictMode>
-    {__CORPORATE_SERVICE__ === 'access' ? (
+    {__CORPORATE_SERVICE__ === 'work-tools' ? (
+      <WorkToolsSite />
+    ) : __CORPORATE_SERVICE__ === 'access' ? (
       <AccessPortal />
     ) : (
-      <ServiceSession standalone={__CORPORATE_SERVICE__ === 'confluence'}>
+      <ServiceSession standaloneTitle={__CORPORATE_SERVICE__ === 'confluence' ? 'Войти в Confluence' : undefined}>
         {(profileId) =>
           __CORPORATE_SERVICE__ === 'confluence' ? (
             <ConfluencePage profile={profileId} />

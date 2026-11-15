@@ -1,0 +1,19 @@
+{
+  "name": "Grafana",
+  "area": "Мониторинг",
+  "records": [
+    {
+      "team": "travel",
+      "id": "booking-errors",
+      "title": "Ошибки booking-api",
+      "status": "stage",
+      "description": "Доля ошибок после 12:00 увеличилась с 1% до 3%.",
+      "fields": {
+        "До релиза": "1%",
+        "После релиза": "3%",
+        "Версия": "1.8.4",
+        "Задача": "TRV-1"
+      }
+    }
+  ]
+}

@@ -31,7 +31,7 @@ import { Adaptation, Dashboard, Resources, Team, Tools, type Detail } from './sc
 import { Avatar, Buddy, EmptyState, Icon, Modal, Toast, type Mood } from './ui';
 
 import { corporateLinks } from './corporate-links';
-import { toolProfileUrl, toolsFor } from './tool-links';
+import { toolProfileUrl, workToolsOrigin, toolsFor } from './tool-links';
 import { CorporateDirectory, accessPortalUrl } from './CorporateDirectory';
 import { WorkToolPage } from './WorkToolPage';
 import { ProductGuide } from './ProductGuide';
@@ -834,6 +834,14 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   );
 }
 
+function ExternalWorkTool() {
+  const { pathname, search, hash } = useLocation();
+  useEffect(() => {
+    window.location.replace(workToolsOrigin + pathname + search + hash);
+  }, [pathname, search, hash]);
+  return <p role="status">Открываем рабочий инструмент…</p>;
+}
+
 export default function App() {
   const [account, setAccount] = useState(() => readDemoSession(localStorage));
   const { pathname } = useLocation();
@@ -871,6 +879,7 @@ export default function App() {
   if (pathname === '/' || pathname === '/staff') return <Navigate to="/home" replace />;
 
   if (pathname.startsWith('/work-tools/')) {
+    if (workToolsOrigin) return <ExternalWorkTool />;
     return (
       <main className="work-tool-page">
         <Routes>

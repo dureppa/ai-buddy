@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { apiFetch } from './backend';
+import { useWorkToolTransport } from './work-tool-transport';
 import type { ProfileId } from './demo-accounts';
 import { pageSchema } from './work-tool-data';
 import type { ToolRecord } from './work-tool-data';
@@ -246,6 +246,7 @@ function ApiResponse({ record }: { record: ToolRecord }) {
 }
 
 function Postman({ record, profileId }: Props) {
+  const apiFetch = useWorkToolTransport();
   const [vin, setVin] = useState(record.fields.Сценарий ?? '');
   const [response, setResponse] = useState<ToolRecord>();
   const [state, setState] = useState<'idle' | 'pending' | 'missing' | 'error'>('idle');

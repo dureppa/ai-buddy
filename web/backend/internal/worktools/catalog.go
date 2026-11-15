@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -33,8 +35,11 @@ type Page struct {
 }
 
 type Catalog struct {
-	services map[string]Page
-	pools    map[string]*pgxpool.Pool
+	external  *http.Client
+	publicURL string
+	secret    []byte
+	services  map[string]Page
+	pools     map[string]*pgxpool.Pool
 }
 
 func Open(ctx context.Context, admin *pgxpool.Pool, databaseURL string) (*Catalog, error) {
@@ -113,6 +118,9 @@ func (c *Catalog) Read(ctx context.Context, team, service string) (Page, error) 
 	if !ok || !slices.ContainsFunc(meta.Records, func(r Record) bool { return r.Team == team }) {
 		return Page{}, buddy.ErrNotFound
 	}
+	if c.external != nil {
+		return c.readExternal(ctx, team, service)
+	}
 	page := Page{Name: meta.Name, Area: meta.Area, Records: []Record{}}
 	rows, err := c.pools[service].Query(ctx, "SELECT payload FROM records WHERE team=$1 ORDER BY id LIMIT 100", team)
 	if err != nil {
@@ -159,7 +167,7 @@ func (c *Catalog) Search(ctx context.Context, team, question string, limit int) 
 			}
 			docs = append(docs, map[string]any{
 				"source": map[string]any{"id": service + ":" + record.ID, "title": title, "version": "1",
-					"url": "/work-tools/" + service + "#" + record.ID, "is_demo": true},
+					"url": c.publicURL + "/work-tools/" + service + "#" + url.PathEscape(record.ID), "is_demo": true},
 				"excerpt": excerpt,
 			})
 		}
