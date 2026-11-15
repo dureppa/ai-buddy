@@ -144,7 +144,6 @@ function SectionTitle({ title, children }: { title: string; children?: ReactNode
 }
 
 const quickActions = [
-  { title: 'Спросить Buddy', detail: 'Подскажу, с чего начать', icon: 'message', to: '/chat', tone: 'lilac' },
   { title: 'Мой план адаптации', detail: 'Этапы, задачи и прогресс', icon: 'map', to: '/onboarding', tone: 'mint' },
   { title: 'Познакомиться с командой', detail: 'Твои коллеги и наставник', icon: 'users', to: '/team', tone: 'blue' },
   { title: 'Рабочие инструменты', detail: 'Сервисы команды', icon: 'key', to: '/tools', tone: 'pink' },
@@ -158,6 +157,7 @@ export function Dashboard({
   savingTask,
   onAsk,
   asking,
+  onOpenBuddy,
   events,
   hrEvents,
   hrError,
@@ -277,6 +277,14 @@ export function Dashboard({
       <section className="quick-section">
         <SectionTitle title="Быстрые действия" />
         <div className="quick-grid">
+          <button type="button" className="quick-card tone-lilac" onClick={onOpenBuddy}>
+            <span className="quick-card__icons">
+              <Icon name="message" size={23} />
+              <Icon name="diagonal" size={17} />
+            </span>
+            <strong>Спросить Buddy</strong>
+            <span>Подскажу, с чего начать</span>
+          </button>
           {quickActions.map((action) => (
             <Link key={action.to} to={action.to} className={'quick-card tone-' + action.tone}>
               <span className="quick-card__icons">

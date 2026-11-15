@@ -375,7 +375,7 @@ it('shows history-loading errors and keeps the chat available for a new question
   localStorage.setItem(demoSessionKey, 'olga');
   vi.mocked(readBackendConversation).mockRejectedValueOnce(new Error('Недоступно'));
   await mount('/home');
-  await click(await button('Открыть быстрый чат'));
+  await click(await button('Открыть панель Buddy'));
   const alert = await waitForElement(() => container.querySelector<HTMLElement>('[role="alert"]'));
   expect(alert.textContent).toContain('Не удалось загрузить историю диалога.');
   await enterMessage('Где документация?');
@@ -766,7 +766,7 @@ it('opens the same general panel from the help card and the floating Buddy witho
   expect(container.querySelector('.buddy-task-context')).toBeNull();
   expect(askBackend).not.toHaveBeenCalled();
   await click(await button('Закрыть панель Buddy'));
-  await click(await button('Открыть быстрый чат'));
+  await click(await button('Открыть панель Buddy'));
   expect(container.querySelectorAll('aside[aria-label="Чат с Buddy"]')).toHaveLength(1);
   expect(askBackend).not.toHaveBeenCalled();
   await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
@@ -901,4 +901,13 @@ it('does not show a late task response after the active profile changes', async 
   await act(async () => resolve({ kind: 'answer', text: 'Private reply for olga' }));
   expect(container.querySelector<HTMLElement>('.buddy-panel')).toBeNull();
   expect(container.textContent).not.toContain('Private reply for olga');
+});
+
+it('opens the general panel from the dashboard Buddy card without changing the page', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  await mount('/home');
+  await click(await waitForElement(() => container.querySelector<HTMLButtonElement>('button.quick-card')));
+  expect(container.querySelector('.buddy-panel')).toBeTruthy();
+  expect(container.querySelector('a[href="/home"][aria-current="page"]')).toBeTruthy();
+  expect(askBackend).not.toHaveBeenCalled();
 });

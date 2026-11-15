@@ -413,10 +413,8 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           kind: 'answer' as const,
           text: 'Учебное объяснение пункта: ' + context.selection.resource.label,
           lines: [
-            context.selection.resource.description || 'Уточни ожидаемый результат у наставника.',
-            'Согласуй первый шаг и критерий готовности с наставником.',
-            'Рабочие инструменты и материалы найдёшь на странице команды.',
-            'За помощью обратись к наставнику или руководителю своей команды.',
+            context.selection.resource.description || 'Описание пункта пока не добавлено.',
+            'Начни с прикреплённых материалов. Этот локальный ответ не проверяет корпоративные инструкции.',
           ],
         };
       await delay(580);
@@ -569,7 +567,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     (profile.stageId === 'first' || profile.stageId === 'final' || (profile.stageId === 'midpoint' && !surveyDone));
 
   return (
-    <div className="shell">
+    <div className={'shell' + (drawerOpen && location.pathname !== '/chat' ? ' shell--buddy-open' : '')}>
       <a href="#main-content" className="skip-link">
         Перейти к содержимому
       </a>
@@ -735,7 +733,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
         <button
           type="button"
           className="floating-buddy"
-          aria-label="Открыть быстрый чат"
+          aria-label="Открыть панель Buddy"
           onClick={() => {
             setMood('surprised');
             openBuddy();

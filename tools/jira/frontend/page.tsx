@@ -269,7 +269,6 @@ export function IssueEditor({
   return (
     <dialog
       ref={dialog}
-
       className="jira-editor"
       aria-labelledby="jira-editor-title"
       onCancel={(e) => {

@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import type { ProfileId } from './data';
-import type { SelectionResource } from './selection-context';
 import { chatDestination } from './chat-links';
 import { readOnboardingTask, type OnboardingTask } from './onboarding-task';
 
@@ -9,15 +8,7 @@ export function OnboardingTaskCard({ task, profileId }: { task: OnboardingTask; 
   const destination = task.action_url ? chatDestination(task.action_url, profileId) : null;
   const self = '/onboarding/tasks/' + encodeURIComponent(task.id);
   return (
-    <section
-      className="panel"
-      data-agent-resource={JSON.stringify({
-        kind: 'task',
-        id: task.id,
-        label: task.title,
-        description: [...task.guidance].slice(0, 800).join(''),
-      } satisfies SelectionResource)}
-    >
+    <section className="panel">
       <h1>{task.title}</h1>
       <p>{task.guidance}</p>
       <p role="status">Статус в плане: {task.status === 'completed' ? 'выполнено' : 'ещё не выполнено'}.</p>

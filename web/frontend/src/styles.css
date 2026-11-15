@@ -2642,3 +2642,25 @@ svg {
   border-radius: 8px;
   background: #fff;
 }
+
+@media (min-width: 1280px) {
+  .shell--buddy-open .shell__body {
+    margin-right: 480px;
+  }
+  .shell--buddy-open .adaptation-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .shell--buddy-open .task-row {
+    flex-wrap: wrap;
+  }
+  .shell--buddy-open .task-link {
+    flex-basis: calc(100% - 32px);
+  }
+  .shell--buddy-open .task-ask {
+    margin: 0 0 10px 32px;
+  }
+}
+
+button.quick-card {
+  text-align: left;
+}

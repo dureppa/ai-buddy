@@ -317,11 +317,7 @@ export function AccessPortal() {
           ))}
       </main>
     );
-  return (
-    <>
-      <Portal key={account} account={account} />
-    </>
-  );
+  return <Portal key={account} account={account} />;
 }
 function Portal({ account }: { account: AccountId }) {
   const api = useMemo(() => accessClient(account), [account]);
