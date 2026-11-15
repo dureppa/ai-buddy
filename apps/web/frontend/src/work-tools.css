@@ -31,9 +31,6 @@
   font-size: 19px;
   letter-spacing: -0.02em;
 }
-.work-tool__header a {
-  margin-left: auto;
-}
 .work-tool__mark {
   display: grid;
   width: 32px;

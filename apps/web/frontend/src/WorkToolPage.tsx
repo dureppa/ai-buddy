@@ -32,7 +32,6 @@ export function WorkToolPage({ profileId }: { profileId: ProfileId }) {
           {view?.icon ?? '▦'}
         </span>
         <h1>{page?.name ?? 'Рабочий сервис'}</h1>
-        <Link to="/tools">‹ Инструменты</Link>
       </header>
       {result.isPending && <p role="status">Загружаем записи…</p>}
       {result.isError && (

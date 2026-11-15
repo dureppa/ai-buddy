@@ -10,6 +10,7 @@ import { readWorkspace } from './demo';
 import { demoSessionKey } from './demo-session';
 import { readServiceQuestions } from './service-questions';
 import { saveMaterial } from './staff-data';
+import { toolViews } from './WorkToolViews';
 
 const backendMode = vi.hoisted(() => ({ enabled: true }));
 vi.mock('./backend', () => ({
@@ -599,6 +600,13 @@ function mockToolRecords(
   localStorage.setItem(demoSessionKey, 'timur');
   vi.mocked(apiFetch).mockResolvedValue(Response.json({ name: 'Учебный сервис', area: 'Рабочая область', records }));
 }
+
+it.each(Object.keys(toolViews))('opens %s without a link back to the tools catalog', async (service) => {
+  mockToolRecords([]);
+  await mount('/work-tools/' + service);
+  await vi.waitFor(() => expect(container.querySelector('.work-tool h1')?.textContent).toBe('Учебный сервис'));
+  expect(container.querySelector('.work-tool a[href="/tools"]')).toBeNull();
+});
 
 it('shows fresh Postman responses from the stand and clears old results for unknown VINs', async () => {
   localStorage.setItem(demoSessionKey, 'timur');
