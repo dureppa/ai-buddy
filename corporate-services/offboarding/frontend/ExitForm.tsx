@@ -1,7 +1,17 @@
 import { Submit, type FormProps } from '../../../ops/service-sites/frontend/src/form-shared';
 import { exitSteps } from './meta';
 
-export function ExitForm({ view, submit, onToggle }: FormProps & { onToggle: (id: string) => void }) {
+type Step = { id: string; title: string; description: string };
+
+export function ExitForm({
+  view,
+  submit,
+  onToggle,
+  steps = exitSteps,
+}: FormProps & {
+  onToggle: (id: string) => void;
+  steps?: readonly Step[];
+}) {
   return (
     <form
       className="hr-form"
@@ -13,7 +23,7 @@ export function ExitForm({ view, submit, onToggle }: FormProps & { onToggle: (id
         );
       }}
     >
-      {exitSteps.map((step) => (
+      {steps.map((step) => (
         <label className="hr-check" key={step.id}>
           <input
             type="checkbox"
