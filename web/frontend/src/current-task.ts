@@ -63,3 +63,12 @@ export function isTaskCompletionMessage(text: string): boolean {
     'подтверждаю выполнение',
   ]).has(normalized);
 }
+
+export function isChecklistQuestion(text: string): boolean {
+  return (
+    !/jira|джир/i.test(text) &&
+    /с чего.*начать|что.*(?:делать дальше|сделать сегодня)|как(?:ое|ой|ая|ие).*(?:задан|задач|пункт)|(?:текущ|следующ).*(?:задан|задач|пункт)|что.*в процессе|над чем.*работ|(?:покажи|назови).*(?:задан|задач|пункт)|чем.*заняться/i.test(
+      text,
+    )
+  );
+}

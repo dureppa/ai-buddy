@@ -1,4 +1,4 @@
-import { chatPageContext, currentChecklistTask, isTaskCompletionMessage } from './current-task';
+import { chatPageContext, isChecklistQuestion, isTaskCompletionMessage } from './current-task';
 import { checklistQuestion } from './checklist-question';
 import type { ChatPageContext, ExplanationContext } from './selection-context';
 import { BuddyPanel } from './BuddyPanel';
@@ -392,13 +392,16 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
 
   const [completionTargetId, setCompletionTargetId] = useState<string | null>();
   const completionSending = useRef(false);
+  const [completionVisible, setCompletionVisible] = useState(false);
   const [serviceShortcut, setServiceShortcut] = useState<{ label: string; to: string }>();
   const catalog = checklistFor(localStorage, profileId);
-  const completionTarget =
-    workspace &&
-    (completionTargetId !== undefined
-      ? catalog.find((item) => item.id === completionTargetId)
-      : currentChecklistTask(catalog, workspace.completed));
+  const completionTarget = workspace && catalog.find((item) => item.id === completionTargetId);
+  const completionDone = Boolean(workspace && completionTarget && workspace.completed.includes(completionTarget.id));
+  useEffect(() => {
+    if (!completionVisible || !completionDone) return;
+    const timer = window.setTimeout(() => setCompletionVisible(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [completionVisible, completionDone, completionTargetId]);
   const taskMutation = useMutation({
     mutationFn: async ({ id, completion }: { id: string; completion?: boolean; title?: string }) => {
       if (completion && (!checklistFor(localStorage, profileId).some((item) => item.id === id) || surveyForTask(id)))
@@ -490,9 +493,14 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           ? null
           : context?.selection?.resource?.kind === 'task'
             ? context.selection.resource.id
-            : context?.checklist?.status === 'in_progress'
+            : isChecklistQuestion(question.text) && context?.checklist?.status === 'in_progress'
               ? context.checklist.task.id
               : undefined,
+      );
+      setCompletionVisible(
+        !absenceServiceLink(question.text) &&
+          (context?.selection?.resource?.kind === 'task' ||
+            (isChecklistQuestion(question.text) && context?.checklist?.status === 'in_progress')),
       );
       const id = nextEntry.current++;
       setEntries((items) => [...items, { id, from: 'buddy', reply }]);
@@ -620,6 +628,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   }
 
   function openBuddy() {
+    setCompletionVisible(false);
     setActiveTask(undefined);
     setCompletionTargetId(undefined);
     setDrawerOpen(true);
@@ -695,7 +704,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     onSend: send,
     serviceShortcut,
     completionTask:
-      completionTarget && !surveysQuery.isError
+      completionVisible && completionTarget && !surveysQuery.isError
         ? {
             id: completionTarget.id,
             title: completionTarget.title,
@@ -717,6 +726,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
         <TaskMaterialList profileId={profileId} taskId={activeTask.selection.resource.id} compact />
       ) : undefined,
     onClearContext: () => {
+      setCompletionVisible(false);
       setActiveTask(undefined);
       setCompletionTargetId(undefined);
     },

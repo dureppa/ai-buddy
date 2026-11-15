@@ -1193,12 +1193,18 @@ it('completes the last practice memo by text, keeps retries idempotent and tells
 
 it('completes a task from the Buddy panel and restores its actual checklist checkbox after reload', async () => {
   localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Твой текущий пункт — принципы аналитики.' });
   await mount('/home');
   await click(await button('Открыть панель Buddy'));
+  expect(container.querySelector('.chat-task-completion')).toBeNull();
+  await enterMessage('Какое у меня текущее задание?');
+  const send = await button('Отправить сообщение');
+  await vi.waitFor(() => expect(send.disabled).toBe(false));
+  await click(send);
   await click(await button('Отметить выполненной'));
   await button('Выполнено ✓');
   expect(readWorkspace(localStorage, 'olga').completed).toContain('dev-principles');
-  expect(askBackend).not.toHaveBeenCalled();
+  expect(askBackend).toHaveBeenCalledTimes(1);
   await act(async () => root.unmount());
   root = createRoot(container);
   client.clear();
@@ -1232,7 +1238,10 @@ it('confirms the explicitly discussed task instead of a different current task',
 
 it('does not report success after a storage failure and allows a successful retry', async () => {
   localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Твой пункт — принципы аналитики.' });
   await mount('/chat');
+  await enterMessage('С чего начать сегодня?');
+  await click(await button('Отправить сообщение'));
   const confirm = await button('Отметить выполненной');
   const save = vi.spyOn(localStorage, 'setItem').mockImplementationOnce(() => {
     throw new Error('Storage unavailable');
@@ -1256,12 +1265,15 @@ it('opens the required survey instead of faking its completion from chat', async
       .map((t) => t.id),
     requests: [],
   });
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Твой пункт — опрос.' });
   await mount('/chat');
+  await enterMessage('Какое у меня задание?');
+  await click(await button('Отправить сообщение'));
   await click(await button('Заполнить анкету'));
   await button('Далее');
   expect(container.querySelector('dialog')?.getAttribute('aria-label')).toBe(surveys.first.title);
   expect(readWorkspace(localStorage, 'olga').completed).not.toContain('internship-survey-first');
-  expect(askBackend).not.toHaveBeenCalled();
+  expect(askBackend).toHaveBeenCalledTimes(1);
   expect(vi.mocked(apiFetch).mock.calls.some(([, , init]) => init?.method === 'PUT')).toBe(false);
 });
 
@@ -1295,4 +1307,27 @@ it('opens the absence service from a task discussion even without an LLM and nev
   await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('Выбери задачу в плане'));
   expect(readWorkspace(localStorage, 'olga')).toEqual(before);
   expect(askBackend).toHaveBeenCalledTimes(2);
+});
+
+it('shows completion only for a task question and hides it two seconds after saving', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Да, я тут.' });
+  await mount('/chat');
+  await enterMessage('ты тут?');
+  await click(await button('Отправить сообщение'));
+  await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('Да, я тут.'));
+  expect(container.querySelector('.chat-task-completion')).toBeNull();
+  await enterMessage('Какое у меня задание?');
+  await click(await button('Отправить сообщение'));
+  await click(await button('Отметить выполненной'));
+  await button('Выполнено ✓');
+  await act(async () => {
+    await new Promise((resolve) => window.setTimeout(resolve, 2100));
+  });
+  expect(container.querySelector('.chat-task-completion')).toBeNull();
+  const saved = readWorkspace(localStorage, 'olga');
+  await enterMessage('готово');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(readWorkspace(localStorage, 'olga')).toEqual(saved));
+  expect(container.querySelector('.chat-task-completion')).toBeNull();
 });
