@@ -389,3 +389,12 @@ def test_explicit_task_explanation_keeps_its_own_task_instead_of_current_plan() 
         )
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize(
+    "question", ["какое у меня задание?", "какое у меня текущее задание?"]
+)
+def test_assignment_question_uses_current_web_task(question: str) -> None:
+    from ai_buddy.agent import narrow_focus
+
+    assert narrow_focus(question) == "start"
