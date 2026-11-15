@@ -6,10 +6,7 @@ import './style.css';
 
 export function KnowledgeArticle({ page }: { page: KnowledgePage }) {
   return (
-    <article
-      className="knowledge-article"
-      data-agent-resource={JSON.stringify({ kind: 'confluence', id: page.id, label: page.title })}
-    >
+    <article className="knowledge-article">
       <p className="knowledge-eyebrow">{kinds[page.kind]} / База знаний команды</p>
       <h1>{page.title}</h1>
       <div className="knowledge-meta">

@@ -39,7 +39,7 @@ it('shows actual guidance/status and avoids a self-loop or completion button', (
     </MemoryRouter>,
   );
   expect(html).toContain(task.guidance);
-  expect(html).toContain('data-agent-resource=');
+  expect(html).toContain(task.title);
   expect(html).toContain('ещё не выполнено');
   expect(html).not.toContain('Открыть сервис');
   expect(html).not.toContain('>Подтвердить<');

@@ -1,5 +1,5 @@
 import { AgentAnswer } from './AgentAnswer';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { chatDestination } from './chat-links';
 import { services, suggestions, type ProfileId } from './data';
@@ -7,9 +7,11 @@ import type { AccessDraft, BuddyReply } from './demo';
 import { Buddy, Icon } from './ui';
 
 export type ChatEntry = { id: number; from: 'user'; text: string } | { id: number; from: 'buddy'; reply: BuddyReply };
+const taskSuggestions = ['С чего начать этот пункт?', 'Какие материалы нужны?', 'Объясни простыми словами'];
+
 export type DraftState = { type: 'dismissed' } | { type: 'confirmed'; number: string };
 
-type ChatProps = {
+export type ChatProps = {
   name: string;
   profileId: ProfileId;
   entries: ChatEntry[];
@@ -22,6 +24,11 @@ type ChatProps = {
   onSurvey: () => void;
   surveyDone: boolean;
   onNavigate?: () => void;
+  taskContext?: { id: string; title: string };
+  contextMaterials?: ReactNode;
+  onClearContext?: () => void;
+  error?: string;
+  onRetry?: () => void;
 };
 
 function DraftCard({
@@ -82,6 +89,11 @@ export function ChatWindow({
   onSurvey,
   surveyDone,
   onNavigate,
+  taskContext,
+  contextMaterials,
+  onClearContext,
+  error,
+  onRetry,
 }: ChatProps) {
   const [input, setInput] = useState('');
   const messageArea = useRef<HTMLDivElement>(null);
@@ -101,17 +113,33 @@ export function ChatWindow({
 
   return (
     <div className="chat-window">
-      <div className="messages" ref={messageArea} role="log" aria-label="Переписка с Buddy" aria-live="polite">
-        <article className="chat-entry">
-          <Buddy compact />
+      {taskContext && (
+        <section className="buddy-task-context" aria-label="Контекст пункта">
           <div>
-            <span className="sender">AI-buddy</span>
-            <div className="bubble">
-              Привет, {name}! Я помогу разобраться с задачами, познакомиться с командой или запросить рабочий доступ. С
-              чего начнём?
+            <div>
+              <small>Разбираем пункт</small>
+              <strong>{taskContext.title}</strong>
             </div>
+            <button type="button" onClick={onClearContext} disabled={waiting}>
+              Общий вопрос
+            </button>
           </div>
-        </article>
+          {contextMaterials}
+        </section>
+      )}
+      <div className="messages" ref={messageArea} role="log" aria-label="Переписка с Buddy" aria-live="polite">
+        {!taskContext && (
+          <article className="chat-entry">
+            <Buddy compact />
+            <div>
+              <span className="sender">AI-buddy</span>
+              <div className="bubble">
+                Привет, {name}! Я помогу разобраться с задачами, познакомиться с командой или запросить рабочий доступ.
+                С чего начнём?
+              </div>
+            </div>
+          </article>
+        )}
         {profileId === 'sasha' && !surveyDone && (
           <div className="chat-notice tone-lilac">
             <Icon name="flag" size={22} />
@@ -189,9 +217,17 @@ export function ChatWindow({
           </div>
         )}
       </div>
+      {error && (
+        <div className="buddy-chat-error" role="alert">
+          <span>{error}</span>
+          <button type="button" disabled={waiting} onClick={onRetry}>
+            Повторить
+          </button>
+        </div>
+      )}
       <div className="chat-controls">
         <div className="suggestions" aria-label="Предложенные вопросы">
-          {suggestions.slice(0, entries.length ? 2 : 4).map((question) => (
+          {(taskContext ? taskSuggestions : suggestions).slice(0, entries.length ? 2 : 4).map((question) => (
             <button type="button" className="filter" key={question} disabled={waiting} onClick={() => onSend(question)}>
               {question}
             </button>
@@ -242,7 +278,7 @@ export function ChatPage(props: ChatProps) {
           </span>
           <h2>С чего начать</h2>
           <p>Выбери вопрос или напиши свой.</p>
-          {suggestions.map((question) => (
+          {(props.taskContext ? taskSuggestions : suggestions).map((question) => (
             <button
               type="button"
               className="chat-topic"

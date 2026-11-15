@@ -1,5 +1,6 @@
-import { taskSelectionResource } from './task-selection';
-import { SelectionAssistant } from './SelectionAssistant';
+import { checklistQuestion } from './checklist-question';
+import type { ExplanationContext } from './selection-context';
+import { BuddyPanel } from './BuddyPanel';
 import { ServiceActionPage } from './ServiceActionPage';
 import { OnboardingTaskPage } from './OnboardingTaskPage';
 import { accountCookieValue } from './service-session';
@@ -12,8 +13,8 @@ import { StaffWorkspace } from './StaffWorkspace';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { ChatPage, ChatWindow, type ChatEntry, type DraftState } from './Chat';
-import { tasksFor } from './checklist';
+import { ChatPage, type ChatEntry, type DraftState } from './Chat';
+import { tasksFor, type Task } from './checklist';
 import { navigation } from './data';
 import { isStaffId, products, profiles, teamColleagues, teamContacts, type ProfileId } from './demo-accounts';
 import {
@@ -48,9 +49,36 @@ const searchItems = [
 type ToastState = { message: string; tone: 'success' | 'error' };
 const delay = (milliseconds: number) => new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
 
-function TaskMaterialList({ profileId, taskId }: { profileId: ProfileId; taskId: string }) {
+function TaskMaterialList({
+  profileId,
+  taskId,
+  compact = false,
+}: {
+  profileId: ProfileId;
+  taskId: string;
+  compact?: boolean;
+}) {
   const materials = materialsForTask(localStorage, profileId, taskId);
   if (!materials.length) return null;
+  if (compact)
+    return (
+      <nav className="buddy-materials" aria-label="Материалы пункта">
+        {materials.map((material) => (
+          <a
+            key={material.id}
+            href={material.source.href}
+            target={material.source.kind === 'link' ? '_blank' : undefined}
+            rel="noopener noreferrer"
+            download={material.source.kind === 'file' ? material.source.name : undefined}
+          >
+            <Icon name="file" size={15} />
+            <span>{material.title}</span>
+            <Icon name="diagonal" size={14} />
+          </a>
+        ))}
+      </nav>
+    );
+
   return (
     <section className="task-materials" aria-label="Материалы к заданию">
       <h3>Материалы к заданию</h3>
@@ -366,9 +394,29 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     },
   });
 
+  const taskQuestionSending = useRef(false);
+  const [activeTask, setActiveTask] = useState<ExplanationContext>();
+  const [chatError, setChatError] = useState<string>();
+  const lastQuestion = useRef<{ text: string; context?: ExplanationContext } | undefined>(undefined);
   const answerMutation = useMutation({
-    mutationFn: async (text: string) => {
-      if (backendEnabled) return askBackend(profileId, text);
+    onMutate: (question) => {
+      lastQuestion.current = question;
+      setChatError(undefined);
+    },
+    onSettled: () => {
+      taskQuestionSending.current = false;
+    },
+    mutationFn: async ({ text, context }: { text: string; context?: ExplanationContext }) => {
+      if (backendEnabled) return context ? askBackend(profileId, text, context) : askBackend(profileId, text);
+      if (context?.selection.resource?.kind === 'task')
+        return {
+          kind: 'answer' as const,
+          text: 'Учебное объяснение пункта: ' + context.selection.resource.label,
+          lines: [
+            context.selection.resource.description || 'Описание пункта пока не добавлено.',
+            'Начни с прикреплённых материалов. Этот локальный ответ не проверяет корпоративные инструкции.',
+          ],
+        };
       await delay(580);
       return answerBuddy(text, readWorkspace(localStorage, profileId), profileId, awaitingService);
     },
@@ -380,7 +428,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     },
     onError: () => {
       setMood('supportive');
-      setToast({ tone: 'error', message: 'Buddy временно недоступен. Попробуй отправить вопрос ещё раз.' });
+      setChatError('Buddy временно недоступен. Попробуй ещё раз.');
     },
   });
 
@@ -422,10 +470,33 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   }, [toast]);
 
   function send(text: string) {
-    if (!text.trim() || answerMutation.isPending) return;
+    if (!text.trim() || answerMutation.isPending || historyLoading || taskQuestionSending.current) return;
+    taskQuestionSending.current = true;
     const id = nextEntry.current++;
     setEntries((items) => [...items, { id, from: 'user', text: text.trim() }]);
-    answerMutation.mutate(text);
+    answerMutation.mutate({ text: text.trim(), ...(activeTask ? { context: activeTask } : {}) });
+  }
+
+  function openBuddy() {
+    setActiveTask(undefined);
+    setDrawerOpen(true);
+  }
+  function retryQuestion() {
+    if (!lastQuestion.current || answerMutation.isPending || taskQuestionSending.current) return;
+    taskQuestionSending.current = true;
+    setActiveTask(lastQuestion.current.context);
+    answerMutation.mutate(lastQuestion.current);
+  }
+  function askTask(item: Task) {
+    if (answerMutation.isPending || historyLoading || taskQuestionSending.current) return;
+    taskQuestionSending.current = true;
+    const question = checklistQuestion(profileId, item);
+    const id = nextEntry.current++;
+    setEntries((items) => [...items, { id, from: 'user', text: question.text }]);
+    setActiveTask(question.context);
+    closeDetail();
+    setDrawerOpen(true);
+    answerMutation.mutate(question);
   }
 
   const params = new URLSearchParams(location.search);
@@ -465,11 +536,28 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     onDismiss: (draft: AccessDraft) => setDrafts((previous) => ({ ...previous, [draft.id]: { type: 'dismissed' } })),
     onSurvey: openSurvey,
     surveyDone,
+    taskContext:
+      activeTask?.selection.resource?.kind === 'task'
+        ? { id: activeTask.selection.resource.id, title: activeTask.selection.resource.label }
+        : undefined,
+    contextMaterials:
+      activeTask?.selection.resource?.kind === 'task' ? (
+        <TaskMaterialList profileId={profileId} taskId={activeTask.selection.resource.id} compact />
+      ) : undefined,
+    onClearContext: () => setActiveTask(undefined),
+    error: chatError,
+    onRetry: retryQuestion,
   };
 
   const checklist = workspace && {
     workspace,
-    onOpen: setDetail,
+    asking: answerMutation.isPending || historyLoading,
+    onAsk: askTask,
+    onOpenBuddy: openBuddy,
+    onOpen: (next: Detail) => {
+      setDrawerOpen(false);
+      setDetail(next);
+    },
     onToggle: (id: string) => taskMutation.mutate(id),
     savingTask: taskMutation.isPending ? taskMutation.variables : undefined,
   };
@@ -479,8 +567,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     (profile.stageId === 'first' || profile.stageId === 'final' || (profile.stageId === 'midpoint' && !surveyDone));
 
   return (
-    <div className="shell">
-      <SelectionAssistant profileId={profileId} />
+    <div className={'shell' + (drawerOpen && location.pathname !== '/chat' ? ' shell--buddy-open' : '')}>
       <a href="#main-content" className="skip-link">
         Перейти к содержимому
       </a>
@@ -642,14 +729,14 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           )}
         </main>
       </div>
-      {location.pathname !== '/chat' && (
+      {location.pathname !== '/chat' && !drawerOpen && (
         <button
           type="button"
           className="floating-buddy"
-          aria-label="Открыть быстрый чат"
+          aria-label="Открыть панель Buddy"
           onClick={() => {
             setMood('surprised');
-            setDrawerOpen(true);
+            openBuddy();
           }}
         >
           <Buddy mood={answerMutation.isPending ? 'thinking' : mood} compact />
@@ -707,13 +794,8 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           )}
         </Modal>
       )}
-      {drawerOpen && (
-        <Modal title="Быстрый чат" side onClose={() => setDrawerOpen(false)}>
-          <ChatWindow {...chatProps} onNavigate={() => setDrawerOpen(false)} />
-          <Link to="/chat" className="text-link drawer-link" onClick={() => setDrawerOpen(false)}>
-            Открыть полный чат <Icon name="arrow" size={17} />
-          </Link>
-        </Modal>
+      {drawerOpen && location.pathname !== '/chat' && (
+        <BuddyPanel {...chatProps} onClose={() => setDrawerOpen(false)} />
       )}
       {shownDetail && workspace && (
         <Modal
@@ -729,10 +811,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           onClose={closeDetail}
         >
           {shownDetail.kind === 'task' && (
-            <div
-              className="detail-content"
-              data-agent-resource={JSON.stringify(taskSelectionResource(profileId, shownDetail.item))}
-            >
+            <div className="detail-content">
               <TaskMaterialList profileId={profileId} taskId={shownDetail.item.id} />
               <p>{shownDetail.item.details}</p>
               <dl>
@@ -742,6 +821,14 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                 <dd>{shownDetail.item.owner}</dd>
               </dl>
               <div className="button-row">
+                <button
+                  type="button"
+                  className="button button--white"
+                  disabled={answerMutation.isPending || historyLoading}
+                  onClick={() => askTask(shownDetail.item)}
+                >
+                  Разобрать пункт
+                </button>
                 <button
                   type="button"
                   className="button button--dark"
