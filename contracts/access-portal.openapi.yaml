@@ -4,12 +4,42 @@
     {
       'title': 'AI Buddy access portal',
       'version': '1.0.0',
-      'description': 'Implemented Go/PostgreSQL API. Context is derived from authenticated profile. Explicit chat request authorizes submission for that turn. Approved does not grant actual target-system rights. Local demo sessions are not production authentication.',
+      'description': 'Standalone Go API with its own PostgreSQL database. Context is derived from authenticated profile. Explicit chat request authorizes submission for that turn. Approved does not grant actual target-system rights. Local demo sessions are not production authentication.',
     },
   'servers': [{ 'url': '/api/v1' }],
   'security': [{ 'bearerAuth': [] }],
   'paths':
     {
+      '/demo/sessions':
+        {
+          'post':
+            {
+              'summary': 'Start an access portal demo session',
+              'security': [],
+              'requestBody':
+                {
+                  'required': true,
+                  'content':
+                    {
+                      'application/json':
+                        {
+                          'schema':
+                            {
+                              'type': 'object',
+                              'required': ['profile_id'],
+                              'properties': { 'profile_id': { 'type': 'string' } },
+                            },
+                        },
+                    },
+                },
+              'responses':
+                {
+                  '200': { 'description': 'Access portal token and profile ID' },
+                  '400': { 'description': 'Invalid demo profile' },
+                  '404': { 'description': 'Demo login disabled' },
+                },
+            },
+        },
       '/portal-access/catalog':
         {
           'get':

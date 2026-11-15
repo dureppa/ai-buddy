@@ -58,6 +58,14 @@ func requestBody(w http.ResponseWriter, r *http.Request, out any) error {
 	return nil
 }
 func (s *Service) Register(mux *http.ServeMux, authenticate func(*http.Request) (string, error)) {
+	s.register(mux, authenticate, nil, true)
+}
+
+func (s *Service) RegisterAccess(mux *http.ServeMux, authenticate func(*http.Request) (string, error), delegated func(*http.Request) bool) {
+	s.register(mux, authenticate, delegated, false)
+}
+
+func (s *Service) register(mux *http.ServeMux, authenticate func(*http.Request) (string, error), delegated func(*http.Request) bool, includeKnowledge bool) {
 	wrap := func(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			subject, err := authenticate(r)
@@ -92,7 +100,11 @@ func (s *Service) Register(mux *http.ServeMux, authenticate func(*http.Request) 
 			respondError(w, err)
 			return
 		}
-		data, err := s.Submit(r.Context(), subject, in, r.Header.Get("Idempotency-Key"), "portal")
+		origin := "portal"
+		if delegated != nil && delegated(r) && r.Header.Get("X-Access-Origin") == "agent" {
+			origin = "agent"
+		}
+		data, err := s.Submit(r.Context(), subject, in, r.Header.Get("Idempotency-Key"), origin)
 		if err != nil {
 			respondError(w, err)
 			return
@@ -115,6 +127,9 @@ func (s *Service) Register(mux *http.ServeMux, authenticate func(*http.Request) 
 		}
 		respond(w, 200, data)
 	}))
+	if !includeKnowledge {
+		return
+	}
 	mux.HandleFunc("GET /api/v1/confluence/pages", wrap(func(w http.ResponseWriter, r *http.Request, subject string) {
 		data, err := s.Pages(r.Context(), subject, r.URL.Query().Get("query"))
 		if err != nil {

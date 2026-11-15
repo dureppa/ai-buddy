@@ -22,13 +22,17 @@ type KnowledgeClient struct {
 }
 
 func NewKnowledgeClient(origin, secret string) (*KnowledgeClient, error) {
+	return newPortalClient(origin, secret, "CONFLUENCE")
+}
+
+func newPortalClient(origin, secret, service string) (*KnowledgeClient, error) {
 	u, err := url.Parse(origin)
 	if err != nil || u == nil || u.Host == "" || u.User != nil ||
 		(u.Scheme != "http" && u.Scheme != "https") || u.RawQuery != "" || u.Fragment != "" || strings.Trim(u.Path, "/") != "" {
-		return nil, fmt.Errorf("invalid CONFLUENCE_API_URL")
+		return nil, fmt.Errorf("invalid %s_API_URL", service)
 	}
 	if len(secret) < 32 {
-		return nil, fmt.Errorf("CONFLUENCE_DELEGATION_SECRET must contain at least 32 bytes")
+		return nil, fmt.Errorf("%s_DELEGATION_SECRET must contain at least 32 bytes", service)
 	}
 	return &KnowledgeClient{origin: strings.TrimRight(origin, "/"), secret: []byte(secret), http: &http.Client{
 		Timeout:       5 * time.Second,

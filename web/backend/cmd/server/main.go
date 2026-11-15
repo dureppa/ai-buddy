@@ -59,6 +59,13 @@ func runContext(ctx context.Context) error {
 	}
 
 	portalService := portal.New(pool)
+	if origin := os.Getenv("ACCESS_API_URL"); origin != "" {
+		client, err := portal.NewAccessClient(origin, os.Getenv("ACCESS_DELEGATION_SECRET"))
+		if err != nil {
+			return err
+		}
+		portalService.ExternalAccess = client
+	}
 	if origin := os.Getenv("CONFLUENCE_API_URL"); origin != "" {
 		client, err := portal.NewKnowledgeClient(origin, os.Getenv("CONFLUENCE_DELEGATION_SECRET"))
 		if err != nil {

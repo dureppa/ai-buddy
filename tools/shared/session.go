@@ -50,11 +50,16 @@ func (s Sessions) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Sessions) Product(r *http.Request) string {
+	subject, _ := s.Subject(r)
+	return demoProducts[subject]
+}
+
+func (s Sessions) Subject(r *http.Request) (string, bool) {
 	value, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 	if !ok {
-		return ""
+		return "", false
 	}
-	for _, secret := range [][]byte{s.Secret, s.DelegationSecret} {
+	for index, secret := range [][]byte{s.Secret, s.DelegationSecret} {
 		if len(secret) == 0 {
 			continue
 		}
@@ -63,10 +68,12 @@ func (s Sessions) Product(r *http.Request) string {
 			return secret, nil
 		}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithExpirationRequired(), jwt.WithAudience(s.Audience))
 		if err == nil && token.Valid {
-			return demoProducts[claims.Subject]
+			if demoProducts[claims.Subject] != "" {
+				return claims.Subject, index == 1
+			}
 		}
 	}
-	return ""
+	return "", false
 }
 
 func Write(w http.ResponseWriter, status int, value any) {

@@ -100,6 +100,8 @@ services:
       AI_SERVICE_TOKEN: ${COMPOSE_AI_TOKEN:-local-demo-flask-token}
       MCP_ADAPTER_SERVICE_TOKEN: ${COMPOSE_MCP_ADAPTER_TOKEN:-local-demo-adapter-token}
       AI_DELEGATION_SECRET: ${COMPOSE_DELEGATION_SECRET:-local-demo-delegation-change-for-shared-host}
+      ACCESS_API_URL: http://access:8190
+      ACCESS_DELEGATION_SECRET: ${COMPOSE_ACCESS_DELEGATION_SECRET:-local-access-delegation-secret-change-me}
       ACCESS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5190/
       CONFLUENCE_API_URL: http://confluence:8191
       CONFLUENCE_DELEGATION_SECRET: ${COMPOSE_CONFLUENCE_DELEGATION_SECRET:-local-confluence-delegation-secret-change-me}
@@ -346,6 +348,42 @@ services:
       PGDATABASE: hr_events
     ports:
       - "127.0.0.1:8188:8188"
+
+  access-migrate:
+    image: postgres:17-alpine
+    environment:
+      <<: *database-env
+      ACCESS_DB_PASSWORD: ${COMPOSE_ACCESS_DB_PASSWORD:-local-access-db-password}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./corporate-services/access:/data:ro
+    entrypoint: [sh, /data/migrate.sh]
+
+  access:
+    build:
+      context: .
+      dockerfile: ops/docker/Dockerfile.access
+    environment:
+      PGHOST: db
+      PGUSER: buddy_access
+      PGDATABASE: buddy_access
+      PGPASSWORD: ${COMPOSE_ACCESS_DB_PASSWORD:-local-access-db-password}
+      HTTP_ADDR: ":8190"
+      SESSION_SECRET: ${COMPOSE_ACCESS_SESSION_SECRET:-local-access-session-secret-change-me}
+      ACCESS_DELEGATION_SECRET: ${COMPOSE_ACCESS_DELEGATION_SECRET:-local-access-delegation-secret-change-me}
+      DEMO_MODE: "true"
+    ports:
+      - "127.0.0.1:8190:8190"
+    depends_on:
+      access-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8190/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
 
   confluence-migrate:
     image: postgres:17-alpine

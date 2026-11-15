@@ -95,6 +95,7 @@ type Page struct {
 	Updated string  `json:"updated_at"`
 }
 type Service struct {
+	ExternalAccess    *AccessClient
 	ExternalKnowledge *KnowledgeClient
 	KnowledgeDB       *pgxpool.Pool
 	DB                *pgxpool.Pool
@@ -162,6 +163,9 @@ func (s *Service) Validate(in *Input, identity Identity) error {
 	return nil
 }
 func (s *Service) GetCatalog(ctx context.Context, subject string) (map[string]any, error) {
+	if s.ExternalAccess != nil {
+		return s.ExternalAccess.Catalog(ctx, subject)
+	}
 	identity, err := s.Identity(ctx, subject)
 	if err != nil {
 		return nil, err
@@ -202,6 +206,9 @@ func scanRequest(row pgx.Row) (Request, error) {
 	return r, err
 }
 func (s *Service) Submit(ctx context.Context, subject string, input Input, key, origin string) (Request, error) {
+	if s.ExternalAccess != nil {
+		return s.ExternalAccess.Submit(ctx, subject, input, key, origin)
+	}
 	identity, err := s.Identity(ctx, subject)
 	if err != nil {
 		return Request{}, err
@@ -257,6 +264,9 @@ func (s *Service) Submit(ctx context.Context, subject string, input Input, key, 
 	return r, nil
 }
 func (s *Service) List(ctx context.Context, subject string) ([]Request, error) {
+	if s.ExternalAccess != nil {
+		return s.ExternalAccess.List(ctx, subject)
+	}
 	if _, err := s.Identity(ctx, subject); err != nil {
 		return nil, err
 	}
@@ -276,6 +286,9 @@ func (s *Service) List(ctx context.Context, subject string) ([]Request, error) {
 	return out, rows.Err()
 }
 func (s *Service) Decide(ctx context.Context, subject, id, action, note string) (Request, error) {
+	if s.ExternalAccess != nil {
+		return s.ExternalAccess.Decide(ctx, subject, id, action, note)
+	}
 	if _, err := s.Identity(ctx, subject); err != nil {
 		return Request{}, err
 	}
@@ -301,35 +314,48 @@ func (s *Service) Decide(ctx context.Context, subject, id, action, note string) 
 	return scanRequest(s.DB.QueryRow(ctx, requestSelect+`WHERE id::text=$1`, id))
 }
 func (s *Service) EnsureSeed(ctx context.Context) error {
+	return s.ensureSeed(ctx, true)
+}
+
+func (s *Service) EnsureAccessSeed(ctx context.Context) error {
+	return s.ensureSeed(ctx, false)
+}
+
+func (s *Service) ensureSeed(ctx context.Context, includeKnowledge bool) error {
 	tx, err := s.DB.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	for _, product := range []string{"delivery", "travel", "autoteca", "help"} {
-		for _, t := range s.Catalog.Templates {
-			key := product + "-" + t.ID
-			fields := map[string]string{}
-			switch t.ID {
-			case "dwh":
-				key = product + ".orders_mart"
-			case "repository":
-				key = product + "/service-api"
-				fields["repository_url"] = "https://git.example/" + key
-			case "environments":
-				key = product + "-sandbox"
-				fields["namespace"] = product + "-team"
-			case "jira":
-				key = product + "-team"
-				fields["space"] = product
-			case "figma":
-				fields["project_url"] = "https://figma.example/" + key
-			}
-			raw, _ := json.Marshal(fields)
-			if _, err := tx.Exec(ctx, `INSERT INTO portal_resources(product_id,template_id,resource_key,fields) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`, product, t.ID, key, raw); err != nil {
-				return err
+	if s.ExternalAccess == nil {
+		for _, product := range []string{"delivery", "travel", "autoteca", "help"} {
+			for _, t := range s.Catalog.Templates {
+				key := product + "-" + t.ID
+				fields := map[string]string{}
+				switch t.ID {
+				case "dwh":
+					key = product + ".orders_mart"
+				case "repository":
+					key = product + "/service-api"
+					fields["repository_url"] = "https://git.example/" + key
+				case "environments":
+					key = product + "-sandbox"
+					fields["namespace"] = product + "-team"
+				case "jira":
+					key = product + "-team"
+					fields["space"] = product
+				case "figma":
+					fields["project_url"] = "https://figma.example/" + key
+				}
+				raw, _ := json.Marshal(fields)
+				if _, err := tx.Exec(ctx, `INSERT INTO portal_resources(product_id,template_id,resource_key,fields) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`, product, t.ID, key, raw); err != nil {
+					return err
+				}
 			}
 		}
+	}
+	if !includeKnowledge {
+		return tx.Commit(ctx)
 	}
 	var pages []Page
 	if err := json.Unmarshal(pagesJSON, &pages); err != nil {
