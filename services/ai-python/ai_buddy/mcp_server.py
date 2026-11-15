@@ -172,7 +172,11 @@ def create_mcp_app(
             return failure(ErrorCode.INVALID_ARGUMENTS)
         try:
             async with asyncio.timeout(timeout):
-                value = await backend.read(principal.subject, name, args.model_dump())
+                value = await backend.read(
+                    principal.subject,
+                    name,
+                    args.model_dump(exclude_unset=name == "prepare_service_action"),
+                )
             if value.get("ok") is not True:
                 raise ValueError("backend must raise safe ServiceError")
             value = contract.result.model_validate(value).model_dump()

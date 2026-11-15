@@ -1,5 +1,7 @@
 # Python-сервис AI Buddy
 
+`get_service_context` и `prepare_service_action` подключают четыре оставшихся сервиса. Новые действия возвращают карточку ручного подтверждения; агент не выполняет их. Восстановление контекста читает только затронутый сервис. [Контракты и ограничения](service-actions.md).
+
 ## Интеграция DeepSeek и Go (14.11.2026)
 
 Compose использует только DeepSeek API; Ollama ниже описывает отдельный исторический локальный режим и не запускается Docker-стеком.
@@ -135,7 +137,8 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 
 [SDD 007](../specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
 get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
-Максимум — девять tools, запись объявляется только при AccessIntent текущего turn.
+Максимум — 11 tools; submit_access_request объявляется только при AccessIntent текущего turn.
+Два новых инструмента чтения/подготовки доступны при настройке serviceactions.
 Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
 POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
 X-Request-ID, TTL и ACL. local_demo остаётся с двумя read tools.
@@ -161,3 +164,11 @@ HR за сегодня не подставляется в вопрос об ин
 
 Узкие вопросы и инструкции получают read-контекст до первой генерации, чтобы
 оставить бюджет на корректную цитату вместо повторного выбора tools.
+
+Jira по ключу (`DEL-1`) распознаётся и без слова Jira. Перед LLM читается
+контекст сервиса; key отделён от UUID issue_id в промпте и описаниях схем.
+Ошибки аргументов/доступа/отсутствия ресурса двух сервисных инструментов
+возвращаются модели для исправления или уточнения, сохраняя лимиты 3/6.
+Повторные доменные ошибки до лимита завершаются коротким уточнением.
+Транспортные/интеграционные отказы по-прежнему сообщаются как недоступность.
+Регрессии: `tests/test_jira_recovery.py` (включены в Python CI).

@@ -8,6 +8,122 @@ servers:
 security:
   - sessionToken: []
 paths:
+  /service-actions/{action_id}:
+    get:
+      operationId: readServiceAction
+      summary: Прочитать своё подтверждение
+      parameters:
+      - name: action_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Сохранённое состояние. Неопределённый исход не отправляется повторно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceActionDraft'
+        '400':
+          description: Неверное подтверждение
+        '401':
+          description: Нет действующей сессии
+        '403':
+          description: Нет прав на ресурс
+        '404':
+          description: Черновик не найден у текущего пользователя
+        '409':
+          description: Данные сервиса изменились; нужно новое подтверждение
+        '503':
+          description: Не удалось проверить или сохранить результат
+  /service-actions/{action_id}/confirm:
+    post:
+      operationId: confirmServiceAction
+      summary: Выполнить действие после явного подтверждения
+      parameters:
+      - name: action_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Сохранённое состояние. Неопределённый исход не отправляется повторно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceActionDraft'
+        '400':
+          description: Неверное подтверждение
+        '401':
+          description: Нет действующей сессии
+        '403':
+          description: Нет прав на ресурс
+        '404':
+          description: Черновик не найден у текущего пользователя
+        '409':
+          description: Данные сервиса изменились; нужно новое подтверждение
+        '503':
+          description: Не удалось проверить или сохранить результат
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - confirm
+              properties:
+                confirm:
+                  type: boolean
+                  const: true
+  /service-actions/{action_id}/cancel:
+    post:
+      operationId: cancelServiceAction
+      summary: Отменить свой черновик
+      parameters:
+      - name: action_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Сохранённое состояние. Неопределённый исход не отправляется повторно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceActionDraft'
+        '400':
+          description: Неверное подтверждение
+        '401':
+          description: Нет действующей сессии
+        '403':
+          description: Нет прав на ресурс
+        '404':
+          description: Черновик не найден у текущего пользователя
+        '409':
+          description: Данные сервиса изменились; нужно новое подтверждение
+        '503':
+          description: Не удалось проверить или сохранить результат
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - confirm
+              properties:
+                confirm:
+                  type: boolean
+                  const: false
   /schedule/hr-today:
     get:
       operationId: readHRToday
@@ -389,6 +505,89 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
+    ServiceActionDraft:
+      additionalProperties: false
+      properties:
+        id:
+          pattern: ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$
+          title: Id
+          type: string
+        service:
+          enum:
+          - hiring
+          - offboarding
+          - benefits
+          - jira
+          title: Service
+          type: string
+        operation:
+          enum:
+          - refer_candidate
+          - set_exit_step
+          - save_exit_draft
+          - request_benefit
+          - create_jira_issue
+          - update_jira_issue
+          title: Operation
+          type: string
+        state:
+          enum:
+          - prepared
+          - executing
+          - succeeded
+          - failed
+          - uncertain
+          - cancelled
+          - expired
+          title: State
+          type: string
+        title:
+          title: Title
+          type: string
+        fields:
+          items:
+            $ref: '#/components/schemas/ActionField'
+          maxItems: 15
+          title: Fields
+          type: array
+        expires_at:
+          title: Expires At
+          type: string
+        service_url:
+          title: Service Url
+          type: string
+        result:
+          title: Result
+          type: string
+      required:
+      - id
+      - service
+      - operation
+      - state
+      - title
+      - fields
+      - expires_at
+      - service_url
+      - result
+      title: ServiceActionDraft
+      type: object
+    ActionField:
+      additionalProperties: false
+      properties:
+        label:
+          maxLength: 120
+          minLength: 1
+          title: Label
+          type: string
+        value:
+          maxLength: 12000
+          title: Value
+          type: string
+      required:
+      - label
+      - value
+      title: ActionField
+      type: object
     TeamGuide:
       type: object
       required: [status]
