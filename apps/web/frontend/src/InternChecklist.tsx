@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { stages } from './checklist';
 import type { ChecklistEntry, ChecklistItemInput, ShownMaterial } from './staff-data';
 import { Icon, Modal } from './ui';
+import { TaskMaterialPicker } from './TaskMaterialPicker';
 
 export function InternChecklist({
   name,
@@ -27,7 +28,6 @@ export function InternChecklist({
   const [openId, setOpenId] = useState<string>();
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const task = items.find((item) => item.id === openId);
 
   return (
@@ -44,25 +44,16 @@ export function InternChecklist({
           materials={materials}
           canEdit={canEdit}
           error={error}
-          notice={notice}
           onSave={(materialIds) => {
-            try {
-              onSaveMaterials(task.id, materialIds);
-              setError('');
-              setNotice('Материалы пункта сохранены.');
-            } catch (problem) {
-              setNotice('');
-              setError(problem instanceof Error ? problem.message : 'Не удалось сохранить материалы.');
-            }
+            onSaveMaterials(task.id, materialIds);
+            setError('');
           }}
           onRemove={() => {
             try {
               onRemove(task.id);
               setOpenId(undefined);
               setError('');
-              setNotice('Пункт удалён.');
             } catch (problem) {
-              setNotice('');
               setError(problem instanceof Error ? problem.message : 'Не удалось удалить пункт.');
             }
           }}
@@ -80,11 +71,6 @@ export function InternChecklist({
               </button>
             )}
           </div>
-          {notice && (
-            <p className="staff-message" role="status">
-              {notice}
-            </p>
-          )}
           <ol className="stage-list">
             {stages.map((stage) => {
               const stageItems = items.filter((item) => item.stage === stage.id);
@@ -110,7 +96,14 @@ export function InternChecklist({
                         <span className="task-check" aria-checked={item.done} aria-hidden="true">
                           <Icon name="check" size={15} />
                         </span>
-                        <button type="button" className="task-link" onClick={() => setOpenId(item.id)}>
+                        <button
+                          type="button"
+                          className="task-link"
+                          onClick={() => {
+                            setError('');
+                            setOpenId(item.id);
+                          }}
+                        >
                           <span className={'icon-tile tone-' + item.tone}>
                             <Icon name={item.icon} size={19} />
                           </span>
@@ -144,7 +137,6 @@ export function InternChecklist({
                 onAdd(input);
                 setAdding(false);
                 setError('');
-                setNotice('Пункт добавлен в чек-лист.');
               } catch (problem) {
                 setError(problem instanceof Error ? problem.message : 'Не удалось добавить пункт.');
               }
@@ -205,7 +197,6 @@ function TaskMaterials({
   materials,
   canEdit,
   error,
-  notice,
   onSave,
   onRemove,
 }: {
@@ -213,12 +204,15 @@ function TaskMaterials({
   materials: ShownMaterial[];
   canEdit: boolean;
   error: string;
-  notice: string;
   onSave: (materialIds: string[]) => void;
   onRemove: () => void;
 }) {
-  const [selected, setSelected] = useState(() => new Set(task.materialIds));
-  const attached = materials.filter((material) => task.materialIds.includes(material.id));
+  const [editing, setEditing] = useState(false);
+  const availableById = new Map(materials.map((material) => [material.id, material]));
+  const attached = task.materialIds.flatMap((id) => {
+    const material = availableById.get(id);
+    return material ? [material] : [];
+  });
 
   return (
     <div className="staff-checklist__task">
@@ -226,76 +220,58 @@ function TaskMaterials({
         <h2>{task.title}</h2>
       </div>
       <p className="staff-muted">{task.summary}</p>
-      {notice && (
-        <p className="staff-message" role="status">
-          {notice}
-        </p>
-      )}
       {error && (
         <p className="staff-error" role="alert">
           {error}
         </p>
       )}
-      <h3>Материалы пункта</h3>
-      {canEdit ? (
-        <form
-          className="checklist-materials"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSave([...selected]);
-          }}
-        >
-          {materials.length ? (
-            materials.map((material) => (
-              <label key={material.id} className="panel checklist-material">
-                <input
-                  type="checkbox"
-                  checked={selected.has(material.id)}
-                  onChange={() => {
-                    const next = new Set(selected);
-                    if (next.has(material.id)) next.delete(material.id);
-                    else next.add(material.id);
-                    setSelected(next);
-                  }}
-                />
-                <span>
+      <section className="checklist-materials-section" aria-label="Материалы пункта">
+        <header className="checklist-materials-heading">
+          <h3>Материалы пункта</h3>
+          {canEdit && materials.length > 0 && (
+            <button className="button button--white" type="button" onClick={() => setEditing(true)}>
+              {attached.length ? 'Изменить материалы' : 'Добавить материалы'}
+            </button>
+          )}
+        </header>
+        {attached.length ? (
+          <ul className="checklist-materials">
+            {attached.map((material) => (
+              <li key={material.id} className="checklist-material">
+                <span className="checklist-material__label">
                   <strong>{material.title}</strong>
                   <small>
                     {material.group} · {material.author}
                   </small>
                 </span>
-              </label>
-            ))
-          ) : (
-            <p className="panel staff-empty">Сначала опубликуй материалы для стажёра.</p>
-          )}
-          <div className="staff-actions">
-            <button className="button button--dark" type="submit" disabled={!materials.length}>
-              Сохранить материалы
-            </button>
-            {task.custom && (
-              <button className="button button--white" type="button" onClick={onRemove}>
-                Удалить пункт
-              </button>
-            )}
-          </div>
-        </form>
-      ) : attached.length ? (
-        <ul className="checklist-materials">
-          {attached.map((material) => (
-            <li key={material.id} className="panel checklist-material">
-              <span>
-                <strong>{material.title}</strong>
-                <small>{material.group}</small>
-              </span>
-              <a className="text-link" href={material.source.href} target="_blank" rel="noreferrer">
-                {material.source.kind === 'file' ? material.source.name : material.source.href}
-              </a>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="panel staff-empty">К этому пункту пока не прикреплены материалы.</p>
+                {!canEdit && (
+                  <a className="text-link" href={material.source.href} target="_blank" rel="noreferrer">
+                    {material.source.kind === 'file' ? material.source.name : material.source.href}
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="staff-muted">
+            {canEdit && !materials.length
+              ? 'Сначала опубликуй материалы для стажёра.'
+              : 'К этому пункту пока не прикреплены материалы.'}
+          </p>
+        )}
+      </section>
+      {canEdit && task.custom && (
+        <button className="button button--white" type="button" onClick={onRemove}>
+          Удалить пункт
+        </button>
+      )}
+      {canEdit && editing && (
+        <TaskMaterialPicker
+          materials={materials}
+          attached={attached}
+          onClose={() => setEditing(false)}
+          onSave={onSave}
+        />
       )}
     </div>
   );

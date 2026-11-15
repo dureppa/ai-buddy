@@ -207,6 +207,26 @@ export function Modal({
   );
 }
 
+export function Toast({
+  message,
+  tone = 'success',
+  placement,
+}: {
+  message: string;
+  tone?: 'success' | 'error';
+  placement?: 'top-right';
+}) {
+  return (
+    <div
+      className={'toast toast--' + tone + (placement ? ' toast--' + placement : '')}
+      role={tone === 'error' ? 'alert' : 'status'}
+    >
+      <Icon name={tone === 'success' ? 'check' : 'info'} size={20} />
+      {message}
+    </div>
+  );
+}
+
 export function EmptyState({ title, text }: { title: string; text: string }) {
   return (
     <div className="empty-state">
