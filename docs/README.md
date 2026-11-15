@@ -35,9 +35,9 @@
 - [Пробелы ответов](ai/answer-gaps.md), [контроль качества](ai/quality-control.md)
 - [Инструменты направлений](specs/009-agent-role-tools.md), [проверка прогона](ai/role-tools-check.md)
 
-- [Уточнить у агента по выделению](specs/010-selection-explanation.md): боковая панель, контекст задачи/сервиса и чтение источников.
+- [Контракт контекста пояснения](specs/010-selection-explanation.md): selection, чтение источников и границы доступа.
 
-- [Проверка пояснений выделения](ai/selection-explanation-check.md): UI, контракты, LLM и границы измерения.
+- [Проверка панели Buddy](ai/selection-explanation-check.md): общий диалог, контекст пункта и границы проверки.
 
 - [Ссылки и действия чата](specs/011-chat-navigation.md), [проверка переходов](ai/chat-navigation-audit.md).
 
@@ -45,3 +45,5 @@
 
 Все 15 инструментов видны каждому профилю и ранжируются по специальности.
 [Порядок и границы](specs/role-tool-ranking.md).
+
+- [Разбор пункта адаптации](specs/ask-agent-checklist.md): общая панель Buddy, контекст, шаги и материалы.
