@@ -22,6 +22,39 @@
       "fields": {
         "Ответ": "REPORT_FOUND"
       }
+    },
+    {
+      "team": "delivery",
+      "id": "delivery-fixture",
+      "title": "DEMO-DEL-001",
+      "status": "404",
+      "description": "Изолированная учебная запись команды для проверки отсутствующего отчёта.",
+      "fields": {
+        "Ответ": "REPORT_NOT_FOUND",
+        "Задача": "DEL-1"
+      }
+    },
+    {
+      "team": "travel",
+      "id": "travel-fixture",
+      "title": "DEMO-TRV-001",
+      "status": "404",
+      "description": "Изолированная учебная запись команды для проверки отсутствующего отчёта.",
+      "fields": {
+        "Ответ": "REPORT_NOT_FOUND",
+        "Задача": "TRV-1"
+      }
+    },
+    {
+      "team": "help",
+      "id": "help-fixture",
+      "title": "DEMO-HELP-001",
+      "status": "404",
+      "description": "Изолированная учебная запись команды для проверки отсутствующего отчёта.",
+      "fields": {
+        "Ответ": "REPORT_NOT_FOUND",
+        "Задача": "HELP-1"
+      }
     }
   ]
 }

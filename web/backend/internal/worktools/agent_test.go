@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/dureppa/ai-buddy/web/backend/internal/buddy"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,11 +21,11 @@ func testCatalog(t *testing.T) *Catalog {
 	c.external.Transport = roundTrip(func(r *http.Request) (*http.Response, error) {
 		name := strings.TrimPrefix(r.URL.Path, "/api/v1/work-tools/")
 		meta := c.services[name]
-		team := ""
-		for _, row := range meta.Records {
-			team = row.Team
-			break
-		}
+		claims := &jwt.RegisteredClaims{}
+		_, err := jwt.ParseWithClaims(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "), claims,
+			func(*jwt.Token) (any, error) { return c.secret, nil }, jwt.WithAudience(name))
+		require.NoError(t, err)
+		team := map[string]string{"olga": "delivery", "sasha": "travel", "timur": "autoteca", "maria": "help"}[claims.Subject]
 		rows := []Record{}
 		for _, row := range meta.Records {
 			if row.Team == team {
@@ -38,8 +39,8 @@ func testCatalog(t *testing.T) *Catalog {
 }
 func TestAgentCatalogByDirection(t *testing.T) {
 	c := testCatalog(t)
-	cases := map[string][]string{"delivery": {"mattermost", "redash", "trino", "trisigma"}, "travel": {"mattermost", "bitbucket", "paas", "grafana"}, "autoteca": {"mattermost", "tms", "postman", "test-stand"}, "help": {"mattermost", "figma", "design-system", "design-review"}}
-	for team, want := range cases {
+	want := []string{"mattermost", "redash", "trino", "trisigma", "bitbucket", "paas", "grafana", "tms", "postman", "test-stand", "figma", "design-system", "design-review"}
+	for _, team := range []string{"delivery", "travel", "autoteca", "help"} {
 		t.Run(team, func(t *testing.T) {
 			items := c.Available(team)
 			ids := []string{}
@@ -49,7 +50,7 @@ func TestAgentCatalogByDirection(t *testing.T) {
 			}
 			require.ElementsMatch(t, want, ids)
 			data := c.CatalogData(team, true, true)
-			require.Len(t, data["tools"], 6)
+			require.Len(t, data["tools"], 15)
 			require.Len(t, data["references"], 1)
 		})
 	}
@@ -58,25 +59,33 @@ func TestAgentCatalogByDirection(t *testing.T) {
 func TestAllWorkContextsAndSelectedRecord(t *testing.T) {
 	c := testCatalog(t)
 	for name, meta := range c.services {
-		t.Run(name, func(t *testing.T) {
-			team := meta.Records[0].Team
-			out, err := c.AgentContext(context.Background(), team, map[string]any{"service": name})
-			require.NoError(t, err)
-			rows := out["records"].([]any)
-			require.NotEmpty(t, rows)
-			require.Equal(t, name, out["service"])
-			for _, v := range rows {
-				require.NotContains(t, v.(map[string]any), "team")
-			}
-			id := rows[0].(map[string]any)["id"].(string)
-			one, err := c.AgentContext(context.Background(), team, map[string]any{"service": name, "record_id": id})
-			require.NoError(t, err)
-			require.Len(t, one["records"], 1)
-			refs := one["references"].([]any)
-			require.Contains(t, refs[0].(map[string]any)["url"], "/work-tools/"+name+"#"+id)
-			_, err = c.AgentContext(context.Background(), team, map[string]any{"service": name, "record_id": "missing"})
-			require.ErrorIs(t, err, buddy.ErrNotFound)
-		})
+		for _, team := range []string{"delivery", "travel", "autoteca", "help"} {
+			t.Run(name+"/"+team, func(t *testing.T) {
+				out, err := c.AgentContext(context.Background(), team, map[string]any{"service": name})
+				require.NoError(t, err)
+				rows := out["records"].([]any)
+				require.NotEmpty(t, rows)
+				require.Equal(t, name, out["service"])
+				for _, v := range rows {
+					require.NotContains(t, v.(map[string]any), "team")
+				}
+				id := rows[0].(map[string]any)["id"].(string)
+				one, err := c.AgentContext(context.Background(), team, map[string]any{"service": name, "record_id": id})
+				require.NoError(t, err)
+				require.Len(t, one["records"], 1)
+				refs := one["references"].([]any)
+				require.Contains(t, refs[0].(map[string]any)["url"], "/work-tools/"+name+"#"+id)
+				_, err = c.AgentContext(context.Background(), team, map[string]any{"service": name, "record_id": "missing"})
+				require.ErrorIs(t, err, buddy.ErrNotFound)
+				for _, foreign := range meta.Records {
+					if foreign.Team != team {
+						_, err = c.AgentContext(context.Background(), team, map[string]any{"service": name, "record_id": foreign.ID})
+						require.ErrorIs(t, err, buddy.ErrNotFound)
+						break
+					}
+				}
+			})
+		}
 	}
 }
 func TestWorkContextAccessAndInput(t *testing.T) {
@@ -85,7 +94,7 @@ func TestWorkContextAccessAndInput(t *testing.T) {
 		_, err := c.AgentContext(context.Background(), "delivery", args)
 		require.ErrorIs(t, err, buddy.ErrInvalidInput)
 	}
-	_, err := c.AgentContext(context.Background(), "travel", map[string]any{"service": "redash"})
+	_, err := c.AgentContext(context.Background(), "unknown", map[string]any{"service": "redash"})
 	require.ErrorIs(t, err, buddy.ErrNotFound)
 	_, err = c.AgentContext(context.Background(), "delivery", map[string]any{"service": "missing"})
 	require.ErrorIs(t, err, buddy.ErrNotFound)

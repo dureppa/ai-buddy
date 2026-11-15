@@ -45,12 +45,11 @@ func TestToolRoutesAcrossAllFixtures(t *testing.T) {
 			handler := routes(db, name, fixture, shared.Sessions{Secret: []byte("test-secret"), Audience: name, Demo: true})
 			servicetest.Check(t, handler, httptest.NewRequest("GET", api, nil), http.StatusUnauthorized, "unauthenticated")
 			for team, profile := range profiles {
+				if !teams[team] {
+					t.Fatalf("%s has no records for profile %s", name, profile)
+				}
 				token := servicetest.Login(t, handler, api+"/demo/sessions", profile)
 				request := servicetest.Authorized("GET", api, token, "")
-				if !teams[team] {
-					servicetest.Check(t, handler, request, http.StatusNotFound, "not_found")
-					continue
-				}
 				recorder := httptest.NewRecorder()
 				handler.ServeHTTP(recorder, request)
 				var result page
