@@ -6,7 +6,16 @@ import { build, createServer } from 'vite';
 
 const root = fileURLToPath(new URL('./frontend', import.meta.url));
 const repo = fileURLToPath(new URL('../..', import.meta.url));
-const hrApiPorts = { absences: 8181, trips: 8182, consents: 8185, documents: 8187, events: 8188 };
+const hrApiPorts = {
+  absences: 8181,
+  trips: 8182,
+  hiring: 8183,
+  offboarding: 8184,
+  consents: 8185,
+  benefits: 8186,
+  documents: 8187,
+  events: 8188,
+};
 const ports = JSON.parse(await readFile(new URL('./frontend/service-ports.json', import.meta.url), 'utf8'));
 const [command, selected] = process.argv.slice(2);
 if (!['dev', 'build'].includes(command) || (selected && !Object.hasOwn(ports, selected))) {

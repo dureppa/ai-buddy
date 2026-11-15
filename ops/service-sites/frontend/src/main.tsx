@@ -9,6 +9,7 @@ import { ConsentApi } from '../../../../corporate-services/consents/frontend/Con
 import { DocumentsPage } from '../../../../corporate-services/documents/frontend/page';
 import { EventsPage } from '../../../../corporate-services/events/frontend/page';
 import { guideServices, type GuideService } from './guide-catalog';
+import { LiveHrPage } from './LiveHrPage';
 import { HrPage } from './HrPages';
 import { hrServices } from './hr-catalog';
 import './hr.css';
@@ -41,6 +42,9 @@ function Page({ profileId }: { profileId: ProfileId }) {
     return service.id === 'documents' ? <DocumentsPage profileId={profileId} /> : <EventsPage profileId={profileId} />;
   if (backendEnabled && (service.id === 'absences' || service.id === 'trips')) {
     return <LiveScheduleHr service={service.id} profileId={profileId} />;
+  }
+  if (backendEnabled && (service.id === 'hiring' || service.id === 'benefits' || service.id === 'offboarding')) {
+    return <LiveHrPage key={service.id + ':' + profileId} service={service.id} profileId={profileId} />;
   }
   if (service.id !== 'consents' || !backendEnabled) return <HrPage service={service} profileId={profileId} />;
   return <ConsentApi key={profileId} profileId={profileId} />;

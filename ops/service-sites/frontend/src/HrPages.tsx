@@ -7,7 +7,7 @@ import { HiringForm } from '../../../../corporate-services/hiring/frontend/Hirin
 import { ExitForm } from '../../../../corporate-services/offboarding/frontend/ExitForm';
 import { TripForm } from '../../../../corporate-services/trips/frontend/TripForm';
 import { Avatar, Icon, PageIntro } from '../../../../web/frontend/src/ui';
-import { dateLabel, rubles } from './form-shared';
+import { dateLabel, rubles, type SubmitAction } from './form-shared';
 import { benefitOptions, consentOptions, destinations, exitSteps, vacancies, type HrService } from './hr-catalog';
 import { makeHrDemo, serviceHistory, travelNoticeDays, type HrDemo, type HrView } from './hr-demo';
 import './hr.css';
@@ -23,7 +23,14 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function historyRow(item: HrView['history'][number]): [string, string] {
+type CatalogItem = { id: string; title: string; description: string };
+type Catalogs = { jobs?: CatalogItem[]; steps?: CatalogItem[]; programs?: (CatalogItem & { amount: number })[] };
+
+function historyRow(
+  item: HrView['history'][number],
+  jobs: CatalogItem[] | undefined,
+  programs: Catalogs['programs'],
+): [string, string] {
   switch (item.service) {
     case 'absences':
       return [dateLabel(item.start) + ' — ' + dateLabel(item.end), item.days + ' дн. · На согласовании'];
@@ -35,7 +42,8 @@ function historyRow(item: HrView['history'][number]): [string, string] {
     case 'hiring':
       return [
         item.name,
-        (vacancies.find((vacancy) => vacancy.id === item.vacancy)?.title ?? item.vacancy) + ' · Передано в подбор',
+        ((jobs ?? vacancies).find((vacancy) => vacancy.id === item.vacancy)?.title ?? item.vacancy) +
+          ' · Передано в подбор',
       ];
     case 'offboarding':
       return ['Черновик завершения работы', 'Последний день · ' + dateLabel(item.date)];
@@ -46,7 +54,7 @@ function historyRow(item: HrView['history'][number]): [string, string] {
       ];
     case 'benefits':
       return [
-        benefitOptions.find((option) => option.id === item.benefit)?.title ?? item.benefit,
+        (programs ?? benefitOptions).find((option) => option.id === item.benefit)?.title ?? item.benefit,
         rubles.format(item.amount) + ' · На согласовании',
       ];
   }
@@ -56,7 +64,6 @@ export function HrPage({ service, profileId }: { service: HrService; profileId: 
   const [demo] = useState(() => makeHrDemo(localStorage, profileId));
   const [view, setView] = useState(() => demo.read());
   const [feedback, setFeedback] = useState<{ message: string; ok: boolean }>();
-  const profile = profiles[profileId];
 
   function submit(action: Parameters<HrDemo['submit']>[0], message: string) {
     const result = demo.submit(action);
@@ -65,6 +72,38 @@ export function HrPage({ service, profileId }: { service: HrService; profileId: 
     return result.ok;
   }
 
+  function onToggle(id: string) {
+    demo.toggleExitStep(id);
+    setView(demo.read());
+    setFeedback(undefined);
+  }
+
+  return <HrPageContent {...{ service, profileId, view, submit, onToggle, feedback }} />;
+}
+
+type HrPageProps = Catalogs & {
+  service: HrService;
+  profileId: ProfileId;
+  view: HrView;
+  submit: SubmitAction;
+  onToggle: (id: string) => void;
+  feedback?: { message: string; ok: boolean };
+  pending?: boolean;
+};
+
+export function HrPageContent({
+  service,
+  profileId,
+  view,
+  submit,
+  onToggle,
+  feedback,
+  pending,
+  jobs,
+  steps,
+  programs,
+}: HrPageProps) {
+  const profile = profiles[profileId];
   const [title, metric, note] = {
     absences: [
       'Запланировать отпуск',
@@ -83,7 +122,7 @@ export function HrPage({ service, profileId }: { service: HrService; profileId: 
     ],
     offboarding: [
       'Подготовка к завершению',
-      view.exitChecklist.length + ' из ' + exitSteps.length,
+      view.exitChecklist.length + ' из ' + (steps ?? exitSteps).length,
       'Шагов выполнено · уведомление за ' + view.settings.exitNoticeDays + ' дн.',
     ],
     consents: ['Доступные согласия', view.grants.size + ' из ' + consentOptions.length, 'Дополнительных согласий дано'],
@@ -94,19 +133,10 @@ export function HrPage({ service, profileId }: { service: HrService; profileId: 
   const form = {
     absences: <VacationForm {...props} />,
     trips: <TripForm {...props} />,
-    hiring: <HiringForm {...props} />,
-    offboarding: (
-      <ExitForm
-        {...props}
-        onToggle={(id) => {
-          demo.toggleExitStep(id);
-          setView(demo.read());
-          setFeedback(undefined);
-        }}
-      />
-    ),
+    hiring: <HiringForm {...props} options={jobs} />,
+    offboarding: <ExitForm {...props} steps={steps} onToggle={onToggle} />,
     consents: <ConsentForm {...props} />,
-    benefits: <BenefitsForm {...props} />,
+    benefits: <BenefitsForm {...props} options={programs} />,
   }[service.id];
 
   return (
@@ -114,7 +144,9 @@ export function HrPage({ service, profileId }: { service: HrService; profileId: 
       <PageIntro title={service.title} text={service.description} tone={service.tone} icon={service.icon} />
       <div className="hr-layout">
         <Panel title={title}>
-          {form}
+          <fieldset disabled={pending} className="hr-live-fields">
+            {form}
+          </fieldset>
           {feedback && (
             <p
               className={'hr-feedback' + (feedback.ok ? '' : ' hr-feedback--error')}
@@ -141,7 +173,7 @@ export function HrPage({ service, profileId }: { service: HrService; profileId: 
             {history.length ? (
               <ul className="hr-history">
                 {history.map((item, index) => {
-                  const [heading, detail] = historyRow(item);
+                  const [heading, detail] = historyRow(item, jobs, programs);
                   return (
                     <li key={index}>
                       <Icon name="check" size={16} />

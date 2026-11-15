@@ -2,16 +2,18 @@ import { Icon } from '../../../web/frontend/src/ui';
 import { rubles, type FormProps } from '../../../ops/service-sites/frontend/src/form-shared';
 import { benefitOptions } from './meta';
 
-export function BenefitsForm({ view, submit }: FormProps) {
+type Program = { id: string; title: string; description: string; amount: number };
+
+export function BenefitsForm({ view, submit, options = benefitOptions }: FormProps & { options?: readonly Program[] }) {
   return (
     <div className="hr-options">
-      {benefitOptions.map((item) => {
+      {options.map((item) => {
         const requested = view.benefits.some((record) => record.benefit === item.id);
         const unavailable = !view.settings.benefits.includes(item.id);
         return (
           <div className="hr-option" key={item.id}>
             <span className="icon-tile tone-mint">
-              <Icon name={item.icon} />
+              <Icon name={benefitOptions.find((option) => option.id === item.id)?.icon ?? 'heart'} />
             </span>
             <span>
               <strong>{item.title}</strong>
