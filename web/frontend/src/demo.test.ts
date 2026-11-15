@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   answerBuddy,
+  absenceServiceLink,
   buddyGrowthStage,
   confirmAccess,
+  completeTask,
   progressFor,
   readWorkspace,
   toggleTask,
@@ -198,4 +200,25 @@ describe('AI-buddy demo workspace', () => {
     expect(contacts.lines?.join(' ')).toContain(staffAccounts[product.manager].name);
     expect(contacts.lines).toHaveLength(2);
   });
+});
+
+it('completes a task idempotently without undoing it or affecting another profile', () => {
+  const storage = memory();
+  const other = readWorkspace(storage, 'sasha');
+  const done = completeTask(storage, 'olga', 'practice-memo');
+  expect(done.completed).toContain('practice-memo');
+  expect(completeTask(storage, 'olga', 'practice-memo')).toEqual(done);
+  expect(readWorkspace(storage, 'olga')).toEqual(done);
+  expect(readWorkspace(storage, 'sasha')).toEqual(other);
+  expect(done.requests).toEqual([]);
+  expect(() => completeTask(storage, 'olga', 'not-a-task')).toThrow('Задача недоступна');
+});
+
+it('finds the configured absence service for navigation without generating an agent answer', () => {
+  const link = absenceServiceLink('Как оформить отгул?');
+  expect(link).toEqual({ label: 'Открыть «Отсутствия»', to: 'http://localhost:5181/' });
+  expect(absenceServiceLink('Хочу оформить отпуск')).toEqual(link);
+  expect(absenceServiceLink('Открой сервис отсутствий')).toEqual(link);
+  expect(absenceServiceLink('Сколько дней отпуска осталось?')).toBeUndefined();
+  expect(absenceServiceLink('Кто мой наставник?')).toBeUndefined();
 });

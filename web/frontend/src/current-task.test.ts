@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
-import { currentChecklistTask, chatPageContext } from './current-task';
+import { currentChecklistTask, chatPageContext, isTaskCompletionMessage, isChecklistQuestion } from './current-task';
 import { readWorkspace } from './demo';
 import { checklistFor, addChecklistItem } from './staff-data';
 import { demoSessionKey } from './demo-session';
@@ -80,3 +80,38 @@ it('does not report completion when the survey state is unavailable', () => {
     status: 'unavailable',
   });
 });
+
+it.each(['ознакомился', 'Я уже ознакомилась!', 'прочитал.', 'готово', 'Отметь задачу выполненной', 'задача выполнена'])(
+  'recognizes explicit task completion: %s',
+  (text) => {
+    expect(isTaskCompletionMessage(text)).toBe(true);
+  },
+);
+it.each([
+  'не ознакомился',
+  'готово?',
+  'как отметить выполненной?',
+  'прочитал, но не понял',
+  'ознакомился с другой задачей',
+  '',
+])('does not treat a question, denial or unrelated report as confirmation: %s', (text) => {
+  expect(isTaskCompletionMessage(text)).toBe(false);
+});
+
+it.each([
+  'Какое у меня задание?',
+  'Какое у меня текущее задание?',
+  'С чего начать сегодня?',
+  'Какая следующая задача?',
+  'Покажи мою текущую задачу',
+  'Какой у меня пункт адаптации?',
+  'Чем мне заняться сегодня?',
+])('shows task actions after asking about the checklist: %s', (question) => {
+  expect(isChecklistQuestion(question)).toBe(true);
+});
+it.each(['ты тут?', 'Как оформить отгул?', 'Какая задача в Jira?', 'Привет'])(
+  'does not attach checklist actions to unrelated questions: %s',
+  (question) => {
+    expect(isChecklistQuestion(question)).toBe(false);
+  },
+);

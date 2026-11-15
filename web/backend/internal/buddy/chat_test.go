@@ -53,3 +53,12 @@ func TestChatBoundaryAndOptionalCapabilities(t *testing.T) {
 	_, err = off.SubmitReview(ctx, "olga", "Ответ")
 	require.ErrorIs(t, err, ErrUnavailable)
 }
+
+func TestKnowledgeSearchDayOffAliasKeepsQueryBounded(t *testing.T) {
+	require.Contains(t, KnowledgeSearchQuery("Как оформить отгул?"), "отпуск")
+	original := "Как оформить отпуск?"
+	require.Equal(t, original, KnowledgeSearchQuery(original))
+	long := KnowledgeSearchQuery("отгул" + strings.Repeat("я", 495))
+	require.Len(t, []rune(long), 500)
+	require.True(t, strings.HasSuffix(long, "отпуск"))
+}

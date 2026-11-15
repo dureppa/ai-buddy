@@ -25,6 +25,9 @@ export type ChatProps = {
   surveyDone: boolean;
   onNavigate?: () => void;
   taskContext?: { id: string; title: string };
+  completionTask?: { id: string; title: string; completed: boolean; survey: boolean };
+  onCompleteTask?: () => void;
+  serviceShortcut?: { label: string; to: string };
   contextMaterials?: ReactNode;
   onClearContext?: () => void;
   error?: string;
@@ -90,6 +93,9 @@ export function ChatWindow({
   surveyDone,
   onNavigate,
   taskContext,
+  completionTask,
+  onCompleteTask,
+  serviceShortcut,
   contextMaterials,
   onClearContext,
   error,
@@ -226,6 +232,34 @@ export function ChatWindow({
         </div>
       )}
       <div className="chat-controls">
+        {serviceShortcut && chatDestination(serviceShortcut.to, profileId) && (
+          <a
+            className="text-link"
+            href={chatDestination(serviceShortcut.to, profileId)!}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {serviceShortcut.label} <Icon name="diagonal" size={16} />
+          </a>
+        )}
+        {completionTask && onCompleteTask && (
+          <div className="chat-task-completion">
+            <small>Самостоятельная отметка в чек-листе</small>
+            <strong>{completionTask.title}</strong>
+            <button
+              type="button"
+              className="button button--white"
+              disabled={waiting || completionTask.completed}
+              onClick={onCompleteTask}
+            >
+              {completionTask.completed
+                ? 'Выполнено ✓'
+                : completionTask.survey
+                  ? 'Заполнить анкету'
+                  : 'Отметить выполненной'}
+            </button>
+          </div>
+        )}
         <div className="suggestions" aria-label="Предложенные вопросы">
           {(taskContext ? taskSuggestions : suggestions).slice(0, entries.length ? 2 : 4).map((question) => (
             <button type="button" className="filter" key={question} disabled={waiting} onClick={() => onSend(question)}>
