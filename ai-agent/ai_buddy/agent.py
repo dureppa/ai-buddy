@@ -282,6 +282,9 @@ async def direct_loop(
     hr_today: str | None = None,
     recover_context: bool = False,
 ) -> str:
+    conversation = conversational_only(question)
+    if conversation:
+        recover_context = False
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": PROMPT},
     ]
@@ -300,7 +303,7 @@ async def direct_loop(
             {"role": "user", "content": "Сведения HR за сегодня: " + hr_today}
         )
     messages.append({"role": "user", "content": question})
-    if selection is not None:
+    if selection is not None and not conversation:
         trace.explanation = True
         recover_context = False
         if suspicious(selection.model_dump_json()):
@@ -326,8 +329,22 @@ async def direct_loop(
                 + json.dumps(retrieved, ensure_ascii=False),
             },
         )
+    if conversation:
+        messages.insert(
+            -1,
+            {
+                "role": "system",
+                "content": "Текущая реплика — только приветствие, благодарность или прощание. "
+                "Ответь на неё одной короткой дружелюбной фразой. Не продолжай прошлые задания, "
+                "не добавляй факты о компании, источники и совет обратиться к наставнику. "
+                "Инструменты для этой реплики недоступны.",
+            },
+        )
     focus = narrow_focus(question) if recover_context else "general"
+    if conversation:
+        focus = "conversation"
     scoped = {
+        "conversation": set(),
         "mentor": {"get_team_context"},
         "start": {"get_onboarding_progress", "get_task_context"},
     }
@@ -454,6 +471,8 @@ def conversational_only(question: str) -> bool:
     return (
         re.fullmatch(
             r"(?:привет|здравствуй(?:те)?|добрый (?:день|вечер)|доброе утро|"
+            r"сал[ая]м(?:[\s-]+алейкум)?|ас[\s-]?сал[ая]му[\s-]+алейкум|"
+            r"salam(?:[\s-]+alaikum)?|assalamu[\s-]+alaikum|"
             r"спасибо(?: большое)?|благодарю|пока|до свидания|hi|hello|thanks|thank you)[\s!.?]*",
             question.strip(),
             re.IGNORECASE,

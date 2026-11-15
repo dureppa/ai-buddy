@@ -412,3 +412,57 @@ def test_recovery_tool_failure_keeps_domain_error(
     assert response.status_code == 503
     assert response.json["error"]["code"] == "MCP_TIMEOUT"
     assert factory.active == factory.closed
+
+
+@pytest.mark.parametrize("with_task", [False, True])
+def test_deepseek_greeting_skips_knowledge_search_and_returns_no_sources(
+    monkeypatch: pytest.MonkeyPatch,
+    with_task: bool,
+) -> None:
+    from pydantic import SecretStr
+
+    from tests.test_deepseek import response as deepseek_response
+
+    sent: list[dict[str, Any]] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        sent.append(json.loads(request.content))
+        return httpx.Response(200, json=deepseek_response("Ва алейкум ассалам!"))
+
+    client, factory = runtime_client(
+        monkeypatch,
+        handle,
+        llm_provider="deepseek",
+        deepseek_api_key=SecretStr("private-key"),
+    )
+    extra = (
+        {
+            "page_context": {
+                "url": "https://buddy.example/onboarding",
+                "selection": {
+                    "text": "Команда",
+                    "title": "Пункт",
+                    "resource": {"kind": "task", "id": "meet-team", "label": "Команда"},
+                },
+            }
+        }
+        if with_task
+        else {}
+    )
+    answer = post(
+        client,
+        message="салам алейкум",
+        history=[
+            {
+                "role": "assistant",
+                "content": "В доступных источниках нет информации. Уточни у наставника.",
+            }
+        ],
+        **extra,
+    )
+    assert answer.status_code == 200
+    assert answer.json["reply"] == {"text": "Ва алейкум ассалам!", "references": []}
+    assert len(sent) == 1
+    assert not sent[0].get("tools")
+    assert not factory.session.calls
+    assert factory.active == factory.closed
