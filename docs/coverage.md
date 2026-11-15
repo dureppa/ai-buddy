@@ -20,11 +20,11 @@ npm run test:coverage --workspace=@ai-buddy/web
 
 | | |
 | --- | --- |
-| Тесты | 159, все прошли |
-| Строки | 89,07% (1280 из 1437) |
-| Операторы | 86,75% (1435 из 1654) |
+| Тесты | 185, все прошли |
+| Строки | 89,47% (1522 из 1701) |
+| Операторы | 87,21% (1698 из 1947) |
 
-Локально команда выполнена на Node 25.2.1. CI берёт Node 24.22.2 из `.nvmrc` и ту же команду. Отчёт LCOV пишется в `web/coverage/lcov.info`, в CI он сохраняется артефактом `web-coverage`.
+Локально команда выполнена на Node 24.22.2. CI берёт Node 24.22.2 из `.nvmrc` и ту же команду. Отчёт LCOV пишется в `web/coverage/lcov.info`, в CI он сохраняется артефактом `web-coverage`.
 
 ## Python-агент
 
@@ -38,8 +38,8 @@ uv run --locked python -m pytest --cov=. --cov=../ops/deploy --cov-report=term-m
 
 | | |
 | --- | --- |
-| Тесты | 561, все прошли |
-| Строки | 90,99% (282 строки без покрытия из 3131) |
+| Тесты | 639, все прошли |
+| Строки | 91,41% (280 строк без покрытия из 3261) |
 
 `just python-check` добавляет к этой команде Ruff и mypy.
 
@@ -53,21 +53,33 @@ TEST_DATABASE_URL=postgres://$USER@127.0.0.1:5432/aibuddy_test?sslmode=disable \
 go tool cover -func=coverage.out
 ```
 
-Инструмент: `go test -covermode=atomic`, покрытие операторов. Версия Go — 1.26.11. Локальная база этого прогона — PostgreSQL 14.20. Compose использует PostgreSQL 17. Интеграционные тесты без `TEST_DATABASE_URL` пропускаются, и тогда итог заметно ниже.
+Инструмент: `go test -covermode=atomic`, покрытие операторов. Версия Go — 1.26.11. Прогон выполнен на сервере с отдельной временной PostgreSQL 17, всеми миграциями и seed; контейнер удалён после измерения. Рабочие базы не использовались. Интеграционные тесты без `TEST_DATABASE_URL` пропускаются, и тогда итог заметно ниже.
 
 | | |
 | --- | --- |
-| Итог по `web/backend` | 76,3% операторов |
+| Итог по `web/backend` | 77,4% операторов |
 | `internal/store` | 82,2% |
 | `internal/serviceactions` | 84,0% |
-| `internal/ai` | 77,6% |
+| `internal/ai` | 78,0% |
 | `internal/httpapi` | 71,5% |
 | `internal/portal` | 74,2% |
-| `internal/worktools` | 75,0% |
-| `internal/buddy` | 67,5% |
+| `internal/worktools` | 85,6% |
+| `internal/buddy` | 73,8% |
 | `cmd/server` | 55,6% |
 | `accessapi` | 0% |
 
 Итог ниже 80%. Усреднять его с вебом или Python нельзя.
 
-На этом прогоне не прошёл `TestAIKnowledgeSearchNaturalQuestions`: поиск «Как оформить отпуск?» не вернул ожидаемую статью `timeoff`, а «Как проверить микрофон?» вернул `consents` вместо `equipment`. Покрытие `internal/store` посчитано по выполненным проверкам, включая эту неуспешную. Порог Go этим прогоном не закрыт.
+На этом прогоне `go vet ./...` и все `go test ./...` прошли, включая
+`TestAIKnowledgeSearchNaturalQuestions` и проверки хранения диалога с цитатой.
+Новые функции `selection.go`: Valid — 95,7%, HistoryText — 100,0% операторов.
+Общий порог Go остаётся незакрытым; покрытие новых функций не заменяет итог контура.
+
+## Проверки пояснения выделения
+
+`just frontend-check`, `just python-check`, `just repository-check` и
+`just compose-check` прошли. Полный `just check` локально остановился на отсутствии
+Go; Go vet/test/atomic coverage выполнены отдельно на сервере, race оставлен CI.
+Восемь браузерных сценариев проверены в Chromium с синтетическими HTTP-ответами;
+9 разрешённых запросов DeepSeek проверили пояснения и уточнения на синтетических
+данных. [Область проверки и ограничения](ai/selection-explanation-check.md).

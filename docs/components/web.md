@@ -83,3 +83,6 @@ AgentAnswer.tsx оформляет ответы и историю без нов�
 SelectionAssistant.tsx и selection-context.ts добавляют кнопку по выделению и боковую панель пояснения. Карточки задач/материалов передают ограниченный data-agent-resource; backend.ts использует отдельный диалог и page_context.selection. Новых зависимостей нет.
 
 [Сценарий и ограничения](../specs/010-selection-explanation.md).
+
+Кнопка и панель SelectionAssistant используют Popover API для размещения над
+содержимым native dialog. Закрытие исходной карточки отменяет ожидание пояснения.
