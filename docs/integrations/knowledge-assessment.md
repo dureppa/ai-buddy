@@ -11,17 +11,17 @@ DeepSeek выбирается через AI_LLM_PROVIDER=deepseek. Этот уч
 утверждает качество оценивания на общем holdout и не завершает другие этапы.
 
 
-Статус: реализован Python-контракт и защитные проверки; полная модельная приёмка ещё не выполнена; два новых development-примера на evidence-ID протоколе прошли отдельно. Подключение Go, сохранение оценок и админка наставника остаются отдельной работой. Этот endpoint не завершает онбординг. Форматы — решения команды, не поля из ТЗ.
+Go уже вызывает этот endpoint и сохраняет оценку. Полная модельная приёмка на holdout не выполнена. Этот endpoint не завершает онбординг. Форматы — решения команды, не поля из ТЗ.
 
 ## Запуск и авторизация
 
 POST `/internal/v1/assessments`, `Content-Type: application/json`, `Authorization: Bearer AI_SERVICE_TOKEN`. Тот же приватный Flask-сервис, что и [чат](go-python-mcp.md); отдельный режим без MCP, делегированного MCP-токена и истории диалога. Go проверяет пользователя, владельца ответа и доступ к рубрике до вызова. Клиенту стажёра сервисный токен не выдаётся.
 
 ```bash
-AI_AGENT_ENABLED=true OLLAMA_MODEL=qwen3:4b-q4_K_M AI_SERVICE_TOKEN=local-service-token uv run --locked flask --app ai_buddy:create_app run --host 127.0.0.1 --port 8001
+AI_AGENT_ENABLED=true AI_LLM_PROVIDER=deepseek DEEPSEEK_API_KEY=ключ DEEPSEEK_MODEL=deepseek-flash AI_SERVICE_TOKEN=local-service-token uv run --locked flask --app ai_buddy:create_app run --host 127.0.0.1 --port 8001
 ```
 
-Команда из `ai-agent`; локальная Ollama должна работать отдельно. MCP_URL для assessment не нужен. GET `/health/ready/assessments` возвращает 200/503 с `{"ready": true/false}` по локальным настройкам, без сети. Это не проверка качества или доступности модели. Старый `/health/ready` относится к чату и требует MCP_URL.
+Команда из `ai-agent`. MCP_URL для assessment не нужен. GET `/health/ready/assessments` возвращает 200/503 с `{"ready": true/false}` по локальным настройкам, без сети. Это не проверка качества или доступности модели. Старый `/health/ready` относится к чату и требует MCP_URL.
 
 ## Входной snapshot
 
@@ -178,7 +178,7 @@ Python требует ровно все criterion_id без дубликатов
 
 Форма: `{"error": {"code": "AI_TIMEOUT", "message": "Запрос не выполнен. Проверьте статус и повторите позже."}}`. При 503 нет assessment и нет фиктивного fail/pass. Go сохраняет ответ и позволяет наставнику оценить вручную с причиной.
 
-Общий AI_TURN_TIMEOUT ≤25 с, AI_MODEL_TIMEOUT по умолчанию 20 с (не выше 25). Максимум два вызова: исходный и одна коррекция JSON/id/цитаты в том же общем бюджете. Сетевой retry отсутствует. Assessment использует native Ollama JSON Schema, temperature=0, seed=42, think=false, до 768 output tokens. Чат сохраняет свой лимит 384. Go задаёт HTTP-клиенту запас сверх общего AI deadline и согласует внешний deadline; существующий серверный WriteTimeout 15 с недостаточен для ожидания 25 с.
+Общий AI_TURN_TIMEOUT ≤25 с, AI_MODEL_TIMEOUT по умолчанию 20 с (не выше 25). Максимум два вызова: исходный и одна коррекция JSON/id/цитаты в том же общем бюджете. Сетевой retry отсутствует. Схема ответа проверяется локально, temperature=0, до 768 output tokens. Чат сохраняет свой лимит 384. Go задаёт HTTP-клиенту запас сверх общего AI deadline.
 
 ## Что делает Go
 
