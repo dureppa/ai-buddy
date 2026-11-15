@@ -295,3 +295,7 @@ buddy/selection.go проверяет контекст выделения, а Hi
 ## Назначения карточек чата
 
 [SDD 011](../specs/011-chat-navigation.md): internal/ai/navigation.go строит URL конкретного задания по task_id/action_url и настроенным публичным адресам, исправляет источники старой истории только по однозначным задачам владельца. papers/documents используют один Documents evidence. Неизвестное evidence не ссылается на согласия. Форматы API/MCP не расширены; новый экран задания читает существующий GET /api/v1/onboarding. Вкладка своих access-заявок задаётся tab=requests.
+
+## Опросы стажировки и уведомления
+
+Миграция `12_internship_surveys` добавляет ответы с уникальным ключом по стажёру и этапу, отметку `notifications.read_at` и напоминания для четырёх демопрофилей. `GET /api/v1/onboarding/surveys` возвращает только этапы с ответами. `PUT /api/v1/onboarding/surveys/{stage}` проверяет ответы и сохраняет первую отправку. `GET /api/v1/notifications` включает статус прочтения и скрывает напоминание после завершения соответствующей анкеты. `POST /api/v1/notifications/read` отмечает показанные ID в рамках текущего профиля. [Контракт](../../contracts/openapi.yaml), [спецификация](../specs/internship-surveys.md).

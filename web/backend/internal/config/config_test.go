@@ -157,3 +157,41 @@ func TestLoadMissingEnvFile(t *testing.T) {
 	_, err := Load()
 	require.Error(t, err)
 }
+
+func TestTestDatabaseURLUsesDedicatedConfiguration(t *testing.T) {
+	setupLoadEnv(t)
+	const explicit = "postgres://test@localhost/isolated"
+	t.Setenv("TEST_DATABASE_URL", explicit)
+	require.Equal(t, explicit, TestDatabaseURL())
+
+	t.Setenv("TEST_DATABASE_URL", "")
+	t.Setenv("TEST_PGDATABASE", "isolated")
+	t.Setenv("PGPASSWORD", "")
+	t.Setenv("PGHOST", "::1")
+	t.Setenv("PGPORT", "5544")
+	t.Setenv("PGSSLMODE", "require")
+	require.Equal(t, "postgres://aibuddy@[::1]:5544/isolated?sslmode=require", TestDatabaseURL())
+
+	t.Setenv("TEST_PGDATABASE", "")
+	require.Empty(t, TestDatabaseURL())
+	t.Setenv("ENV_FILE", filepath.Join(t.TempDir(), "missing"))
+	require.Empty(t, TestDatabaseURL())
+}
+
+func TestDotEnvDiscoveryAndReadFailure(t *testing.T) {
+	parent := t.TempDir()
+	child := filepath.Join(parent, "child", "deep")
+	require.NoError(t, os.MkdirAll(child, 0o700))
+	path := filepath.Join(parent, ".env")
+	require.NoError(t, os.WriteFile(path, nil, 0o600))
+	t.Setenv("ENV_FILE", "")
+	t.Chdir(child)
+	found, err := findEnvFile()
+	require.NoError(t, err)
+	require.True(t, strings.HasSuffix(found, filepath.Join(filepath.Base(parent), ".env")), found)
+
+	t.Setenv("ENV_FILE", child)
+	require.ErrorContains(t, loadDotEnv(), "read")
+	_, _, ok := parseLine("   =empty-key")
+	require.False(t, ok)
+}

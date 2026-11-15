@@ -18,6 +18,7 @@ type API struct {
 	onboarding     *buddy.Onboarding
 	access         *buddy.Access
 	notifications  *buddy.Notifications
+	surveys        surveyStore
 	chat           *buddy.Chat
 	teamGuide      TeamGuideStore
 	hrToday        HRTodayReader
@@ -45,6 +46,11 @@ func (a *API) Routes() http.Handler {
 	mux.HandleFunc("GET /api/v1/access-requests", a.requireAuth(a.handleListAccessRequests))
 	mux.HandleFunc("POST /api/v1/access-requests/drafts/{draft_id}/confirm", a.requireAuth(a.handleConfirmAccessRequest))
 	mux.HandleFunc("GET /api/v1/notifications", a.requireAuth(a.handleListNotifications))
+	mux.HandleFunc("POST /api/v1/notifications/read", a.requireAuth(a.handleReadNotifications))
+	if a.surveys != nil {
+		mux.HandleFunc("GET /api/v1/onboarding/surveys", a.requireAuth(a.handleCompletedSurveys))
+		mux.HandleFunc("PUT /api/v1/onboarding/surveys/{stage}", a.requireAuth(a.handleSubmitSurvey))
+	}
 	mux.HandleFunc("GET /api/v1/chat/conversations/{conversation_id}", a.requireAuth(a.handleConversation))
 	mux.HandleFunc("GET /api/v1/onboarding/consent-review", a.requireAuth(a.handleReview))
 	mux.HandleFunc("POST /api/v1/onboarding/consent-review", a.requireAuth(a.handleReview))

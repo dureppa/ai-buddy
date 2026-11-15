@@ -1,3 +1,4 @@
+import { surveys, surveyTaskId, type SurveyStage } from './surveys';
 import { profiles, type ProfileId } from './demo-accounts';
 
 export const stages = [
@@ -61,6 +62,21 @@ const dueByStage: Record<StageId, string> = {
 
 const mentor = 'Наставник';
 const curator = 'Куратор стажировки';
+
+function surveyTask(survey: SurveyStage, stage: StageId): Blueprint {
+  return {
+    id: surveyTaskId(survey),
+    stage,
+    icon: 'check',
+    tone: 'blue',
+    owner: curator,
+    copy: same({
+      title: surveys[survey].title,
+      summary: 'Опрос · 7 вопросов',
+      details: 'Поделись впечатлениями о стажировке.',
+    }),
+  };
+}
 
 const items: Blueprint[] = [
   {
@@ -289,6 +305,7 @@ const items: Blueprint[] = [
       },
     },
   },
+  surveyTask('first', 'week-1'),
   {
     id: 'team-docs',
     stage: 'week-2',
@@ -888,6 +905,7 @@ const items: Blueprint[] = [
         '1. Оформи презентацию по заданной структуре и подготовь речь.\n2. Согласуй презентацию с промежуточными результатами с куратором стажировки и бадди или руководителем. При необходимости внеси корректировки.\n3. При необходимости попроси куратора или бадди провести репетицию выступления.\n4. Сходи на экваторную встречу и представь промежуточные результаты. Можно также посетить встречи других стажёров.\n5. Прими участие во встрече с подведением итогов после экваторных встреч. Приглашение будет в календаре.',
     }),
   },
+  surveyTask('midpoint', 'after-3'),
   {
     id: 'graduation',
     stage: 'after-3',
@@ -901,18 +919,7 @@ const items: Blueprint[] = [
         'Приходи на выпускной. Все детали будут в приглашении в календаре. С вопросами можно обратиться к куратору стажировки.',
     }),
   },
-  {
-    id: 'internship-survey',
-    stage: 'after-3',
-    icon: 'check',
-    tone: 'blue',
-    owner: curator,
-    copy: same({
-      title: 'Пройди опрос о стажировке',
-      summary: 'Как прошла стажировка',
-      details: 'Пройди опрос о том, как прошла стажировка.',
-    }),
-  },
+  surveyTask('final', 'after-3'),
   {
     id: 'book-primary',
     stage: 'after-3',
