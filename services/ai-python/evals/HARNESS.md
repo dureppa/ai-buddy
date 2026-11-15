@@ -14,8 +14,10 @@ API-ключ и реальные service/MCP-настройки в отчёт н
 uv run --locked python -m evals.harness --provider deepseek --model deepseek-flash --allow-live-llm
 ```
 
-Это реальные запросы к выбранной LLM, возможна тарификация. В этом блоке они
-не запускались. Для локальной модели нужна работающая Ollama (`OLLAMA_NO_CLOUD=1`):
+Это реальные запросы к выбранной LLM, возможна тарификация. При реализации harness
+живых запросов не было; отдельный [development-прогон DeepSeek 15 ноября](reports/deepseek-development-20261115.md)
+теперь выполнен и сохранён вместе с assisted-review. Для локальной модели нужна
+работающая Ollama (`OLLAMA_NO_CLOUD=1`):
 
 ```bash
 uv run --locked python -m evals.harness --provider ollama --model qwen3:4b-q4_K_M --allow-live-llm

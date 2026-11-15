@@ -134,6 +134,12 @@ Harness поддерживает текущие DeepSeek/Ollama transport и 11 
 Живой CLI требует --allow-live-llm. Контрактные тесты новых tools не расширяют
 старый golden agent-v1 автоматически и не являются оценкой качества LLM.
 
+[DeepSeek development 15 ноября](../../services/ai-python/evals/reports/deepseek-development-20261115.md):
+18 выполнены, 2 blocked; structural 12/18, Codex-assisted 11/18. Пять ранних
+service-prefetch отказов и один access-кейс выявили расхождение текущего runtime
+с legacy-fixtures/областью. Это не приёмка всех tools или реального Go; holdout
+не запускался, исходная разметка не менялась.
+
 [Harness](../../services/ai-python/evals/HARNESS.md) выполняет реальные Flask/Ollama/SDK MCP пути на сценарных fixtures, без Go и без holdout. [Отчёты](../../services/ai-python/evals/reports/README.md) разделяют структурные проверки, Codex-assisted review и человеческую приёмку. Assessment-v4 выбирает готовые ID фрагментов ответа; public HTTP-результат и правило наставника сохраняются.
 
 Внутренний маршрут `POST /internal/v1/team-guide` принимает бриф команды с токеном сервиса и возвращает три карточки, используя настроенного поставщика модели. [Спецификация путеводителя](../specs/product-guide.md).

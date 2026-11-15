@@ -1,4 +1,12 @@
-# Общий development: результаты 13 ноября 2026
+# Результаты development агента
+
+## DeepSeek, текущий агент — 15 ноября 2026
+
+[Полный разбор DeepSeek](deepseek-development-20261115.md): один trial на текущем `main` после PR #67, только agent-v1 development. 20 кейсов: 18 выполнены, 2 blocked; structural pass **12/18**, полный Codex-assisted pass **11/18**. Пять отказов произошли до LLM из-за prefetch новых service-tools без fixtures; один — после выбора нового каталога доступов без fixture в legacy-кейсе. Отдельно обнаружено неполное уточнение. Это не приёмка всех 11 инструментов, не измерение реального retrieval и не сравнение моделей при одинаковом runtime.
+
+[Raw](development-20261115T121444200296Z.json), [review](review-deepseek-20261115.json), [reviewed](reviewed-development-20261115T121444200296Z.json). 23 запроса DeepSeek, 108 726 токенов по usage; holdout не запускался, gold/runtime/Go/UI не менялись. Human review = 0, release_accepted=false.
+
+## Исторические результаты 13 ноября 2026
 
 **MCP/harness реализованы, общая модельная приёмка не пройдена.** Все четыре прогона — один development-набор agent-v1; holdout не запускался, gold не менялся. Всего 20 кейсов: 18 выполнены, dev-17/dev-18 blocked. Это не 30 успешных сценариев и не Go/UI e2e.
 
