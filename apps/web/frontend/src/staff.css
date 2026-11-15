@@ -107,8 +107,9 @@
 }
 .checklist-materials-section {
   display: grid;
-  gap: 12px;
-  width: min(100%, 680px);
+  gap: 14px;
+  min-width: 0;
+  padding: clamp(16px, 3vw, 24px);
 }
 .checklist-materials-heading {
   display: flex;
@@ -155,68 +156,72 @@
   font-size: 12px;
   line-height: 1.4;
 }
-.material-picker {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 0;
-}
-.material-picker__views,
-.material-picker__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.material-picker__views [aria-pressed='true'] {
-  background: var(--mint);
-  border-color: var(--mint);
-}
-.material-picker__group-header {
-  display: grid;
-  gap: 8px;
-}
-.material-picker__group-header h3 {
-  font-size: 16px;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-.material-picker__list {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  padding: 4px;
-  margin: -4px;
-}
-.material-picker__group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 12px 14px;
+.checklist-materials--attached {
   border: 0;
-  border-radius: 13px;
-  background: transparent;
-  font-size: 14px;
-  text-align: left;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
 }
-.material-picker__group:hover {
+.checklist-materials--attached .checklist-material {
+  padding-inline: 0;
+}
+.material-picker {
+  display: grid;
+  gap: 12px;
+  padding: clamp(12px, 2.5vw, 16px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
   background: var(--background);
 }
-.material-picker__group strong {
-  flex: 1;
-  overflow-wrap: anywhere;
+.material-picker__fields {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) minmax(230px, 2fr);
+  gap: 10px 12px;
 }
-.material-picker__group small,
-.material-picker__group svg {
-  color: var(--muted);
+.material-picker__field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 650;
 }
-.material-picker__actions {
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
+.material-picker__field select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 400;
+}
+.material-picker__field input {
+  font-weight: 400;
+}
+.material-picker__results {
+  max-height: 22rem;
+  overflow: auto;
+}
+.material-picker__results .button:focus-visible {
+  outline-offset: -3px;
+}
+.material-picker__attached {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #315e3a;
+  font-size: 13px;
+  font-weight: 650;
+}
+@media (max-width: 580px) {
+  .material-picker__fields {
+    grid-template-columns: 1fr;
+  }
+  .material-picker__results .checklist-material {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
 }
 .checklist-request {
   padding: 12px 15px 14px;

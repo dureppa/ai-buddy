@@ -248,14 +248,13 @@ it('shows the task a mentor adds in the intern’s workspace after signing out',
       ),
     ),
   );
-  await click(await button('Добавить материалы'));
+  await click(await button('Прикрепить материал'));
   const search = await waitForElement(() =>
-    container.querySelector<HTMLInputElement>('dialog[open] input[aria-label="Поиск материалов"]'),
+    container.querySelector<HTMLInputElement>('.material-picker input[type="search"]'),
   );
   await fill(search, 'Учебный отчёт');
-  await click(await button('Добавить Учебный отчёт'));
-  await click(await button('Сохранить материалы'));
-  expect(container.textContent).toContain('Материалы пункта сохранены.');
+  await click(await button('Прикрепить Учебный отчёт'));
+  expect(container.querySelector('[role="status"].toast')?.textContent).toBe('Материал прикреплён.');
 
   await click(await button('Выйти из аккаунта'));
   await click(await waitForElement(() => container.querySelector<HTMLElement>('#product-delivery')));
