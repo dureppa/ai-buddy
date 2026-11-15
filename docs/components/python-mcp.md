@@ -1,6 +1,6 @@
 # Python MCP: demo и Go HTTP
 
-Актуальный go_http поддерживает максимум 11 tools, включая get_service_context и prepare_service_action. Последний сохраняет только черновик: confirm отсутствует в MCP. Jira patch передаётся с exclude_unset на всех трёх границах; явный null очищает только исполнителя/срок. [Подключение](service-actions.md).
+Актуальный go_http поддерживает максимум 13 tools, включая get_service_context и prepare_service_action. Последний сохраняет только черновик: confirm отсутствует в MCP. Jira patch передаётся с exclude_unset на всех трёх границах; явный null очищает только исполнителя/срок. [Подключение](service-actions.md).
 
 ## Дополнение: живой Go и личный прогресс
 
@@ -10,7 +10,7 @@ get_task_evidence(task_id); последняя функция читает ак�
 GET /internal/v1/ai/onboarding/progress, POST task-context/task-evidence находятся
 под /internal/v1/ai/onboarding/. Все результаты содержат references.
 Модель не получает профиль или токены как аргументы tools.
-ActiveContext допускает до 11 grants. В локальном demo выдаются только два исходных
+ActiveContext допускает до 13 grants. В локальном demo выдаются только два исходных
 инструмента; новые данные не подменяются фикстурами. Для Compose GO_API_URL может
 быть http://go:8080 — это единственное дополнение к прежним HTTP loopback origins.
 

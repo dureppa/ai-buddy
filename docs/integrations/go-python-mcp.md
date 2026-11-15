@@ -1,5 +1,7 @@
 # Go HTTP API для Python-агента и Python MCP-сервера
 
+SDD 009 добавляет GET /internal/v1/ai/work-tools и POST /internal/v1/ai/work-tools/context. Каталог и записи привязаны к профилю делегации; схемы — [work-tools.openapi.yaml](../../contracts/work-tools.openapi.yaml), поведение — [спецификация](../specs/009-agent-role-tools.md). Максимум grants — 13.
+
 SDD 008 добавляет POST /internal/v1/ai/service-context и POST /internal/v1/ai/service-actions/prepare с прежней делегацией/resource-token и X-Request-ID. Схемы — contracts/agent-tools.json: get_service_context и prepare_service_action. prepare сохраняет черновик; выполняющий confirm не публикуется в MCP. [Подробности](../components/service-actions.md).
 
 ## Реализованный следующий срез

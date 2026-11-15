@@ -283,7 +283,7 @@ grafana — maria t, olga t, sasha f; прогресс — maria 12, olga 3, sas
 
 [SDD 007](../specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
 get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
-Максимум — 11 tools; submit_access_request объявляется только при AccessIntent текущего turn.
+Максимум — 13 tools; submit_access_request объявляется только при AccessIntent текущего turn.
 Два новых инструмента чтения/подготовки доступны при настройке serviceactions.
 Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
 POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
