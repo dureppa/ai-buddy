@@ -7,6 +7,7 @@ import httpx
 import pytest
 from pydantic import SecretStr
 
+from ai_buddy.agent import Trace
 from ai_buddy.config import Settings
 from evals.development import load_development
 from evals.harness import execute_case
@@ -60,3 +61,12 @@ def test_clarifying_question_survives_recovery_and_citation_repair(
     assert result["response"]["reply"]["text"] == question
     assert result["structural_pass"]
     assert [c["name"] for c in result["actual_calls"]] == ["search_knowledge"]
+
+
+def test_contact_citation_repair_does_not_inject_parameter_request() -> None:
+    trace = Trace(model_calls=2, sources={"team": "https://demo.example/team"})
+    feedback = trace.repair_feedback("Наставник — Мария, @mentor.")
+    assert feedback is not None
+    assert "недостающие значения" not in feedback
+    assert "исправь только цитаты" in feedback
+    assert trace.draft_answers == ["Наставник — Мария, @mentor."]
