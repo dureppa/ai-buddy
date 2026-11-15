@@ -33,6 +33,7 @@ import { navigation } from './data';
 import { isStaffId, products, profiles, teamColleagues, teamContacts, type ProfileId } from './demo-accounts';
 import {
   answerBuddy,
+  absenceServiceLink,
   buddyGrowthStage,
   confirmAccess,
   completeTask,
@@ -389,8 +390,9 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     ],
   };
 
-  const [completionTargetId, setCompletionTargetId] = useState<string>();
+  const [completionTargetId, setCompletionTargetId] = useState<string | null>();
   const completionSending = useRef(false);
+  const [serviceShortcut, setServiceShortcut] = useState<{ label: string; to: string }>();
   const catalog = checklistFor(localStorage, profileId);
   const completionTarget =
     workspace &&
@@ -484,11 +486,13 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     onSuccess: (reply, question) => {
       const context = question.context;
       setCompletionTargetId(
-        context?.selection?.resource?.kind === 'task'
-          ? context.selection.resource.id
-          : context?.checklist?.status === 'in_progress'
-            ? context.checklist.task.id
-            : undefined,
+        absenceServiceLink(question.text)
+          ? null
+          : context?.selection?.resource?.kind === 'task'
+            ? context.selection.resource.id
+            : context?.checklist?.status === 'in_progress'
+              ? context.checklist.task.id
+              : undefined,
       );
       const id = nextEntry.current++;
       setEntries((items) => [...items, { id, from: 'buddy', reply }]);
@@ -549,6 +553,8 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       completionSending.current
     )
       return;
+    setChatError(undefined);
+    lastQuestion.current = undefined;
     const item =
       completionTarget && checklistFor(localStorage, profileId).find((task) => task.id === completionTarget.id);
     setEntries((items) => [
@@ -597,12 +603,19 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       confirmChatTask(text.trim());
       return;
     }
+    const shortcut = absenceServiceLink(text);
+    setServiceShortcut(shortcut);
+    if (shortcut) {
+      setActiveTask(undefined);
+      setCompletionTargetId(null);
+      setAwaitingService(false);
+    }
     taskQuestionSending.current = true;
     const id = nextEntry.current++;
     setEntries((items) => [...items, { id, from: 'user', text: text.trim() }]);
     answerMutation.mutate({
       text: text.trim(),
-      context: chatPageContext(profileId, workspace, activeTask, !surveysQuery.isError),
+      context: chatPageContext(profileId, workspace, shortcut ? undefined : activeTask, !surveysQuery.isError),
     });
   }
 
@@ -680,6 +693,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     confirming: confirmation.isPending,
     drafts,
     onSend: send,
+    serviceShortcut,
     completionTask:
       completionTarget && !surveysQuery.isError
         ? {

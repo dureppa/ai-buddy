@@ -68,6 +68,7 @@ func (s *Service) Search(ctx context.Context, subject, query string, limit int) 
 	if strings.TrimSpace(query) == "" || len([]rune(query)) > 500 || limit < 1 || limit > 5 {
 		return nil, buddy.ErrInvalidInput
 	}
+	query = buddy.KnowledgeSearchQuery(query)
 	terms := strings.Join(strings.Fields(query), " OR ")
 	corpus := `SELECT 'confluence:'||id AS id,title,left(body,1200) AS excerpt,body AS search_text,version,$4||'?page='||id AS url FROM confluence_pages WHERE product_id IS NULL OR product_id=$1`
 	articles := `SELECT id,title,left(content,1200) AS excerpt,content AS search_text,1 AS version,url FROM knowledge_articles`

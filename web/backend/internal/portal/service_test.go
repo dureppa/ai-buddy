@@ -166,6 +166,14 @@ func TestConcurrentSubmissionAndKnowledge(t *testing.T) {
 	matches, err := s.Search(ctx, "olga", "как запросить доступ DWH", 5)
 	require.NoError(t, err)
 	require.NotEmpty(t, matches["documents"])
+	matches, err = s.Search(ctx, "olga", "Как оформить отгул?", 5)
+	require.NoError(t, err)
+	foundTimeoff := false
+	for _, document := range matches["documents"].([]any) {
+		source := document.(map[string]any)["source"].(map[string]any)
+		foundTimeoff = foundTimeoff || source["id"] == "timeoff"
+	}
+	require.True(t, foundTimeoff)
 	_, err = s.Search(ctx, "olga", "", 3)
 	require.ErrorIs(t, err, buddy.ErrInvalidInput)
 	_, err = s.Pages(ctx, "olga", strings.Repeat("a", 501))

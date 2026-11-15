@@ -27,6 +27,7 @@ export type ChatProps = {
   taskContext?: { id: string; title: string };
   completionTask?: { id: string; title: string; completed: boolean; survey: boolean };
   onCompleteTask?: () => void;
+  serviceShortcut?: { label: string; to: string };
   contextMaterials?: ReactNode;
   onClearContext?: () => void;
   error?: string;
@@ -94,6 +95,7 @@ export function ChatWindow({
   taskContext,
   completionTask,
   onCompleteTask,
+  serviceShortcut,
   contextMaterials,
   onClearContext,
   error,
@@ -230,6 +232,16 @@ export function ChatWindow({
         </div>
       )}
       <div className="chat-controls">
+        {serviceShortcut && chatDestination(serviceShortcut.to, profileId) && (
+          <a
+            className="text-link"
+            href={chatDestination(serviceShortcut.to, profileId)!}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {serviceShortcut.label} <Icon name="diagonal" size={16} />
+          </a>
+        )}
         {completionTask && onCompleteTask && (
           <div className="chat-task-completion">
             <small>Самостоятельная отметка в чек-листе</small>

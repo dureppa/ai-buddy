@@ -1250,3 +1250,35 @@ it('opens the required survey instead of faking its completion from chat', async
   expect(askBackend).not.toHaveBeenCalled();
   expect(vi.mocked(apiFetch).mock.calls.some(([, , init]) => init?.method === 'PUT')).toBe(false);
 });
+
+it('opens the absence service from a task discussion even without an LLM and never marks that task complete', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  const before = readWorkspace(localStorage, 'olga');
+  vi.mocked(askBackend).mockResolvedValueOnce({ kind: 'answer', text: 'Прочитай памятку.' });
+  await mount('/onboarding?task=practice-memo');
+  const detail = await waitForElement(() =>
+    container.querySelector('dialog[aria-label="Изучи памятку по закрытию практики"]'),
+  );
+  await click([...detail.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Разобрать пункт')!);
+  await waitForElement(() =>
+    container.querySelector('.chat-task-completion strong')?.textContent?.includes('закрытию практики'),
+  );
+  vi.mocked(askBackend).mockRejectedValue(new Error('LLM unavailable'));
+  await enterMessage('Как оформить отгул?');
+  await vi.waitFor(async () => expect((await button('Отправить сообщение')).disabled).toBe(false));
+  await click(await button('Отправить сообщение'));
+  const service = await waitForElement(() =>
+    container.querySelector<HTMLAnchorElement>('a[href^="http://localhost:5181/"]'),
+  );
+  expect(new URL(service.href).searchParams.get('profile')).toBe('olga');
+  await waitForElement(() => container.querySelector('.buddy-chat-error'));
+  expect(askBackend).toHaveBeenCalledTimes(2);
+  expect(vi.mocked(askBackend).mock.calls[1][2]?.selection).toBeUndefined();
+  expect(container.querySelector('.buddy-task-context')).toBeNull();
+  expect(container.querySelector('.chat-task-completion')).toBeNull();
+  await enterMessage('готово');
+  await click(await button('Отправить сообщение'));
+  await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('Выбери задачу в плане'));
+  expect(readWorkspace(localStorage, 'olga')).toEqual(before);
+  expect(askBackend).toHaveBeenCalledTimes(2);
+});

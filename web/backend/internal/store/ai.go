@@ -27,7 +27,7 @@ func (s *Store) ReadAI(ctx context.Context, profile, tool string, args map[strin
         )
         SELECT id,title,url,left(content,1200) FROM articles, search
         WHERE document @@ terms
-        ORDER BY ts_rank(document, terms) DESC, id LIMIT $2`, strings.TrimSpace(query), int(limit))
+        ORDER BY ts_rank(document, terms) DESC, id LIMIT $2`, buddy.KnowledgeSearchQuery(strings.TrimSpace(query)), int(limit))
 		if err != nil {
 			return nil, err
 		}
