@@ -2,7 +2,9 @@ package worktools
 
 import (
 	"context"
+	"encoding/json"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/dureppa/ai-buddy/web/backend/internal/buddy"
@@ -30,7 +32,7 @@ func TestCatalogFromPostgres(t *testing.T) {
 			require.Contains(t, page.Records, record)
 		}
 	}
-	_, err = catalog.Read(ctx, "travel", "redash")
+	_, err = catalog.Read(ctx, "unknown", "redash")
 	require.ErrorIs(t, err, buddy.ErrNotFound)
 	_, err = catalog.Read(ctx, "delivery", "unknown")
 	require.ErrorIs(t, err, buddy.ErrNotFound)
@@ -44,5 +46,38 @@ func TestCatalogFromPostgres(t *testing.T) {
 	require.Equal(t, "/work-tools/redash#delivery-funnel", documents[0].(map[string]any)["source"].(map[string]any)["url"])
 	documents, err = catalog.Search(ctx, "travel", "Redash", 3)
 	require.NoError(t, err)
-	require.Empty(t, documents)
+	require.Len(t, documents, 1)
+	require.NotContains(t, documents[0].(map[string]any)["source"].(map[string]any)["url"], "delivery-funnel")
+	require.NotContains(t, documents[0].(map[string]any)["excerpt"], "Проверка живого чтения")
+	// Re-running provisioning adds missing records without overwriting existing edits.
+	reopened, err := Open(ctx, pool, dsn)
+	require.NoError(t, err)
+	defer reopened.Close()
+	page, err := reopened.Read(ctx, "delivery", "redash")
+	require.NoError(t, err)
+	require.Equal(t, "Проверка живого чтения", page.Records[0].Description)
+}
+
+func TestWorkFixturesMatchStandaloneCatalog(t *testing.T) {
+	var services map[string]Page
+	require.NoError(t, json.Unmarshal(fixtures, &services))
+	require.Len(t, services, 13)
+	for name, page := range services {
+		t.Run(name, func(t *testing.T) {
+			raw, err := os.ReadFile(filepath.Join("../../../../tools", name, "demo.json"))
+			require.NoError(t, err)
+			var standalone Page
+			require.NoError(t, json.Unmarshal(raw, &standalone))
+			require.Equal(t, page, standalone)
+			for _, team := range []string{"delivery", "travel", "autoteca", "help"} {
+				found := false
+				for _, row := range page.Records {
+					if row.Team == team {
+						found = true
+					}
+				}
+				require.True(t, found, "missing %s workspace", team)
+			}
+		})
+	}
 }

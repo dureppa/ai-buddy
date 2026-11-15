@@ -12,6 +12,39 @@
         "Учебный VIN": "DEMO-VIN-017",
         "Задача": "AUTO-1"
       }
+    },
+    {
+      "team": "delivery",
+      "id": "delivery-report-check",
+      "title": "Авито Доставка / Учебный поиск отчёта",
+      "status": "К выполнению",
+      "description": "Учебный тест команды: стенд должен вернуть REPORT_NOT_FOUND для указанного синтетического VIN.",
+      "fields": {
+        "Учебный VIN": "DEMO-DEL-001",
+        "Задача": "DEL-1"
+      }
+    },
+    {
+      "team": "travel",
+      "id": "travel-report-check",
+      "title": "Авито Путешествия / Учебный поиск отчёта",
+      "status": "К выполнению",
+      "description": "Учебный тест команды: стенд должен вернуть REPORT_NOT_FOUND для указанного синтетического VIN.",
+      "fields": {
+        "Учебный VIN": "DEMO-TRV-001",
+        "Задача": "TRV-1"
+      }
+    },
+    {
+      "team": "help",
+      "id": "help-report-check",
+      "title": "#яПомогаю / Учебный поиск отчёта",
+      "status": "К выполнению",
+      "description": "Учебный тест команды: стенд должен вернуть REPORT_NOT_FOUND для указанного синтетического VIN.",
+      "fields": {
+        "Учебный VIN": "DEMO-HELP-001",
+        "Задача": "HELP-1"
+      }
     }
   ]
 }

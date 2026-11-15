@@ -13,6 +13,42 @@
         "Предыдущая": "1.8.3",
         "Задача": "TRV-1"
       }
+    },
+    {
+      "team": "delivery",
+      "id": "delivery-stage",
+      "title": "delivery-api · stage",
+      "status": "Развёрнуто",
+      "description": "Учебный релиз сервиса команды доступен в stage.",
+      "fields": {
+        "Версия": "1.2.0",
+        "Предыдущая": "1.1.0",
+        "Задача": "DEL-1"
+      }
+    },
+    {
+      "team": "autoteca",
+      "id": "autoteca-stage",
+      "title": "reports-api · stage",
+      "status": "Развёрнуто",
+      "description": "Учебный релиз сервиса команды доступен в stage.",
+      "fields": {
+        "Версия": "1.2.0",
+        "Предыдущая": "1.1.0",
+        "Задача": "AUTO-1"
+      }
+    },
+    {
+      "team": "help",
+      "id": "help-stage",
+      "title": "participation-api · stage",
+      "status": "Развёрнуто",
+      "description": "Учебный релиз сервиса команды доступен в stage.",
+      "fields": {
+        "Версия": "1.2.0",
+        "Предыдущая": "1.1.0",
+        "Задача": "HELP-1"
+      }
     }
   ]
 }
