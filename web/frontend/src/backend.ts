@@ -70,12 +70,20 @@ export async function apiFetch(
   return response;
 }
 
-export async function askBackend(profile: ProfileId, text: string): Promise<BuddyReply> {
+export async function askBackend(
+  profile: ProfileId,
+  text: string,
+  pageContext?: ExplanationContext,
+): Promise<BuddyReply> {
   const key = 'ai-buddy.conversation.' + profile;
   const conversation = localStorage.getItem(key);
   const response = await apiFetch(profile, '/api/v1/chat/messages', {
     method: 'POST',
-    body: JSON.stringify({ text, ...(conversation ? { conversation_id: conversation } : {}) }),
+    body: JSON.stringify({
+      text,
+      ...(conversation ? { conversation_id: conversation } : {}),
+      ...(pageContext ? { page_context: pageContext } : {}),
+    }),
   });
   const reply = replySchema.parse(await response.json());
   localStorage.setItem(key, reply.conversation_id);

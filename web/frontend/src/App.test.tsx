@@ -718,3 +718,39 @@ it('switches between the current and previous PaaS releases', async () => {
   expect(container.querySelector('.tool-thread h3')?.textContent).toBe('1.8.3');
   expect(container.querySelector('.tool-thread')?.textContent).toContain('Предыдущий релиз окружения');
 });
+
+it('opens the main chat and asks once about the exact checklist item without completing it', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  let resolve!: (value: Awaited<ReturnType<typeof askBackend>>) => void;
+  vi.mocked(askBackend).mockReturnValue(
+    new Promise((value) => {
+      resolve = value;
+    }),
+  );
+  await mount('/onboarding');
+  const ask = await button('Спросить у агента');
+  const row = ask.closest('li')!;
+  const title = row.querySelector('strong')!.textContent!;
+  const completed = [...readWorkspace(localStorage, 'olga').completed];
+  await act(async () => {
+    ask.click();
+    ask.click();
+  });
+  await waitForElement(() => container.querySelector<HTMLInputElement>('input[aria-label="Сообщение для Buddy"]'));
+  expect(askBackend).toHaveBeenCalledTimes(1);
+  expect(askBackend).toHaveBeenCalledWith(
+    'olga',
+    expect.stringContaining(title),
+    expect.objectContaining({
+      selection: expect.objectContaining({ resource: expect.objectContaining({ kind: 'task', label: title }) }),
+    }),
+  );
+  expect(readWorkspace(localStorage, 'olga').completed).toEqual(completed);
+  await act(async () => resolve({ kind: 'answer', text: 'Смысл пункта, шаги, инструменты и наставник.' }));
+  await waitForElement(
+    () =>
+      [...container.querySelectorAll('[role="log"]')].find((element) =>
+        element.textContent?.includes('Смысл пункта'),
+      ) as HTMLElement,
+  );
+});

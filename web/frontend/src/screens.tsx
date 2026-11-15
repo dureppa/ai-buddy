@@ -28,6 +28,8 @@ type ChecklistProps = {
   onOpen: OpenDetail;
   onToggle: (id: string) => void;
   savingTask?: string;
+  onAsk?: (task: Task) => void;
+  asking?: boolean;
 };
 
 function TaskRow({
@@ -38,6 +40,8 @@ function TaskRow({
   next,
   onOpen,
   onToggle,
+  onAsk,
+  asking,
 }: {
   profileId: ProfileId;
   task: Task;
@@ -46,6 +50,8 @@ function TaskRow({
   next?: boolean;
   onOpen: OpenDetail;
   onToggle: (id: string) => void;
+  onAsk?: (task: Task) => void;
+  asking?: boolean;
 }) {
   return (
     <li
@@ -76,6 +82,11 @@ function TaskRow({
         </span>
         <Icon name="chevron" size={16} />
       </button>
+      {onAsk && (
+        <button type="button" className="button button--white task-ask" disabled={asking} onClick={() => onAsk(task)}>
+          Спросить у агента
+        </button>
+      )}
     </li>
   );
 }
@@ -150,6 +161,8 @@ export function Dashboard({
   onOpen,
   onToggle,
   savingTask,
+  onAsk,
+  asking,
   events,
   hrEvents,
   hrError,
@@ -226,6 +239,8 @@ export function Dashboard({
                 saving={savingTask === task.id}
                 onOpen={onOpen}
                 onToggle={onToggle}
+                onAsk={onAsk}
+                asking={asking}
               />
             ))}
           </ul>
@@ -289,7 +304,7 @@ const adaptationTabs = [
   { id: 'materials', label: 'Материалы', icon: 'book' },
 ] as const;
 
-export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask }: ChecklistProps) {
+export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask, onAsk, asking }: ChecklistProps) {
   const tasks = checklistFor(localStorage, profileId).map((task) => ({
     ...task,
     summary: task.materialIds.length ? task.summary + ' · Материалы: ' + task.materialIds.length : task.summary,
@@ -418,6 +433,8 @@ export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask 
                             saving={savingTask === task.id}
                             onOpen={onOpen}
                             onToggle={onToggle}
+                            onAsk={onAsk}
+                            asking={asking}
                           />
                         ))}
                       </ul>

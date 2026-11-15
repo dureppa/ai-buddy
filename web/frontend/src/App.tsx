@@ -1,3 +1,5 @@
+import { checklistQuestion } from './checklist-question';
+import type { ExplanationContext } from './selection-context';
 import { taskSelectionResource } from './task-selection';
 import { SelectionAssistant } from './SelectionAssistant';
 import { ServiceActionPage } from './ServiceActionPage';
@@ -12,7 +14,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { ChatPage, ChatWindow, type ChatEntry, type DraftState } from './Chat';
-import { tasksFor } from './checklist';
+import { tasksFor, type Task } from './checklist';
 import { navigation } from './data';
 import { isStaffId, products, profiles, teamColleagues, teamContacts, type ProfileId } from './demo-accounts';
 import {
@@ -365,9 +367,24 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     },
   });
 
+  const taskQuestionSending = useRef(false);
   const answerMutation = useMutation({
-    mutationFn: async (text: string) => {
-      if (backendEnabled) return askBackend(profileId, text);
+    onSettled: () => {
+      taskQuestionSending.current = false;
+    },
+    mutationFn: async ({ text, context }: { text: string; context?: ExplanationContext }) => {
+      if (backendEnabled) return context ? askBackend(profileId, text, context) : askBackend(profileId, text);
+      if (context?.selection.resource?.kind === 'task')
+        return {
+          kind: 'answer' as const,
+          text: 'Учебное объяснение пункта: ' + context.selection.resource.label,
+          lines: [
+            context.selection.resource.description || 'Уточни ожидаемый результат у наставника.',
+            'Согласуй первый шаг и критерий готовности с наставником.',
+            'Рабочие инструменты и материалы найдёшь на странице команды.',
+            'За помощью обратись к наставнику или руководителю своей команды.',
+          ],
+        };
       await delay(580);
       return answerBuddy(text, readWorkspace(localStorage, profileId), profileId, awaitingService);
     },
@@ -424,7 +441,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     if (!text.trim() || answerMutation.isPending) return;
     const id = nextEntry.current++;
     setEntries((items) => [...items, { id, from: 'user', text: text.trim() }]);
-    answerMutation.mutate(text);
+    answerMutation.mutate({ text });
   }
 
   const params = new URLSearchParams(location.search);
@@ -468,6 +485,18 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
 
   const checklist = workspace && {
     workspace,
+    asking: answerMutation.isPending || historyLoading,
+    onAsk: (item: Task) => {
+      if (answerMutation.isPending || historyLoading || taskQuestionSending.current) return;
+      taskQuestionSending.current = true;
+      const question = checklistQuestion(profileId, item);
+      const id = nextEntry.current++;
+      setEntries((items) => [...items, { id, from: 'user', text: question.text }]);
+      setDetail(null);
+      setDrawerOpen(false);
+      navigate('/chat');
+      answerMutation.mutate(question);
+    },
     onOpen: setDetail,
     onToggle: (id: string) => taskMutation.mutate(id),
     savingTask: taskMutation.isPending ? taskMutation.variables : undefined,
