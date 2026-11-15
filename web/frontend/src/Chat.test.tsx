@@ -50,7 +50,7 @@ it('shows the server request number, status and portal link after the reply', ()
   });
 
   expect(html).toContain('Заявка ДОС-000001 отправлена. Статус: на согласовании.');
-  expect(html).toContain('href="http://localhost:5190/"');
+  expect(html).toContain('href="http://localhost:5190/?profile=olga"');
   expect(html).toContain('Мои заявки');
   expect(html).not.toContain('Buddy думает');
   expect(html).not.toContain('>Подтвердить</button>');

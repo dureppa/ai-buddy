@@ -178,6 +178,9 @@ func TestConcurrentSubmissionAndKnowledge(t *testing.T) {
 		value, err := s.Tool(ctx, "olga", tool, map[string]any{}, "turn")
 		require.NoError(t, err)
 		require.NotEmpty(t, value["references"])
+		if tool == "get_access_requests" {
+			require.Equal(t, s.AccessURL+"?tab=requests", value["references"].([]any)[0].(map[string]any)["url"])
+		}
 	}
 	value, err := s.Tool(ctx, "olga", "get_knowledge_page", map[string]any{"page_id": "confluence:team-delivery"}, "turn")
 	require.NoError(t, err)

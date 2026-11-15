@@ -38,3 +38,5 @@ docker compose --profile hr --profile jira down
 Публикация на сервере с паролем nginx описана в [server-deployment](server-deployment.md). Jira в этом же запуске открывается на http://127.0.0.1:5189/, портал доступов — на 5190, Confluence — на 5191.
 
 `just external-check` запускает 24 сервиса на временном стенде и проверяет демовход, HTTP и доступ к базам при выключенном Buddy. Затем проверяет HTTP-вызовы из Buddy.
+
+`PUBLIC_HR_ORIGIN` задаёт корпоративные ссылки в обеих сборках (web и hr-web). `PUBLIC_WEB_ORIGIN` становится `VITE_BUDDY_URL` в hr-web: относительные источники панели пояснения возвращают в Buddy, а не на одноимённый путь HR-сайта. Цели Docker web/hr-web и команды запуска сохранены.

@@ -1,17 +1,9 @@
 import { Fragment, type ReactNode } from 'react';
 import { Icon } from './ui';
+import { chatDestination, safeChatUrl as safeUrl } from './chat-links';
+import type { ProfileId } from './data';
 
 type Reference = { title: string; url: string };
-
-function safeUrl(url: string): boolean {
-  if (!/^(https?:\/\/|\/(?!\/))/.test(url) || /[\s\\]/.test(url)) return false;
-  try {
-    const parsed = new URL(url, 'https://buddy.invalid');
-    return !parsed.username && !parsed.password && (parsed.protocol === 'https:' || parsed.protocol === 'http:');
-  } catch {
-    return false;
-  }
-}
 
 export function cleanAnswer(text: string, references: Reference[]): string {
   const paths = new Set<string>();
@@ -51,15 +43,22 @@ export function cleanAnswer(text: string, references: Reference[]): string {
     .join('');
 }
 
-function inline(text: string, references: Reference[]): ReactNode[] {
+function inline(text: string, references: Reference[], profile?: ProfileId, buddyOrigin?: string): ReactNode[] {
   const tokens = text.split(/(\*\*[^*\n]+\*\*|`[^`\n]+`|\[[^\]\n]+\]\([^\s)]+\))/g);
   return tokens.map((token, index) => {
     if (token.startsWith('**') && token.endsWith('**')) return <strong key={index}>{token.slice(2, -2)}</strong>;
     if (token.startsWith('`') && token.endsWith('`')) return <code key={index}>{token.slice(1, -1)}</code>;
     const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(token);
     if (link)
-      return safeUrl(link[2]) && references.some((reference) => reference.url === link[2]) ? (
-        <a key={index} href={link[2]} target="_blank" rel="noopener noreferrer">
+      return safeUrl(link[2]) &&
+        chatDestination(link[2], profile, buddyOrigin) &&
+        references.some((reference) => reference.url === link[2]) ? (
+        <a
+          key={index}
+          href={chatDestination(link[2], profile, buddyOrigin) ?? undefined}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {link[1]}
         </a>
       ) : (
@@ -69,7 +68,17 @@ function inline(text: string, references: Reference[]): ReactNode[] {
   });
 }
 
-export function AgentAnswer({ text, references = [] }: { text: string; references?: Reference[] }) {
+export function AgentAnswer({
+  text,
+  references = [],
+  profileId,
+  buddyOrigin,
+}: {
+  text: string;
+  references?: Reference[];
+  profileId?: ProfileId;
+  buddyOrigin?: string;
+}) {
   const unique = references.filter(
     (reference, index) => safeUrl(reference.url) && references.findIndex((r) => r.url === reference.url) === index,
   );
@@ -96,7 +105,7 @@ export function AgentAnswer({ text, references = [] }: { text: string; reference
     if (/^#{1,6}\s/.test(line)) {
       blocks.push(
         <p key={blocks.length} className="agent-answer__heading">
-          <strong>{inline(line.replace(/^#{1,6}\s+/, ''), unique)}</strong>
+          <strong>{inline(line.replace(/^#{1,6}\s+/, ''), unique, profileId, buddyOrigin)}</strong>
         </p>,
       );
       index++;
@@ -108,7 +117,9 @@ export function AgentAnswer({ text, references = [] }: { text: string; reference
       const items: ReactNode[] = [];
       const pattern = ordered ? /^\s*\d+[.)]\s+/ : /^\s*[-*]\s+/;
       while (index < lines.length && pattern.test(lines[index]))
-        items.push(<li key={items.length}>{inline(lines[index++].replace(pattern, ''), unique)}</li>);
+        items.push(
+          <li key={items.length}>{inline(lines[index++].replace(pattern, ''), unique, profileId, buddyOrigin)}</li>,
+        );
       blocks.push(
         ordered ? (
           <ol key={blocks.length} start={list[2] === '1' ? undefined : Number(list[2])}>
@@ -123,7 +134,9 @@ export function AgentAnswer({ text, references = [] }: { text: string; reference
     const paragraph: ReactNode[] = [];
     do {
       if (paragraph.length) paragraph.push(<br key={'break-' + index} />);
-      paragraph.push(<Fragment key={'line-' + index}>{inline(lines[index++], unique)}</Fragment>);
+      paragraph.push(
+        <Fragment key={'line-' + index}>{inline(lines[index++], unique, profileId, buddyOrigin)}</Fragment>,
+      );
     } while (
       index < lines.length &&
       lines[index].trim() &&
@@ -136,19 +149,25 @@ export function AgentAnswer({ text, references = [] }: { text: string; reference
       <div className="agent-answer__text">{blocks}</div>
       {unique.length > 0 && (
         <div className="agent-sources" aria-label="Источники ответа">
-          {unique.map((reference) => (
-            <a
-              className="agent-source"
-              key={reference.url}
-              href={reference.url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Icon name="file" size={16} />
-              <span>{reference.title}</span>
-              <Icon name="diagonal" size={14} />
-            </a>
-          ))}
+          {unique.map((reference) =>
+            chatDestination(reference.url, profileId, buddyOrigin) === null ? (
+              <span className="agent-source" key={reference.url} aria-disabled="true">
+                {reference.title} — ссылка пока недоступна
+              </span>
+            ) : (
+              <a
+                className="agent-source"
+                key={reference.url}
+                href={chatDestination(reference.url, profileId, buddyOrigin) ?? undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Icon name="file" size={16} />
+                <span>{reference.url === '/onboarding' ? 'Открыть план адаптации' : reference.title}</span>
+                <Icon name="diagonal" size={14} />
+              </a>
+            ),
+          )}
         </div>
       )}
     </div>

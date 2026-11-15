@@ -1,6 +1,7 @@
 import { taskSelectionResource } from './task-selection';
 import { SelectionAssistant } from './SelectionAssistant';
 import { ServiceActionPage } from './ServiceActionPage';
+import { OnboardingTaskPage } from './OnboardingTaskPage';
 import { accountCookieValue } from './service-session';
 import { readHrToday } from './hr-schedule';
 import { Schedule } from './EventsPage';
@@ -613,6 +614,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                   }
                 />
                 <Route path="/product-guide" element={<ProductGuide profileId={profileId} />} />
+                <Route path="/onboarding/tasks/:taskId" element={<OnboardingTaskPage profileId={profileId} />} />
                 <Route path="/onboarding" element={<Adaptation profileId={profileId} {...checklist} />} />
                 <Route
                   path="/events"

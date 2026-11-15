@@ -14,3 +14,8 @@ export function readServiceProfile(cookie: string): ProfileId | null {
   const value = entry?.slice(accountCookie.length + 1);
   return value && isProfileId(value) ? value : null;
 }
+
+export function readServiceProfileQuery(search: string): ProfileId | null {
+  const values = new URLSearchParams(search).getAll('profile');
+  return values.length === 1 && isProfileId(values[0]) ? values[0] : null;
+}

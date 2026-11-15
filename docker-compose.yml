@@ -195,6 +195,7 @@ services:
       target: hr-web
       args:
         PUBLIC_WEB_ORIGIN: ${PUBLIC_WEB_ORIGIN:-http://127.0.0.1:${AI_BUDDY_WEB_PORT:-5173}}
+        PUBLIC_HR_ORIGIN: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}
     ports:
       - "127.0.0.1:5181-5192:5181-5192"
     healthcheck:
