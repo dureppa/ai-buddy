@@ -27,6 +27,9 @@ func (s *Service) Pages(ctx context.Context, subject, query string) ([]Page, err
 	if len([]rune(query)) > 500 {
 		return nil, buddy.ErrInvalidInput
 	}
+	if s.ExternalKnowledge != nil {
+		return s.ExternalKnowledge.Pages(ctx, subject, query)
+	}
 	rows, err := s.knowledgeDB().Query(ctx, pageSelect+`WHERE (product_id IS NULL OR product_id=$1) AND ($2='' OR title ILIKE '%'||$2||'%' OR body ILIKE '%'||$2||'%') ORDER BY CASE kind WHEN 'product' THEN 0 WHEN 'team' THEN 1 WHEN 'role' THEN 2 ELSE 3 END,title LIMIT 100`, identity.Product, query)
 	if err != nil {
 		return nil, err
@@ -48,6 +51,9 @@ func (s *Service) Page(ctx context.Context, subject, id string) (Page, error) {
 	if err != nil {
 		return Page{}, err
 	}
+	if s.ExternalKnowledge != nil {
+		return s.ExternalKnowledge.Page(ctx, subject, id)
+	}
 	p, err := scanPage(s.knowledgeDB().QueryRow(ctx, pageSelect+`WHERE id=$1 AND (product_id IS NULL OR product_id=$2)`, id, identity.Product))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Page{}, buddy.ErrNotFound
@@ -65,6 +71,28 @@ func (s *Service) Search(ctx context.Context, subject, query string, limit int) 
 	terms := strings.Join(strings.Fields(query), " OR ")
 	corpus := `SELECT 'confluence:'||id AS id,title,left(body,1200) AS excerpt,body AS search_text,version,$4||'?page='||id AS url FROM confluence_pages WHERE product_id IS NULL OR product_id=$1`
 	articles := `SELECT id,title,left(content,1200) AS excerpt,content AS search_text,1 AS version,url FROM knowledge_articles`
+	if s.ExternalKnowledge != nil {
+		pages, err := s.ExternalKnowledge.Search(ctx, subject, query, limit)
+		if err != nil {
+			return nil, err
+		}
+		docs := make([]any, 0, limit)
+		for _, p := range pages {
+			excerpt := []rune(p.Body)
+			docs = append(docs, map[string]any{
+				"source":  s.Source("confluence:"+p.ID, p.Title, s.KnowledgeURL+"?page="+url.QueryEscape(p.ID), p.Version),
+				"excerpt": string(excerpt[:min(1200, len(excerpt))]),
+			})
+		}
+		if len(docs) < limit {
+			extra, err := s.searchCorpus(ctx, s.DB, articles+" WHERE $1::text IS NOT NULL AND $4::text IS NOT NULL", identity.Product, terms, limit-len(docs), s.KnowledgeURL)
+			if err != nil {
+				return nil, err
+			}
+			docs = append(docs, extra["documents"].([]any)...)
+		}
+		return map[string]any{"documents": docs}, nil
+	}
 	if s.KnowledgeDB == nil {
 		return s.searchCorpus(ctx, s.DB, corpus+" UNION ALL "+articles, identity.Product, terms, limit, s.KnowledgeURL)
 	}

@@ -51,7 +51,10 @@ typecheck: frontend-typecheck python-check go-check
 
 build: frontend-build
 
-check: jira-check frontend-check python-check go-check hr-consents-check repository-check compose-check
+check: tools-check jira-check frontend-check python-check go-check hr-consents-check repository-check compose-check
 
 jira-check:
 	cd tools/jira && test -z "$(gofmt -l .)" && go vet ./... && go test -race ./...
+
+tools-check:
+	cd tools && test -z "$(gofmt -l shared confluence)" && go vet ./... && go test -race ./...

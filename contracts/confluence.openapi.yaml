@@ -4,12 +4,79 @@
     {
       'title': 'AI Buddy Confluence',
       'version': '1.0.0',
-      'description': 'Read-only synthetic knowledge. Product-scoped pages and common role/guides. No arbitrary HTML. Same authenticated profile as access portal.',
+      'description': 'Read-only synthetic knowledge. Product-scoped pages and common role/guides. No arbitrary HTML. The standalone Go service accepts audience-scoped session and delegation tokens.',
     },
   'servers': [{ 'url': '/api/v1' }],
   'security': [{ 'bearerAuth': [] }],
   'paths':
     {
+      '/demo/sessions':
+        {
+          'post':
+            {
+              'summary': 'Start a local demo session',
+              'security': [],
+              'requestBody':
+                {
+                  'required': true,
+                  'content':
+                    {
+                      'application/json':
+                        {
+                          'schema':
+                            {
+                              'type': 'object',
+                              'required': ['profile_id'],
+                              'properties': { 'profile_id': { 'type': 'string' } },
+                            },
+                        },
+                    },
+                },
+              'responses':
+                {
+                  '200': { 'description': 'Confluence access token and profile ID' },
+                  '400': { 'description': 'Unknown profile or invalid request' },
+                  '404': { 'description': 'Demo login disabled' },
+                },
+            },
+        },
+      '/confluence/search':
+        {
+          'get':
+            {
+              'summary': 'Full-text search of accessible pages',
+              'parameters':
+                [
+                  {
+                    'name': 'query',
+                    'in': 'query',
+                    'required': true,
+                    'schema': { 'type': 'string', 'maxLength': 500 },
+                  },
+                  {
+                    'name': 'limit',
+                    'in': 'query',
+                    'required': true,
+                    'schema': { 'type': 'integer', 'minimum': 1, 'maximum': 5 },
+                  },
+                ],
+              'responses':
+                {
+                  '200':
+                    {
+                      'description': 'Matching pages',
+                      'content':
+                        {
+                          'application/json':
+                            { 'schema': { 'type': 'array', 'items': { '$ref': '#/components/schemas/Page' } } },
+                        },
+                    },
+                  '400': { 'description': 'Invalid input' },
+                  '401': { 'description': 'Invalid or expired session' },
+                  '503': { 'description': 'Storage unavailable' },
+                },
+            },
+        },
       '/confluence/pages':
         {
           'get':

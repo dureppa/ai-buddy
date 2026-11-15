@@ -59,6 +59,13 @@ func runContext(ctx context.Context) error {
 	}
 
 	portalService := portal.New(pool)
+	if origin := os.Getenv("CONFLUENCE_API_URL"); origin != "" {
+		client, err := portal.NewKnowledgeClient(origin, os.Getenv("CONFLUENCE_DELEGATION_SECRET"))
+		if err != nil {
+			return err
+		}
+		portalService.ExternalKnowledge = client
+	}
 	if value := os.Getenv("ACCESS_PUBLIC_URL"); value != "" {
 		if err := setPublicURL(&portalService.AccessURL, value); err != nil {
 			return err
@@ -151,11 +158,13 @@ func runContext(ctx context.Context) error {
 	if cfg.DemoMode && os.Getenv("WORK_TOOLS_ENABLED") == "true" {
 		setupCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
 		defer cancel()
-		knowledgeDB, setupErr := portalService.OpenKnowledgeDatabase(setupCtx, cfg.DatabaseURL)
-		if setupErr != nil {
-			return fmt.Errorf("setup Confluence database: %w", setupErr)
+		if portalService.ExternalKnowledge == nil {
+			knowledgeDB, setupErr := portalService.OpenKnowledgeDatabase(setupCtx, cfg.DatabaseURL)
+			if setupErr != nil {
+				return fmt.Errorf("setup Confluence database: %w", setupErr)
+			}
+			defer knowledgeDB.Close()
 		}
-		defer knowledgeDB.Close()
 		catalog, setupErr := worktools.Open(setupCtx, pool, cfg.DatabaseURL)
 		cancel()
 		if setupErr != nil {

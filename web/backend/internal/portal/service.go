@@ -95,11 +95,12 @@ type Page struct {
 	Updated string  `json:"updated_at"`
 }
 type Service struct {
-	KnowledgeDB  *pgxpool.Pool
-	DB           *pgxpool.Pool
-	Catalog      Catalog
-	AccessURL    string
-	KnowledgeURL string
+	ExternalKnowledge *KnowledgeClient
+	KnowledgeDB       *pgxpool.Pool
+	DB                *pgxpool.Pool
+	Catalog           Catalog
+	AccessURL         string
+	KnowledgeURL      string
 }
 
 var ErrConflict = errors.New("request changed")

@@ -46,6 +46,10 @@ services:
   hr-events:
     restart: unless-stopped
 
+  confluence:
+    restart: unless-stopped
+    ports: !override []
+
   jira-db:
     restart: unless-stopped
     profiles: !override []

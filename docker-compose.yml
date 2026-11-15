@@ -76,6 +76,8 @@ services:
       MCP_ADAPTER_SERVICE_TOKEN: ${COMPOSE_MCP_ADAPTER_TOKEN:-local-demo-adapter-token}
       AI_DELEGATION_SECRET: ${COMPOSE_DELEGATION_SECRET:-local-demo-delegation-change-for-shared-host}
       ACCESS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5190/
+      CONFLUENCE_API_URL: http://confluence:8191
+      CONFLUENCE_DELEGATION_SECRET: ${COMPOSE_CONFLUENCE_DELEGATION_SECRET:-local-confluence-delegation-secret-change-me}
       CONFLUENCE_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5191/
       HR_ABSENCES_URL: http://hr-absences:8181
       HR_TRIPS_URL: http://hr-trips:8182
@@ -319,6 +321,46 @@ services:
       PGDATABASE: hr_events
     ports:
       - "127.0.0.1:8188:8188"
+
+  confluence-migrate:
+    image: postgres:17-alpine
+    environment:
+      <<: *database-env
+      CONFLUENCE_DB_PASSWORD: ${COMPOSE_CONFLUENCE_DB_PASSWORD:-local-confluence-db-password}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./tools/confluence/migrate.sh:/migrate-confluence.sh:ro
+      - ./web/backend/internal/portal/pages.json:/data/confluence-pages.json:ro
+    entrypoint: [sh, /migrate-confluence.sh]
+
+  confluence:
+    build:
+      context: .
+      dockerfile: ops/docker/Dockerfile.go
+      args:
+        MODULE: tools
+        ENTRY: ./confluence
+    environment:
+      PGHOST: db
+      PGUSER: buddy_confluence
+      PGDATABASE: buddy_tool_confluence
+      PGPASSWORD: ${COMPOSE_CONFLUENCE_DB_PASSWORD:-local-confluence-db-password}
+      HTTP_ADDR: ":8191"
+      SESSION_SECRET: ${COMPOSE_CONFLUENCE_SESSION_SECRET:-local-confluence-session-secret-change-me}
+      CONFLUENCE_DELEGATION_SECRET: ${COMPOSE_CONFLUENCE_DELEGATION_SECRET:-local-confluence-delegation-secret-change-me}
+      DEMO_MODE: "true"
+    ports:
+      - "127.0.0.1:8191:8191"
+    depends_on:
+      confluence-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8191/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
 
   jira-db:
     profiles: [jira]

@@ -84,6 +84,8 @@ jobs:
             psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
           psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f web/backend/seeds/demo.sql
+      - working-directory: tools
+        run: go test -race ./...
       - working-directory: tools/jira
         run: |
           test -z "$(gofmt -l .)"
