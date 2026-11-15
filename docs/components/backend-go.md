@@ -299,3 +299,11 @@ buddy/selection.go проверяет контекст выделения, а Hi
 ## Опросы стажировки и уведомления
 
 Миграция `12_internship_surveys` добавляет ответы с уникальным ключом по стажёру и этапу, отметку `notifications.read_at` и напоминания для четырёх демопрофилей. `GET /api/v1/onboarding/surveys` возвращает только этапы с ответами. `PUT /api/v1/onboarding/surveys/{stage}` проверяет ответы и сохраняет первую отправку. `GET /api/v1/notifications` включает статус прочтения и скрывает напоминание после завершения соответствующей анкеты. `POST /api/v1/notifications/read` отмечает показанные ID в рамках текущего профиля. [Контракт](../../contracts/openapi.yaml), [спецификация](../specs/internship-surveys.md).
+
+## Контекст текущего веб-чек-листа
+
+Чат принимает ограниченный `page_context.checklist`. `buddy.ChecklistContext.Valid`
+проверяет status/task, существующая task-схема — границы полей. Bridge передаёт
+его Flask без подмены профиля или серверного прогресса. Сам snapshot не выдаёт
+полномочия и не меняет делегацию обычных поручений; selection по-прежнему read_only.
+[Контракт и сценарий](../specs/current-checklist-and-dialogue.md).

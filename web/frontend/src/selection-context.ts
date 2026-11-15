@@ -57,3 +57,12 @@ export type ExplanationContext = {
   url: string;
   selection: { text: string; title: string; resource?: SelectionResource };
 };
+
+export type ChecklistContext =
+  | { status: 'in_progress'; task: Extract<SelectionResource, { kind: 'task' }> }
+  | { status: 'completed' | 'unavailable' };
+export type ChatPageContext = {
+  url: string;
+  selection?: ExplanationContext['selection'];
+  checklist?: ChecklistContext;
+};

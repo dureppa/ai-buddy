@@ -4,7 +4,7 @@ import { materialsForTask } from './staff-data';
 import { confluenceService } from './tool-links';
 import type { SelectionResource } from './selection-context';
 
-export function taskSelectionResource(profile: ProfileId, task: Task): SelectionResource {
+export function taskSelectionResource(profile: ProfileId, task: Task): Extract<SelectionResource, { kind: 'task' }> {
   const pages = new Set<string>();
   const known = new URL(confluenceService.url, window.location.origin);
   for (const material of materialsForTask(localStorage, profile, task.id)) {

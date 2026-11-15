@@ -35,6 +35,9 @@ class DirectRunner:
                     state,
                     history=context.history,
                     recover_context=True,
+                    checklist=context.page_context.checklist
+                    if context.page_context
+                    else None,
                     hr_today=context.hr_today.model_dump_json()
                     if context.hr_today
                     else None,
