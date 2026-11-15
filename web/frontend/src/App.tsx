@@ -1,4 +1,4 @@
-import { chatPageContext } from './current-task';
+import { chatPageContext, currentChecklistTask, isTaskCompletionMessage } from './current-task';
 import { checklistQuestion } from './checklist-question';
 import type { ChatPageContext, ExplanationContext } from './selection-context';
 import { BuddyPanel } from './BuddyPanel';
@@ -35,6 +35,7 @@ import {
   answerBuddy,
   buddyGrowthStage,
   confirmAccess,
+  completeTask,
   progressFor,
   readWorkspace,
   toggleTask,
@@ -388,9 +389,24 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     ],
   };
 
+  const [completionTargetId, setCompletionTargetId] = useState<string>();
+  const completionSending = useRef(false);
+  const catalog = checklistFor(localStorage, profileId);
+  const completionTarget =
+    workspace &&
+    (completionTargetId !== undefined
+      ? catalog.find((item) => item.id === completionTargetId)
+      : currentChecklistTask(catalog, workspace.completed));
   const taskMutation = useMutation({
-    mutationFn: async (id: string) => toggleTask(localStorage, profileId, id),
-    onSuccess: (updated, id) => {
+    mutationFn: async ({ id, completion }: { id: string; completion?: boolean; title?: string }) => {
+      if (completion && (!checklistFor(localStorage, profileId).some((item) => item.id === id) || surveyForTask(id)))
+        throw new Error('Пункт нельзя подтвердить таким способом.');
+      return completion ? completeTask(localStorage, profileId, id) : toggleTask(localStorage, profileId, id);
+    },
+    onSettled: () => {
+      completionSending.current = false;
+    },
+    onSuccess: (updated, { id, completion, title }) => {
       const previous = queryClient.getQueryData<Workspace>(workspaceKey);
       const done = updated.completed.includes(id);
       const nextStage = buddyGrowthStage(profileId, updated);
@@ -399,6 +415,19 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       }
       queryClient.setQueryData(workspaceKey, updated);
       if (done) setMood('celebrating');
+      if (completion) setActiveTask(undefined);
+      if (completion)
+        setEntries((items) => [
+          ...items,
+          {
+            id: nextEntry.current++,
+            from: 'buddy',
+            reply: {
+              kind: 'answer',
+              text: 'Пункт «' + title + '» отмечен выполненным в твоём чек-листе. Можешь перейти к следующему пункту.',
+            },
+          },
+        ]);
       setToast({
         tone: 'success',
         message: done
@@ -408,8 +437,20 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           : 'Задача возвращена в план.',
       });
     },
-    onError: () => {
+    onError: (_, { completion }) => {
       setMood('supportive');
+      if (completion)
+        setEntries((items) => [
+          ...items,
+          {
+            id: nextEntry.current++,
+            from: 'buddy',
+            reply: {
+              kind: 'answer',
+              text: 'Не удалось сохранить отметку. Задача не завершена — попробуй ещё раз.',
+            },
+          },
+        ]);
       setToast({ tone: 'error', message: 'Не удалось сохранить отметку. Попробуй ещё раз.' });
     },
   });
@@ -440,7 +481,15 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       await delay(580);
       return answerBuddy(text, readWorkspace(localStorage, profileId), profileId, awaitingService);
     },
-    onSuccess: (reply) => {
+    onSuccess: (reply, question) => {
+      const context = question.context;
+      setCompletionTargetId(
+        context?.selection?.resource?.kind === 'task'
+          ? context.selection.resource.id
+          : context?.checklist?.status === 'in_progress'
+            ? context.checklist.task.id
+            : undefined,
+      );
       const id = nextEntry.current++;
       setEntries((items) => [...items, { id, from: 'buddy', reply }]);
       setAwaitingService(reply.kind === 'clarification' && reply.awaitingService);
@@ -489,6 +538,49 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  function confirmChatTask(text?: string) {
+    if (
+      !workspace ||
+      historyLoading ||
+      surveysQuery.isPending ||
+      answerMutation.isPending ||
+      taskMutation.isPending ||
+      taskQuestionSending.current ||
+      completionSending.current
+    )
+      return;
+    const item =
+      completionTarget && checklistFor(localStorage, profileId).find((task) => task.id === completionTarget.id);
+    setEntries((items) => [
+      ...items,
+      { id: nextEntry.current++, from: 'user', text: text ?? 'Отметить выполненной: «' + item?.title + '».' },
+    ]);
+    if (surveysQuery.isError || !item) {
+      setEntries((items) => [
+        ...items,
+        {
+          id: nextEntry.current++,
+          from: 'buddy',
+          reply: {
+            kind: 'answer',
+            text: surveysQuery.isError
+              ? 'Не удалось обновить план. Попробуй открыть его заново — пока не буду менять отметки.'
+              : 'Сейчас нет доступного пункта для отметки. Выбери задачу в плане адаптации.',
+          },
+        },
+      ]);
+      return;
+    }
+    setCompletionTargetId(item.id);
+    const survey = surveyForTask(item.id);
+    if (survey) {
+      openSurvey(survey);
+      return;
+    }
+    completionSending.current = true;
+    taskMutation.mutate({ id: item.id, completion: true, title: item.title });
+  }
+
   function send(text: string) {
     if (
       !text.trim() ||
@@ -496,9 +588,15 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       historyLoading ||
       !workspace ||
       surveysQuery.isPending ||
-      taskQuestionSending.current
+      taskQuestionSending.current ||
+      taskMutation.isPending ||
+      completionSending.current
     )
       return;
+    if (isTaskCompletionMessage(text)) {
+      confirmChatTask(text.trim());
+      return;
+    }
     taskQuestionSending.current = true;
     const id = nextEntry.current++;
     setEntries((items) => [...items, { id, from: 'user', text: text.trim() }]);
@@ -510,6 +608,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
 
   function openBuddy() {
     setActiveTask(undefined);
+    setCompletionTargetId(undefined);
     setDrawerOpen(true);
   }
   function retryQuestion() {
@@ -529,6 +628,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     )
       return;
     taskQuestionSending.current = true;
+    setCompletionTargetId(item.id);
     const question = checklistQuestion(profileId, item);
     const id = nextEntry.current++;
     setEntries((items) => [...items, { id, from: 'user', text: question.text }]);
@@ -575,10 +675,21 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     profileId,
     name: profile.name,
     entries,
-    waiting: answerMutation.isPending || historyLoading || !workspace || surveysQuery.isPending,
+    waiting:
+      answerMutation.isPending || historyLoading || !workspace || surveysQuery.isPending || taskMutation.isPending,
     confirming: confirmation.isPending,
     drafts,
     onSend: send,
+    completionTask:
+      completionTarget && !surveysQuery.isError
+        ? {
+            id: completionTarget.id,
+            title: completionTarget.title,
+            completed: workspace?.completed.includes(completionTarget.id) ?? false,
+            survey: Boolean(surveyForTask(completionTarget.id)),
+          }
+        : undefined,
+    onCompleteTask: () => confirmChatTask(),
     onConfirm: (draft: AccessDraft) => confirmation.mutate(draft),
     onDismiss: (draft: AccessDraft) => setDrafts((previous) => ({ ...previous, [draft.id]: { type: 'dismissed' } })),
     onSurvey: () => openSurvey(),
@@ -591,7 +702,10 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       activeTask?.selection.resource?.kind === 'task' ? (
         <TaskMaterialList profileId={profileId} taskId={activeTask.selection.resource.id} compact />
       ) : undefined,
-    onClearContext: () => setActiveTask(undefined),
+    onClearContext: () => {
+      setActiveTask(undefined);
+      setCompletionTargetId(undefined);
+    },
     error: chatError,
     onRetry: retryQuestion,
   };
@@ -605,8 +719,8 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       setDrawerOpen(false);
       setDetail(next);
     },
-    onToggle: (id: string) => taskMutation.mutate(id),
-    savingTask: taskMutation.isPending ? taskMutation.variables : undefined,
+    onToggle: (id: string) => taskMutation.mutate({ id }),
+    savingTask: taskMutation.isPending ? taskMutation.variables?.id : undefined,
   };
 
   return (
@@ -874,7 +988,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                   type="button"
                   className="button button--dark"
                   disabled={taskMutation.isPending}
-                  onClick={() => taskMutation.mutate(shownDetail.item.id)}
+                  onClick={() => taskMutation.mutate({ id: shownDetail.item.id })}
                 >
                   {workspace.completed.includes(shownDetail.item.id) ? 'Вернуть в план' : 'Отметить выполненной'}
                 </button>

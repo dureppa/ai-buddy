@@ -118,6 +118,11 @@ export function toggleTask(storage: StoragePort, profile: ProfileId, taskId: str
   return writeWorkspace(storage, profile, { ...workspace, completed });
 }
 
+export function completeTask(storage: StoragePort, profile: ProfileId, taskId: string): Workspace {
+  const workspace = readWorkspace(storage, profile);
+  return workspace.completed.includes(taskId) ? workspace : toggleTask(storage, profile, taskId);
+}
+
 export function mayRequest(profile: ProfileId, service: Service) {
   return service.state === 'requestable' && !(profile === 'sasha' && service.id === 'grafana');
 }

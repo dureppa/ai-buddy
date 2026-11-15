@@ -29,3 +29,37 @@ export function chatPageContext(
         : { status: 'completed' },
   };
 }
+
+export function isTaskCompletionMessage(text: string): boolean {
+  const normalized = text
+    .trim()
+    .toLowerCase()
+    .replaceAll('ё', 'е')
+    .replace(/[.!]+$/, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/^я (?:уже )?/, '');
+  return new Set([
+    'ознакомился',
+    'ознакомилась',
+    'прочитал',
+    'прочитала',
+    'изучил',
+    'изучила',
+    'выполнил',
+    'выполнила',
+    'сделал',
+    'сделала',
+    'готово',
+    'сделано',
+    'выполнено',
+    'задача выполнена',
+    'задачу выполнил',
+    'задачу выполнила',
+    'пункт выполнен',
+    'отметь выполненной',
+    'отметь выполненным',
+    'отметь задачу выполненной',
+    'подтверждаю выполнение',
+  ]).has(normalized);
+}

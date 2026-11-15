@@ -25,6 +25,8 @@ export type ChatProps = {
   surveyDone: boolean;
   onNavigate?: () => void;
   taskContext?: { id: string; title: string };
+  completionTask?: { id: string; title: string; completed: boolean; survey: boolean };
+  onCompleteTask?: () => void;
   contextMaterials?: ReactNode;
   onClearContext?: () => void;
   error?: string;
@@ -90,6 +92,8 @@ export function ChatWindow({
   surveyDone,
   onNavigate,
   taskContext,
+  completionTask,
+  onCompleteTask,
   contextMaterials,
   onClearContext,
   error,
@@ -226,6 +230,24 @@ export function ChatWindow({
         </div>
       )}
       <div className="chat-controls">
+        {completionTask && onCompleteTask && (
+          <div className="chat-task-completion">
+            <small>Самостоятельная отметка в чек-листе</small>
+            <strong>{completionTask.title}</strong>
+            <button
+              type="button"
+              className="button button--white"
+              disabled={waiting || completionTask.completed}
+              onClick={onCompleteTask}
+            >
+              {completionTask.completed
+                ? 'Выполнено ✓'
+                : completionTask.survey
+                  ? 'Заполнить анкету'
+                  : 'Отметить выполненной'}
+            </button>
+          </div>
+        )}
         <div className="suggestions" aria-label="Предложенные вопросы">
           {(taskContext ? taskSuggestions : suggestions).slice(0, entries.length ? 2 : 4).map((question) => (
             <button type="button" className="filter" key={question} disabled={waiting} onClick={() => onSend(question)}>
