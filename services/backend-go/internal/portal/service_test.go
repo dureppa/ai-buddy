@@ -286,3 +286,19 @@ func TestAccessStatusMigrationUpdatesExistingGuides(t *testing.T) {
 	require.NotContains(t, team.Body, "приоритеты и доступы")
 	require.Equal(t, 3, team.Version)
 }
+
+func TestDedicatedConfluenceDatabase(t *testing.T) {
+	s := testService(t)
+	ctx := context.Background()
+	db, err := s.OpenKnowledgeDatabase(ctx, os.Getenv("TEST_DATABASE_URL"))
+	require.NoError(t, err)
+	defer db.Close()
+	before, err := s.Page(ctx, "olga", "team-delivery")
+	require.NoError(t, err)
+	require.NotEmpty(t, before.Title)
+	_, err = s.Page(ctx, "olga", "team-travel")
+	require.ErrorIs(t, err, buddy.ErrNotFound)
+	result, err := s.Search(ctx, "olga", "воронка оформления", 3)
+	require.NoError(t, err)
+	require.NotEmpty(t, result["documents"])
+}

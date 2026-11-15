@@ -32,6 +32,7 @@ import { Avatar, Buddy, EmptyState, Icon, Modal, Toast, type Mood } from './ui';
 import { corporateLinks } from './corporate-links';
 import { toolProfileUrl, toolsFor } from './tool-links';
 import { CorporateDirectory, accessPortalUrl } from './CorporateDirectory';
+import { WorkToolPage } from './WorkToolPage';
 import { ProductGuide } from './ProductGuide';
 
 const searchItems = [
@@ -867,5 +868,15 @@ export default function App() {
   }
   if (pathname === '/' || pathname === '/staff') return <Navigate to="/home" replace />;
 
+  if (pathname.startsWith('/work-tools/')) {
+    return (
+      <main className="work-tool-page">
+        <Routes>
+          <Route path="/work-tools/:service" element={<WorkToolPage profileId={account} />} />
+          <Route path="*" element={<Navigate to="/tools" replace />} />
+        </Routes>
+      </main>
+    );
+  }
   return <WorkspaceShell key={account} profileId={account} onExit={exit} />;
 }

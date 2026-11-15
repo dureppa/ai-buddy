@@ -570,3 +570,25 @@ it('keeps an invalid event in the editor, then updates an existing event without
   await waitForElement(() => container.querySelector<HTMLButtonElement>('button[title="Синхронизация"]'));
   expect(container.querySelector('button[title="Планирование"]')).toBeNull();
 });
+
+it('opens an API record from a work tool reference', async () => {
+  localStorage.setItem(demoSessionKey, 'timur');
+  vi.mocked(apiFetch).mockImplementation(async (_profile, path) =>
+    Response.json(
+      path === '/api/v1/work-tools/test-stand'
+        ? {
+            name: 'Стенд Автотеки',
+            area: 'Учебные отчёты',
+            records: [
+              { id: 'missing', title: 'Отчёт отсутствует', status: '404', description: 'Учебный ответ', fields: {} },
+              { id: 'found', title: 'Отчёт найден', status: '200', description: 'Учебный результат', fields: {} },
+            ],
+          }
+        : { events: [], unavailable: [] },
+    ),
+  );
+  await mount('/work-tools/test-stand#found');
+  const selected = await waitForElement(() => container.querySelector<HTMLElement>('article#found'));
+  expect(selected.textContent).toContain('Учебный результат');
+  expect(container.querySelector('article#missing')).toBeNull();
+});
