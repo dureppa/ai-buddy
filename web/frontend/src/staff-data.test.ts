@@ -170,6 +170,7 @@ describe('staff workspace', () => {
     expect(materialGroupChoices(['Чаты', '  Онбординг  ', 'Чаты', 'я'])).toEqual([
       'Чаты',
       'Онбординг',
+      'Доступы',
       'Документы',
       'Встречи',
     ]);
@@ -181,13 +182,13 @@ describe('staff workspace', () => {
     saveMaterial(storage, 'manager', { ...input, title: 'План встреч', group: 'Встречи' });
     const shown = internMaterials(storage, 'olga');
     expect(shown[0]).toMatchObject({
-      author: 'Базовый',
+      author: 'Стартовый набор команды · учебные данные',
       group: 'Чаты',
       title: 'Общий чат для всех сотрудников Авито Доставки',
     });
     expect(baselineFor('sasha')[0].title).toBe('Общий чат для всех сотрудников Авито Путешествия');
-    expect(groupByName(shown).map((group) => group.name)).toEqual(['Чаты', 'Встречи']);
-    expect(groupByName(shown)[0].items.map((item) => item.author)).toEqual(['Базовый', 'Анна Ким']);
+    expect(groupByName(shown).map((group) => group.name)).toEqual(['Чаты', 'Доступы', 'Документы', 'Встречи']);
+    expect(groupByName(shown)[0].items.at(-1)?.author).toBe('Анна Ким');
     expect(() => saveMaterial(storage, 'mentor', { ...input, group: ' ' })).toThrow();
   });
 });
