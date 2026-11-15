@@ -3,6 +3,11 @@ import { profiles, type ProfileId } from './demo-accounts';
 
 export const eventKinds = ['Встреча', 'Созвон', 'Напоминание'] as const;
 const tones = ['mint', 'blue', 'lilac', 'pink'] as const;
+export const eventTones = {
+  Встреча: 'mint',
+  Созвон: 'blue',
+  Напоминание: 'lilac',
+} as const satisfies Record<(typeof eventKinds)[number], (typeof tones)[number]>;
 const eventSchema = z.object({
   id: z.string().min(1),
   title: z.string().trim().min(1).max(120),
@@ -12,25 +17,22 @@ const eventSchema = z.object({
   description: z.string(),
 });
 export type ScheduleEvent = z.infer<typeof eventSchema>;
-type DemoEvent = Pick<ScheduleEvent, 'title' | 'tone' | 'description'> & { time: string };
+type DemoEvent = Pick<ScheduleEvent, 'title' | 'description'> & { time: string };
 const eventsByStage: Record<(typeof profiles)[ProfileId]['stageId'], DemoEvent[]> = {
   first: [
     {
       title: 'Встреча с лидом',
       time: '14:00',
-      tone: 'lilac',
       description: 'Руководитель расскажет о задачах команды и обсудит твои цели на первые недели.',
     },
     {
       title: 'Кофе с наставником',
       time: '11:00',
-      tone: 'pink',
       description: 'Неформальное знакомство с наставником. Можно задать вопросы о команде и повседневной работе.',
     },
     {
       title: 'Знакомство с продуктом',
       time: '15:00',
-      tone: 'blue',
       description: 'Команда покажет пользовательские сценарии и расскажет, над чем работает сейчас.',
     },
   ],
@@ -38,7 +40,6 @@ const eventsByStage: Record<(typeof profiles)[ProfileId]['stageId'], DemoEvent[]
     {
       title: 'Встреча на экваторе',
       time: '12:00',
-      tone: 'lilac',
       description: 'Обсуди с наставником результаты первых месяцев и цели на вторую половину стажировки.',
     },
   ],
@@ -46,7 +47,6 @@ const eventsByStage: Record<(typeof profiles)[ProfileId]['stageId'], DemoEvent[]
     {
       title: 'Итоговая встреча с лидом',
       time: '15:00',
-      tone: 'mint',
       description: 'Подведи итоги стажировки, обсуди обратную связь и договорись о следующих шагах.',
     },
   ],
@@ -62,7 +62,10 @@ export function readSchedule(
   const raw = storage.getItem(scheduleKey(profileId));
   if (raw !== null) {
     try {
-      return eventSchema.array().parse(JSON.parse(raw));
+      return eventSchema
+        .array()
+        .parse(JSON.parse(raw))
+        .map((event) => ({ ...event, tone: eventTones[event.kind] }));
     } catch {
       return [];
     }
@@ -73,7 +76,7 @@ export function readSchedule(
     starts.setDate(starts.getDate() + index);
     starts.setHours(hours, minutes, 0, 0);
     if (starts <= now) starts.setDate(starts.getDate() + 1);
-    return { ...event, id: 'demo-' + index, kind: 'Встреча', startsAt: starts.toISOString() };
+    return { ...event, id: 'demo-' + index, kind: 'Встреча', tone: eventTones.Встреча, startsAt: starts.toISOString() };
   });
 }
 
