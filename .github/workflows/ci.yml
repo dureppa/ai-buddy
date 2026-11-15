@@ -51,14 +51,10 @@ jobs:
       - working-directory: services/ai-python
         run: |
           uv sync --locked
-          if rg --files . -g '*.py' | rg -q .; then
-            uv run --locked ruff format --check . ../../scripts/deploy
-            uv run --locked ruff check . ../../scripts/deploy
-            uv run --locked mypy . ../../scripts/deploy
-            uv run --locked pytest --cov=. --cov=../../scripts/deploy --cov-report=term-missing --cov-fail-under=80
-          else
-            echo 'Python прикладного кода пока нет, проверки пропущены.'
-          fi
+          uv run --locked ruff format --check . ../../scripts/deploy
+          uv run --locked ruff check . ../../scripts/deploy
+          uv run --locked mypy . ../../scripts/deploy
+          uv run --locked pytest --cov=. --cov=../../scripts/deploy --cov-report=term-missing --cov-fail-under=80
 
   go:
     name: go
@@ -101,16 +97,13 @@ jobs:
         run: go test -race ./...
       - working-directory: services/backend-go
         run: |
-          if rg --files . -g '*.go' | rg -q .; then
-            test -z "$(gofmt -l .)"
-            go vet ./...
-            go test ./...
-            go test -race ./...
-            go test -coverprofile=coverage.out -covermode=atomic ./...
-            go tool cover -func=coverage.out
-          else
-            echo 'Go прикладного кода пока нет, проверки пакетов пропущены.'
-          fi
+          unformatted=$(gofmt -l .)
+          test -z "$unformatted"
+          go vet ./...
+          go test ./...
+          go test -race ./...
+          go test -coverprofile=coverage.out -covermode=atomic ./...
+          go tool cover -func=coverage.out
 
   repository:
     name: repository
@@ -127,5 +120,5 @@ jobs:
       - run: test -f .github/pull_request_template.md && test -f .github/CODEOWNERS
       - run: for script in scripts/deploy/*.sh; do bash -n "$script"; done
       - run: docker compose config --quiet && docker compose --profile hr --profile jira config --quiet && docker compose -f docker-compose.yml -f docker-compose.server.yml --profile hr --profile jira config --quiet
-      - run: test -z "$(git ls-files | rg '(^|/)dist/|(^|/)\.venv/' || true)"
+      - run: python3 -c "import re, subprocess; paths = subprocess.check_output(['git', 'ls-files', '-z']).decode().split(chr(0)); assert not any(re.search(r'(^|/)(dist|\.venv)/', p) for p in paths), 'Tracked build or environment artifacts'"
       - run: node -e "const fs=require('fs'); for (const p of ['package.json','package-lock.json','apps/web/package.json','apps/extension/package.json','services/ai-python/pyproject.toml','services/backend-go/go.mod']) { if (!fs.existsSync(p)) throw new Error('Missing '+p) }"
