@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/portal"
+	"github.com/dureppa/ai-buddy/services/backend-go/internal/serviceactions"
 	"github.com/dureppa/ai-buddy/services/backend-go/internal/worktools"
 	"net/http"
 	"strings"
@@ -10,6 +11,7 @@ import (
 )
 
 type API struct {
+	actions        *serviceactions.Service
 	portal         *portal.Service
 	workTools      *worktools.Catalog
 	sessions       *buddy.Sessions
@@ -67,6 +69,16 @@ func (a *API) Routes() http.Handler {
 			return p.ID, err
 		})
 	}
+	if a.actions != nil {
+		a.actions.Register(mux, func(r *http.Request) (string, error) {
+			header := r.Header.Get("Authorization")
+			if !strings.HasPrefix(header, "Bearer ") {
+				return "", buddy.ErrUnauthenticated
+			}
+			p, err := a.sessions.Authenticate(r.Context(), strings.TrimPrefix(header, "Bearer "))
+			return p.ID, err
+		})
+	}
 	if a.internalRoutes != nil {
 		a.internalRoutes(mux)
 	}
@@ -80,6 +92,7 @@ func (a *API) WithInternalRoutes(register func(*http.ServeMux)) *API {
 
 func (a *API) WithPortal(service *portal.Service) *API { a.portal = service; return a }
 
+func (a *API) WithServiceActions(s *serviceactions.Service) *API { a.actions = s; return a }
 func (a *API) WithWorkTools(c *worktools.Catalog) *API {
 	a.workTools = c
 	return a

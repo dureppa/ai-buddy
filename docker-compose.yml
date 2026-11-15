@@ -79,6 +79,13 @@ services:
       CONFLUENCE_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5191/
       HR_ABSENCES_URL: http://hr-absences:8181
       HR_TRIPS_URL: http://hr-trips:8182
+      HR_HIRING_URL: http://hr-hiring:8183
+      HR_HIRING_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5183/
+      HR_OFFBOARDING_URL: http://hr-offboarding:8184
+      HR_OFFBOARDING_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5184/
+      HR_BENEFITS_URL: http://hr-benefits:8186
+      HR_BENEFITS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5186/
+      JIRA_SESSION_SECRET: ${COMPOSE_JIRA_SESSION_SECRET:-local-jira-session-secret-change-for-shared-host}
       HR_CONSENTS_URL: http://hr-consents:8185
       HR_CONSENTS_PUBLIC_URL: ${PUBLIC_HR_ORIGIN:-http://127.0.0.1}:5185/
       HR_DOCUMENTS_URL: http://hr-documents:8187

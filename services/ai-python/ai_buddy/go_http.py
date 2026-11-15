@@ -77,7 +77,7 @@ class ActiveContext(ClosedModel):
     subject_id: Identifier
     request_id: UUID
     conversation_id: UUID
-    allowed_tools: Annotated[list[str], Field(max_length=9)]
+    allowed_tools: Annotated[list[str], Field(max_length=11)]
     expires_at: datetime
     api_token: SecretStr
 
@@ -238,11 +238,18 @@ class GoHTTPBackend:
             raise ServiceError(ErrorCode.CONTEXT_EXPIRED)
         contract = CONTRACTS[tool]
         try:
-            args = contract.arguments.model_validate(arguments).model_dump()
+            args = contract.arguments.model_validate(arguments).model_dump(
+                exclude_unset=tool == "prepare_service_action"
+            )
         except ValidationError:
             raise ServiceError(ErrorCode.INVALID_ARGUMENTS) from None
         search = tool == "search_knowledge"
         routes = {
+            "get_service_context": ("POST", "/internal/v1/ai/service-context"),
+            "prepare_service_action": (
+                "POST",
+                "/internal/v1/ai/service-actions/prepare",
+            ),
             "get_access_catalog": ("GET", "/internal/v1/ai/access/catalog"),
             "submit_access_request": ("POST", "/internal/v1/ai/access/requests"),
             "get_access_requests": ("GET", "/internal/v1/ai/access/requests"),

@@ -23,6 +23,8 @@ services:
       - ./.deploy/htpasswd:/etc/nginx/buddy.htpasswd:ro
   go:
     restart: unless-stopped
+    environment:
+      JIRA_SESSION_SECRET: ${COMPOSE_JIRA_SESSION_SECRET:-${COMPOSE_SESSION_SECRET:-local-demo-session-change-for-shared-host}}
   agent:
     restart: unless-stopped
   mcp:

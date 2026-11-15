@@ -1,5 +1,7 @@
 # AI Buddy
 
+Агент читает найм, увольнения, бенефиты и Jira и готовит действия с ручным подтверждением по ссылке из чата. [Возможности и проверки](docs/components/service-actions.md).
+
 [Continuous delivery](docs/components/continuous-delivery.md).
 
 [Серверное развёртывание с паролем](docs/components/server-deployment.md).

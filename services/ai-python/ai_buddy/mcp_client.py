@@ -30,6 +30,12 @@ from ai_buddy.schemas import (
     TeamEnvelope,
     TurnRequest,
 )
+from ai_buddy.service_schemas import (
+    PrepareServiceActionArguments,
+    ServiceActionEnvelope,
+    ServiceContextArguments,
+    ServiceContextEnvelope,
+)
 
 MAX_RESULT_BYTES = 32 * 1024
 MAX_TRANSPORT_BYTES = 1024 * 1024
@@ -49,6 +55,10 @@ class Contract:
 
 
 CONTRACTS = {
+    "get_service_context": Contract(ServiceContextArguments, ServiceContextEnvelope),
+    "prepare_service_action": Contract(
+        PrepareServiceActionArguments, ServiceActionEnvelope
+    ),
     "get_access_catalog": Contract(EmptyArguments, AccessCatalogEnvelope),
     "submit_access_request": Contract(AccessArguments, AccessSubmitEnvelope),
     "get_access_requests": Contract(EmptyArguments, AccessListEnvelope),
@@ -129,7 +139,9 @@ class Gateway:
             async with asyncio.timeout(self.settings.tool_timeout):
                 result = await self.session.call_tool(
                     name,
-                    validated.model_dump(),
+                    validated.model_dump(
+                        exclude_unset=name == "prepare_service_action"
+                    ),
                     meta={"ai-buddy.example/request-id": str(self.context.request_id)},
                 )
         except TimeoutError:

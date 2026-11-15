@@ -1,5 +1,7 @@
 # Архитектура AI Buddy
 
+Актуальное расширение: [SDD 008](specs/008-remaining-agent-services.md). Go читает найм, увольнения, бенефиты и Jira; MCP готовит неизменяемые черновики, пользователь подтверждает их в вебе. Максимум — 11 tools; выполнение новых действий доступно только через публичный Go API с сессией владельца.
+
 > Целевой сценарий обновлён 13.11.2026: [онбординг агента](../openspec/README.md). Корпоративная область — только шесть сервисов; старое описание доступа ниже сохраняется как baseline. Новое поведение не объявляется реализованным.
 
 Новый срез: Go-чат вызывает Flask, выбранная Ollama/DeepSeek вызывает Python MCP, MCP читает Go и подтверждения из HR-согласий. Оценка знаний и отдельный review наставника завершают учебное задание. [SDD 004](specs/004-agent-service-integration.md). Остальные HR-интеграции и глобальные этапы остаются целевыми.
@@ -33,7 +35,8 @@
 
 [SDD 007](specs/007-agent-access-confluence.md) расширяет прежние пять Go/MCP-чтений:
 get_access_catalog, get_access_requests, get_knowledge_page и submit_access_request.
-Максимум — девять tools, запись объявляется только при AccessIntent текущего turn.
+Максимум — 11 tools; submit_access_request объявляется только при AccessIntent текущего turn.
+Два новых инструмента чтения/подготовки доступны при настройке serviceactions.
 Маршруты Go: GET /internal/v1/ai/access/catalog, GET/POST /internal/v1/ai/access/requests,
 POST /internal/v1/ai/knowledge/page. Используются прежние resource-token,
 X-Request-ID, TTL и ACL. local_demo остаётся с двумя read tools.
