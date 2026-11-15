@@ -7,7 +7,7 @@ export function checklistQuestion(profile: ProfileId, task: Task) {
   const url = new URL(window.location.href);
   url.search = '';
   url.hash = '';
-  const text = `Объясни пункт моего чек-листа «${task.title}»: что он означает, что нужно сделать по шагам, какие инструменты пригодятся и к кому обратиться за помощью. Ответственный в чек-листе: ${task.owner}.`;
+  const text = `Объясни пункт моего чек-листа «${task.title}»: что он означает и зачем нужен, с чего начать и какие материалы или страницы сервисов помогут выполнить его. Ответственный в чек-листе: ${task.owner}.`;
   const context: ExplanationContext = {
     url: url.toString(),
     selection: {

@@ -1,5 +1,4 @@
 import { prefilledRequest } from './prefill';
-import { SelectionAssistant } from '../../../web/frontend/src/SelectionAssistant';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { profiles, products, isProfileId, type AccountId } from '../../../web/frontend/src/demo-accounts';
 import { Icon } from '../../../web/frontend/src/ui';
@@ -319,7 +318,6 @@ export function AccessPortal() {
   return (
     <>
       <Portal key={account} account={account} />
-      {isProfileId(account) && <SelectionAssistant profileId={account} apiPrefix="/buddy-api" />}
     </>
   );
 }
@@ -419,10 +417,7 @@ function Portal({ account }: { account: AccountId }) {
   );
   const selectedRequest = requests.find((item) => item.id === selected);
   return (
-    <div
-      className="access-app"
-      data-agent-resource={JSON.stringify({ kind: 'service', service: 'access', label: 'Управление доступами' })}
-    >
+    <div className="access-app">
       <header className="access-header">
         <a href={'/?profile=' + account} className="access-brand">
           <span>

@@ -1,4 +1,3 @@
-import { taskSelectionResource } from './task-selection';
 import { HrDayEvents } from './HrDayEvents';
 import type { HrToday } from './hr-schedule';
 import { eventDay, eventMonth, eventTime, upcomingEvents, type ScheduleEvent } from './schedule';
@@ -30,10 +29,10 @@ type ChecklistProps = {
   savingTask?: string;
   onAsk?: (task: Task) => void;
   asking?: boolean;
+  onOpenBuddy: () => void;
 };
 
 function TaskRow({
-  profileId,
   task,
   checked,
   saving,
@@ -43,7 +42,6 @@ function TaskRow({
   onAsk,
   asking,
 }: {
-  profileId: ProfileId;
   task: Task;
   checked: boolean;
   saving: boolean;
@@ -54,10 +52,7 @@ function TaskRow({
   asking?: boolean;
 }) {
   return (
-    <li
-      className={'task-row' + (checked ? ' task-row--done' : '')}
-      data-agent-resource={JSON.stringify(taskSelectionResource(profileId, task))}
-    >
+    <li className={'task-row' + (checked ? ' task-row--done' : '')}>
       <button
         type="button"
         role="checkbox"
@@ -84,7 +79,7 @@ function TaskRow({
       </button>
       {onAsk && (
         <button type="button" className="button button--white task-ask" disabled={asking} onClick={() => onAsk(task)}>
-          Спросить у агента
+          Разобрать пункт
         </button>
       )}
     </li>
@@ -232,7 +227,6 @@ export function Dashboard({
           <ul className="task-list">
             {dashboardTasks.map((task) => (
               <TaskRow
-                profileId={profileId}
                 key={task.id}
                 task={task}
                 checked={workspace.completed.includes(task.id)}
@@ -304,7 +298,16 @@ const adaptationTabs = [
   { id: 'materials', label: 'Материалы', icon: 'book' },
 ] as const;
 
-export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask, onAsk, asking }: ChecklistProps) {
+export function Adaptation({
+  profileId,
+  workspace,
+  onOpen,
+  onToggle,
+  savingTask,
+  onAsk,
+  asking,
+  onOpenBuddy,
+}: ChecklistProps) {
   const tasks = checklistFor(localStorage, profileId).map((task) => ({
     ...task,
     summary: task.materialIds.length ? task.summary + ' · Материалы: ' + task.materialIds.length : task.summary,
@@ -425,7 +428,6 @@ export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask,
                       <ul className="task-list">
                         {stageTasks.map((task) => (
                           <TaskRow
-                            profileId={profileId}
                             key={task.id}
                             task={task}
                             checked={workspace.completed.includes(task.id)}
@@ -450,9 +452,9 @@ export function Adaptation({ profileId, workspace, onOpen, onToggle, savingTask,
                 <p>
                   {next ? 'Если шаг непонятен, я помогу разобраться.' : 'Все задачи выполнены. Ты отлично справился!'}
                 </p>
-                <Link to="/chat" className="text-link">
-                  Открыть чат <Icon name="arrow" size={17} />
-                </Link>
+                <button type="button" className="text-link" onClick={onOpenBuddy}>
+                  Спросить Buddy <Icon name="arrow" size={17} />
+                </button>
               </div>
             </aside>
           </div>

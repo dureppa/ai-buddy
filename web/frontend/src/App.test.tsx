@@ -9,7 +9,7 @@ import { apiFetch, askBackend, readBackendConversation } from './backend';
 import { readWorkspace } from './demo';
 import { demoSessionKey } from './demo-session';
 import { readServiceQuestions } from './service-questions';
-import { saveMaterial } from './staff-data';
+import { readMaterials, saveMaterial, setTaskMaterials } from './staff-data';
 import { toolViews } from '../../../tools/shared/frontend/WorkToolViews';
 
 const backendMode = vi.hoisted(() => ({ enabled: true }));
@@ -719,7 +719,7 @@ it('switches between the current and previous PaaS releases', async () => {
   expect(container.querySelector('.tool-thread')?.textContent).toContain('Предыдущий релиз окружения');
 });
 
-it('opens the main chat and asks once about the exact checklist item without completing it', async () => {
+it('opens the shared panel and asks once about the exact checklist item without completing it', async () => {
   localStorage.setItem(demoSessionKey, 'olga');
   let resolve!: (value: Awaited<ReturnType<typeof askBackend>>) => void;
   vi.mocked(askBackend).mockReturnValue(
@@ -728,7 +728,7 @@ it('opens the main chat and asks once about the exact checklist item without com
     }),
   );
   await mount('/onboarding');
-  const ask = await button('Спросить у агента');
+  const ask = await button('Разобрать пункт');
   const row = ask.closest('li')!;
   const title = row.querySelector('strong')!.textContent!;
   const completed = [...readWorkspace(localStorage, 'olga').completed];
@@ -737,6 +737,9 @@ it('opens the main chat and asks once about the exact checklist item without com
     ask.click();
   });
   await waitForElement(() => container.querySelector<HTMLInputElement>('input[aria-label="Сообщение для Buddy"]'));
+  expect(container.querySelector('aside[aria-label="Чат с Buddy"]')).toBeTruthy();
+  expect(container.querySelector('.chat-hero')).toBeNull();
+  expect(container.querySelector('a[href="/onboarding"][aria-current="page"]')).toBeTruthy();
   expect(askBackend).toHaveBeenCalledTimes(1);
   expect(askBackend).toHaveBeenCalledWith(
     'olga',
@@ -753,4 +756,149 @@ it('opens the main chat and asks once about the exact checklist item without com
         element.textContent?.includes('Смысл пункта'),
       ) as HTMLElement,
   );
+});
+
+it('opens the same general panel from the help card and the floating Buddy without sending', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  await mount('/onboarding');
+  await click(await button('Спросить Buddy'));
+  expect(container.querySelectorAll('aside[aria-label="Чат с Buddy"]')).toHaveLength(1);
+  expect(container.querySelector('.buddy-task-context')).toBeNull();
+  expect(askBackend).not.toHaveBeenCalled();
+  await click(await button('Закрыть панель Buddy'));
+  await click(await button('Открыть быстрый чат'));
+  expect(container.querySelectorAll('aside[aria-label="Чат с Buddy"]')).toHaveLength(1);
+  expect(askBackend).not.toHaveBeenCalled();
+  await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+  expect(container.querySelector<HTMLElement>('.buddy-panel')).toBeNull();
+});
+
+it('preserves task context and history across panel, full chat and follow-ups, then clears it explicitly', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend).mockResolvedValue({
+    kind: 'answer',
+    text: 'Начни с инструкции',
+    references: [{ title: 'Гайд', url: 'http://localhost:5191/?page=guide-access' }],
+  });
+  await mount('/onboarding');
+  await click(await button('Разобрать пункт'));
+  await waitForElement(() => container.querySelector<HTMLElement>('.buddy-panel .agent-sources a'));
+  const context = vi.mocked(askBackend).mock.calls[0][2];
+  await enterMessage('Какой первый шаг?');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(askBackend).mock.calls[1][2]).toEqual(context);
+  await click(await waitForElement(() => container.querySelector<HTMLAnchorElement>('.buddy-panel__expand')));
+  expect(container.querySelector<HTMLElement>('.buddy-panel')).toBeNull();
+  expect(container.querySelector('.chat-hero')).toBeTruthy();
+  expect(container.querySelector('.buddy-task-context')).toBeTruthy();
+  expect(container.querySelector('[role="log"]')?.textContent).toContain('Какой первый шаг?');
+  await enterMessage('А зачем?');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(3));
+  expect(vi.mocked(askBackend).mock.calls[2][2]).toEqual(context);
+  await click(await button('Общий вопрос'));
+  expect(container.querySelector('.buddy-task-context')).toBeNull();
+  await enterMessage('Кто мой наставник?');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(4));
+  expect(vi.mocked(askBackend).mock.calls[3]).toEqual(['olga', 'Кто мой наставник?']);
+});
+
+it('retries a failed task question with the same context without duplicating the user message', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend)
+    .mockRejectedValueOnce(new Error('unavailable'))
+    .mockResolvedValue({ kind: 'answer', text: 'Инструкция найдена' });
+  await mount('/onboarding');
+  await click(await button('Разобрать пункт'));
+  await waitForElement(() => container.querySelector<HTMLElement>('.buddy-panel [role="alert"]'));
+  const first = vi.mocked(askBackend).mock.calls[0];
+  await click(await button('Повторить'));
+  await waitForElement(() =>
+    container.querySelector<HTMLElement>('.buddy-panel .chat-entry:not(.chat-entry--user) .bubble'),
+  );
+  expect(vi.mocked(askBackend).mock.calls[1]).toEqual(first);
+  expect(container.querySelectorAll('.chat-entry--user')).toHaveLength(1);
+});
+
+it('switches selected tasks inside the one panel and returns to general mode through the help button', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Разбор пункта' });
+  await mount('/onboarding');
+  await button('Разобрать пункт');
+  const asks = [...container.querySelectorAll<HTMLButtonElement>('.task-ask')];
+  await click(asks[0]);
+  await waitForElement(() =>
+    container.querySelector<HTMLElement>('.buddy-panel .chat-entry:not(.chat-entry--user) .bubble'),
+  );
+  await click(asks[1]);
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(2));
+  expect(container.querySelectorAll('.buddy-panel')).toHaveLength(1);
+  expect(container.querySelector('.buddy-task-context strong')?.textContent).toBe(
+    asks[1].closest('li')!.querySelector('strong')!.textContent,
+  );
+  await click(await button('Спросить Buddy'));
+  expect(container.querySelector('.buddy-task-context')).toBeNull();
+});
+
+it('shows attached material links in the panel and transmits their Confluence ids', async () => {
+  localStorage.setItem(demoSessionKey, 'mentor');
+  saveMaterial(localStorage, 'mentor', {
+    title: 'Инструкция по задаче',
+    description: 'Краткий гайд',
+    group: 'Документы',
+    audience: ['olga'],
+    source: { kind: 'link', href: 'http://localhost:5191/?page=guide-access' },
+  });
+  const material = readMaterials(localStorage).find((item) => item.title === 'Инструкция по задаче')!;
+  setTaskMaterials(localStorage, 'mentor', 'meet-team', [material.id]);
+  localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Разбор' });
+  await mount('/onboarding?task=meet-team');
+  const dialog = await waitForElement(() => container.querySelector<HTMLDialogElement>('dialog[open]'));
+  await click(
+    [...dialog.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Разобрать пункт')!,
+  );
+  expect(container.querySelector<HTMLDialogElement>('dialog[open]')).toBeNull();
+  const link = await waitForElement(() => container.querySelector<HTMLAnchorElement>('.buddy-materials a'));
+  expect(link.textContent).toContain('Инструкция по задаче');
+  expect(new URL(link.href).searchParams.get('page')).toBe('guide-access');
+  expect(vi.mocked(askBackend).mock.calls[0][2]?.selection.resource).toMatchObject({
+    kind: 'task',
+    id: 'meet-team',
+    page_ids: ['guide-access'],
+  });
+});
+
+it('does not show the obsolete selection UI when ordinary page text is highlighted', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  await mount('/onboarding');
+  const node = await waitForElement(() => container.querySelector<HTMLParagraphElement>('.aside-note p'));
+  const range = document.createRange();
+  range.selectNodeContents(node);
+  window.getSelection()?.addRange(range);
+  await act(async () => document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })));
+  expect(document.querySelector('[data-selection-assistant]')).toBeNull();
+  expect(askBackend).not.toHaveBeenCalled();
+  window.getSelection()?.removeAllRanges();
+});
+
+it('does not show a late task response after the active profile changes', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  let resolve!: (value: Awaited<ReturnType<typeof askBackend>>) => void;
+  vi.mocked(askBackend).mockReturnValue(
+    new Promise((r) => {
+      resolve = r;
+    }),
+  );
+  await mount('/onboarding');
+  await click(await button('Разобрать пункт'));
+  await act(async () => {
+    localStorage.setItem(demoSessionKey, 'sasha');
+    window.dispatchEvent(new StorageEvent('storage', { key: demoSessionKey }));
+  });
+  await act(async () => resolve({ kind: 'answer', text: 'Private reply for olga' }));
+  expect(container.querySelector<HTMLElement>('.buddy-panel')).toBeNull();
+  expect(container.textContent).not.toContain('Private reply for olga');
 });

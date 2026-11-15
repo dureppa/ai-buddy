@@ -96,28 +96,3 @@ export async function readBackendConversation(profile: ProfileId) {
   const response = await apiFetch(profile, '/api/v1/chat/conversations/' + encodeURIComponent(conversation));
   return historySchema.parse(await response.json()).messages;
 }
-
-export async function askSelectionBackend(
-  profile: ProfileId,
-  text: string,
-  pageContext: ExplanationContext,
-  conversationId?: string,
-  signal?: AbortSignal,
-  prefix = '/api',
-) {
-  const response = await apiFetch(
-    profile,
-    prefix + '/v1/chat/messages',
-    {
-      method: 'POST',
-      signal,
-      body: JSON.stringify({
-        text,
-        page_context: pageContext,
-        ...(conversationId ? { conversation_id: conversationId } : {}),
-      }),
-    },
-    prefix,
-  );
-  return replySchema.parse(await response.json());
-}

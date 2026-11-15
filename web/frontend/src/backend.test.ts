@@ -75,35 +75,6 @@ describe('live backend client', () => {
   });
 });
 
-it('uses Buddy API on external services and keeps explanation conversations separate', async () => {
-  const storage = new Map<string, string>([['ai-buddy.conversation.olga', 'main-conversation']]);
-  vi.stubGlobal('localStorage', { getItem: (key: string) => storage.get(key) ?? null, setItem: vi.fn() });
-  const fetch = vi
-    .fn()
-    .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'buddy-token', profile_id: 'olga' })))
-    .mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          conversation_id: '22222222-2222-4222-8222-222222222222',
-          kind: 'answer',
-          text: 'Пояснение',
-          references: [],
-        }),
-      ),
-    );
-  vi.stubGlobal('fetch', fetch);
-  const api = await import('./backend');
-  const context = { url: 'https://service.example/', selection: { text: 'Фрагмент', title: 'Страница' } };
-  const controller = new AbortController();
-  await api.askSelectionBackend('olga', 'Что это?', context, undefined, controller.signal, '/buddy-api');
-  expect(fetch.mock.calls[0][0]).toBe('/buddy-api/v1/demo/sessions');
-  expect(fetch.mock.calls[1][0]).toBe('/buddy-api/v1/chat/messages');
-  expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ text: 'Что это?', page_context: context });
-  expect(fetch.mock.calls[1][1].headers.Authorization).toBe('Bearer buddy-token');
-  expect(fetch.mock.calls[1][1].signal).toBe(controller.signal);
-  expect(localStorage.setItem).not.toHaveBeenCalled();
-});
-
 it('sends checklist context alongside the question in the primary conversation', async () => {
   const fetcher = vi
     .fn()

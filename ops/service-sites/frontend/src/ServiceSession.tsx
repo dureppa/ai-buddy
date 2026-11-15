@@ -1,4 +1,3 @@
-import { SelectionAssistant } from '../../../../web/frontend/src/SelectionAssistant';
 import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { isProfileId, profiles, type ProfileId } from '../../../../web/frontend/src/demo-accounts';
 import { readServiceProfile } from '../../../../web/frontend/src/service-session';
@@ -51,10 +50,5 @@ export function ServiceSession({
         </section>
       </main>
     );
-  return (
-    <div key={profile}>
-      {children(profile)}
-      <SelectionAssistant profileId={profile} apiPrefix="/buddy-api" />
-    </div>
-  );
+  return <div key={profile}>{children(profile)}</div>;
 }
