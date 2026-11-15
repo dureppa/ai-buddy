@@ -1,3 +1,5 @@
+import { taskSelectionResource } from './task-selection';
+import { SelectionAssistant } from './SelectionAssistant';
 import { ServiceActionPage } from './ServiceActionPage';
 import { accountCookieValue } from './service-session';
 import { readHrToday } from './hr-schedule';
@@ -477,6 +479,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
 
   return (
     <div className="shell">
+      <SelectionAssistant profileId={profileId} />
       <a href="#main-content" className="skip-link">
         Перейти к содержимому
       </a>
@@ -724,7 +727,10 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           onClose={closeDetail}
         >
           {shownDetail.kind === 'task' && (
-            <div className="detail-content">
+            <div
+              className="detail-content"
+              data-agent-resource={JSON.stringify(taskSelectionResource(profileId, shownDetail.item))}
+            >
               <TaskMaterialList profileId={profileId} taskId={shownDetail.item.id} />
               <p>{shownDetail.item.details}</p>
               <dl>

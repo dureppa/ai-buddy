@@ -44,3 +44,9 @@ uv run --locked flask --app ai_buddy:create_app run --host 127.0.0.1 --port 8001
 Каталог инструментов направления читается через `get_work_tools` и `get_work_tool_context`. Эти вызовы только читают данные. [SDD 009](../specs/009-agent-role-tools.md).
 
 Проверки: `just python-check` из корня или команды Ruff, mypy и pytest из [engineering](../engineering.md). Покрытие этого контура — в [coverage](../coverage.md).
+
+## Пояснение выделенного текста
+
+Режим пояснения получает PageContext.selection, читает конкретный материал через прежние MCP tools и отвечает краткими пунктами. Write-tools исключены, неподдерживаемый вызов отвергается. Пустой поиск допускает явно общее объяснение термина; правила обычного чата и проверки цитат сохраняются.
+
+[Сценарий и ограничения](../specs/010-selection-explanation.md).
