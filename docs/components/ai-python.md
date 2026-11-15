@@ -129,6 +129,11 @@ uv run --locked pytest --cov=. --cov-report=term-missing --cov-report=xml:covera
 
 ## Общий development eval
 
+Harness поддерживает текущие DeepSeek/Ollama transport и 11 MCP tools с
+синтетическими ответами; [runbook](../../services/ai-python/evals/HARNESS.md).
+Живой CLI требует --allow-live-llm. Контрактные тесты новых tools не расширяют
+старый golden agent-v1 автоматически и не являются оценкой качества LLM.
+
 [Harness](../../services/ai-python/evals/HARNESS.md) выполняет реальные Flask/Ollama/SDK MCP пути на сценарных fixtures, без Go и без holdout. [Отчёты](../../services/ai-python/evals/reports/README.md) разделяют структурные проверки, Codex-assisted review и человеческую приёмку. Assessment-v4 выбирает готовые ID фрагментов ответа; public HTTP-результат и правило наставника сохраняются.
 
 Внутренний маршрут `POST /internal/v1/team-guide` принимает бриф команды с токеном сервиса и возвращает три карточки, используя настроенного поставщика модели. [Спецификация путеводителя](../specs/product-guide.md).

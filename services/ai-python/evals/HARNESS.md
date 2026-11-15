@@ -4,21 +4,52 @@
 
 ## Запуск
 
-Из `services/ai-python`, с установленной локальной моделью и работающей Ollama (`OLLAMA_NO_CLOUD=1`):
+Из `services/ai-python`. Живые запросы требуют явного `--allow-live-llm`.
+DeepSeek использует существующий production transport; Ollama для него не нужна.
+Секретный DEEPSEEK_API_KEY задаётся в окружении, а не аргументом команды.
+API-ключ и реальные service/MCP-настройки в отчёт не записываются; service/MCP
+внутри harness всегда синтетические. `.env` автоматически не загружается.
 
 ```bash
-uv run --locked python -m evals.harness --model qwen3:4b-q4_K_M
+uv run --locked python -m evals.harness --provider deepseek --model deepseek-flash --allow-live-llm
 ```
 
-Используются настоящий Flask test client, runtime native Ollama и **та же фабрика Python MCP-сервера**, что в локальном demo. MCP SDK работает через ASGITransport внутри процесса; отдельный MCP/Go сервер для команды не нужен. TCP-процесс MCP проверен отдельно в [mcp-tcp-smoke.json](../experiments/mcp-tcp-smoke.json).
+Это реальные запросы к выбранной LLM, возможна тарификация. В этом блоке они
+не запускались. Для локальной модели нужна работающая Ollama (`OLLAMA_NO_CLOUD=1`):
+
+```bash
+uv run --locked python -m evals.harness --provider ollama --model qwen3:4b-q4_K_M --allow-live-llm
+```
+
+Используются настоящий Flask test client, текущий DirectRunner/provider и production-фабрика MCP в режиме go_http с синтетическим authenticator/backend. MCP SDK работает через ASGITransport внутри процесса; настоящий Go/MCP HTTP и БД не вызываются. Каталог — все 11 CONTRACTS, кроме submit_access_request без явного permission `access:submit` в fixture context. Это тестовая выдача разрешений, не проверка Go AccessIntent/ACL. Поля личности и ожидаемые calls/facts не передаются LLM.
 
 Backend harness выдаёт синтетические fixtures соответствующего кейса, сохраняет реально вызванные tools/args/results и явно инъецирует предусмотренные отказы. Он **не измеряет качество реального поиска Go или demo-поиска**: документы сценария заданы заранее. Он не вызывает инструменты по эталонному плану вместо модели. Смысл запроса query проверяется отдельно assisted/human review, совпадение имени tool само по себе не означает правильный выбор данных.
+
+Повторяющиеся non-search fixtures выбираются по нормализованным аргументам;
+две fixtures одного инструмента с одинаковыми аргументами отвергаются, как и
+несколько search fixtures (поиск остаётся scripted, не retrieval benchmark).
+Схемы ready-fixtures проверяются до первого запроса к LLM. При неизвестном
+инструменте/аргументах нет успешного fallback.
+
+`current-tools.json` содержит синтетические контрактные примеры всех 11 tools.
+`tests/test_current_harness.py` проводит их через Flask/DeepSeek wire format/SDK
+с mock LLM. Это не новый размеченный golden-набор и не результат живой LLM.
+CLI по-прежнему использует прежний agent-v1; кейсов новых действий в нём нет.
+Разблокировка dev-17/18 требует отдельного пересмотра ожидаемого stage-контракта.
+Новые routing/действия могут давать расхождения со старой разметкой: их надо
+анализировать, а не ослаблять эталоны. Нельзя выдавать 18 кейсов за приёмку всех tools.
 
 Gold verdicts/ограничения не передаются агенту. Assessment получает свою рубрику знаний, но не ожидаемые pass/fail. Сервисные токены/делегация не сохраняются в model trace; данные в отчёте синтетические. Thinking/скрытые рассуждения исключаются. Полные model requests сохраняются только этим явным локальным экспериментом; production-логи не расширены.
 
 ## Результат
 
-Каждый запуск пишет отдельный `reports/development-<UTC timestamp>.json`, complete=false до конца, прогресс — после каждого кейса. Ошибка в ходе прогона оставляет неполный файл; ошибка preflight/прогрева до начала не считается прогоном и может завершиться без отчёта. Прогрев выполняется вне 25-секундного turn budget. Метаданные: git commit, SHA исходников, dataset/prompt/tool-schema hashes, model tag/digest, limits. SHA исходников важны, если эксперимент выполнен до коммита этих файлов.
+Каждый запуск пишет отдельный `reports/development-<UTC timestamp>.json`, complete=false до конца, прогресс — после каждого кейса. Первичное создание exclusive: существующий файл не перезаписывается. Ошибка в ходе прогона оставляет неполный файл; ошибка preflight/прогрева до начала не считается прогоном и может завершиться без отчёта. Прогрев Ollama вне 25-секундного turn budget; DeepSeek не делает дополнительный платный preflight. Метаданные: provider, endpoint, requested model, SHA исходников/dataset/prompts, budgets, полный runtime tool-schema hash и отдельный legacy dataset hash. Digest берётся из Ollama; DeepSeek alias не считается закреплённым snapshot. Returned model/usage сохраняются из ответов, но это сведения провайдера, не доказательство неизменности весов. SHA исходников важны при запуске до коммита.
+
+Recorder понимает оба формата, ограничивает тело 64 KiB, корректно обрабатывает
+сжатие и закрывает response при отмене/ошибке. Headers, provider error body и
+reasoning/thinking не сохраняются. HTTP capture подменяется только на время
+одного последовательного case и сбрасывается в finally; параллельные прогоны
+внутри одного Python-процесса не поддерживаются. Общие runtime limits сохранены.
 
 Автоматически проверяются HTTP/code, реальные names/counts/args/order, фактически возвращённые источники и URL, ID/версии/хеш assessment и обязательность review. SDK context cleanup классифицирует вложенные ошибки так же, как production boundary, сохраняя FORBIDDEN/MCP_TIMEOUT. Перечисление источника в fixture без реального tool call не даёт права цитировать его.
 
