@@ -1,5 +1,8 @@
+import os
+import subprocess
 from pathlib import Path
 
+import pytest
 import yaml
 
 
@@ -36,3 +39,60 @@ def test_jira_owns_database_and_waits_for_migration() -> None:
     )
     for name in ("jira-db", "jira-migrate", "jira"):
         assert services[name]["profiles"] == ["jira"]
+
+
+@pytest.mark.parametrize("failure", ["", "info", "build"])
+@pytest.mark.parametrize("parallel", [False, True])
+def test_local_start_stops_on_failure_and_never_rebuilds_during_up(
+    tmp_path: Path, failure: str, parallel: bool
+) -> None:
+    root = Path(__file__).resolve().parents[2]
+    docker = tmp_path / "docker"
+    calls = tmp_path / "calls"
+    docker.write_text("""#!/bin/sh
+printf '%s\\n' "$*" >> "$DOCKER_CALLS"
+case "$*" in
+  info) [ "$FAILURE" != info ] || exit 17 ;;
+  *'config --services') printf 'agent\\nweb\\n' ;;
+  *'build'|*'build web') [ "$FAILURE" != build ] || exit 17 ;;
+esac
+exit 0
+""")
+    docker.chmod(0o755)
+    result = subprocess.run(
+        [
+            "sh",
+            str(root / "ops/docker/start-local.sh"),
+            *(["--parallel"] if parallel else []),
+        ],
+        cwd=tmp_path,
+        env={
+            **os.environ,
+            "PATH": str(tmp_path) + os.pathsep + os.environ["PATH"],
+            "DOCKER_CALLS": str(calls),
+            "FAILURE": failure,
+        },
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    commands = calls.read_text().splitlines()
+    assert result.returncode == (17 if failure else 0)
+    starts = [command for command in commands if " up " in command]
+    assert starts == (
+        []
+        if failure
+        else [
+            "compose --profile hr --profile jira up -d --no-build --wait --wait-timeout 900"
+        ]
+    )
+    if failure != "info":
+        builds = [command for command in commands if " build" in command]
+        assert builds == (
+            ["compose --profile hr --profile jira build"]
+            if parallel
+            else [
+                "compose --profile hr --profile jira build agent",
+                "compose --profile hr --profile jira build web",
+            ]
+        )
