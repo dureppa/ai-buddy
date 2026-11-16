@@ -102,6 +102,7 @@ it.each([
   'Какое у меня задание?',
   'Какое у меня текущее задание?',
   'С чего начать сегодня?',
+  'какая задача сейчас?',
   'Какая следующая задача?',
   'Какая задача дальше?',
   'Что дальше по плану?',
@@ -111,9 +112,14 @@ it.each([
 ])('shows task actions after asking about the checklist: %s', (question) => {
   expect(isChecklistQuestion(question)).toBe(true);
 });
-it.each(['ты тут?', 'Как оформить отгул?', 'Какая задача в Jira?', 'Привет'])(
-  'does not attach checklist actions to unrelated questions: %s',
-  (question) => {
-    expect(isChecklistQuestion(question)).toBe(false);
-  },
-);
+it.each([
+  'ты тут?',
+  'Как оформить отгул?',
+  'Какая задача в Jira?',
+  'Привет',
+  'С чего начать этот пункт?',
+  'С чего начать эту задачу?',
+  'Какие материалы нужны?',
+])('does not attach checklist actions to unrelated questions: %s', (question) => {
+  expect(isChecklistQuestion(question)).toBe(false);
+});
