@@ -133,6 +133,27 @@ func TestRequestsLifecycleAndIsolation(t *testing.T) {
 	_, err = s.Submit(ctx, "sasha", repository, "repo-2", "portal")
 	require.ErrorIs(t, err, buddy.ErrForbidden)
 }
+func TestConflictingDemoInstructionsRespectProductScope(t *testing.T) {
+	s := testService(t)
+	for profile, expected := range map[string][]string{
+		"olga":  {"confluence:demo-report-check-general", "confluence:demo-report-check-delivery"},
+		"sasha": {"confluence:demo-report-check-general"},
+	} {
+		t.Run(profile, func(t *testing.T) {
+			result, err := s.Search(t.Context(), profile, "Компас", 5)
+			require.NoError(t, err)
+			ids := []string{}
+			for _, document := range result["documents"].([]any) {
+				source := document.(map[string]any)["source"].(map[string]any)
+				ids = append(ids, source["id"].(string))
+			}
+			require.ElementsMatch(t, expected, ids)
+		})
+	}
+	_, err := s.Page(t.Context(), "sasha", "demo-report-check-delivery")
+	require.ErrorIs(t, err, buddy.ErrNotFound)
+}
+
 func TestConcurrentSubmissionAndKnowledge(t *testing.T) {
 	s := testService(t)
 	ctx := context.Background()
@@ -153,7 +174,7 @@ func TestConcurrentSubmissionAndKnowledge(t *testing.T) {
 	require.Len(t, ids, 1)
 	pages, err := s.Pages(ctx, "olga", "")
 	require.NoError(t, err)
-	require.Len(t, pages, 10)
+	require.Len(t, pages, 12)
 	for _, p := range pages {
 		require.True(t, p.Product == nil || *p.Product == "delivery")
 		require.Empty(t, p.Body)
