@@ -55,6 +55,11 @@ def test_invalid_web_plan_is_rejected(value: dict[str, Any]) -> None:
         "что делать дальше?",
         "Какая у меня текущая задача?",
         "Что сейчас в процессе?",
+        "Какая задача дальше?",
+        "Подскажи, какая у меня задача дальше?",
+        "Какое задание следующее?",
+        "Что дальше по плану?",
+        "Покажи следующее задание",
     ],
 )
 @pytest.mark.parametrize("completed", [False, True])
@@ -398,3 +403,12 @@ def test_assignment_question_uses_current_web_task(question: str) -> None:
     from ai_buddy.agent import narrow_focus
 
     assert narrow_focus(question) == "start"
+
+
+@pytest.mark.parametrize(
+    "question", ["Какая задача дальше в Jira?", "Что дальше по плану командировки?"]
+)
+def test_next_task_focus_does_not_capture_other_services(question: str) -> None:
+    from ai_buddy.agent import narrow_focus
+
+    assert narrow_focus(question) == "general"
