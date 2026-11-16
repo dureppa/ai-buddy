@@ -1146,7 +1146,7 @@ it('sends exactly the visible in-progress task and updates it after checking the
     ),
   );
   await click(await button('Спросить Buddy'));
-  await enterMessage('что делать дальше?');
+  await enterMessage('Какая задача дальше?');
   await click(await button('Отправить сообщение'));
   await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(2));
   expect(vi.mocked(askBackend).mock.calls[1][2]?.checklist).toMatchObject({
