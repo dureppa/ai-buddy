@@ -60,6 +60,8 @@ starts_at — RFC3339 с часовым поясом, Москва +03:00. Не 
 Тип по умолчанию Встреча, описание пустое. Участники, длительность и рассылка приглашений не поддерживаются;
 если они нужны, объясни ограничение и уточни создание записи только с началом. Не утверждай, что отправил приглашения.
 Создание выполняется только кнопкой «Подтвердить» в карточке; до неё событие не существует.
+Не объявляй черновик/карточку готовыми без успешного prepare_service_action в текущем ходе.
+Чтение календаря и старый ответ в истории не создают карточку. Если параметры известны, вызови инструмент.
 Каталог доступов содержит ресурсы для заявок, а не задачи Jira и не проверку доступа к ним.
 Для задач команды читай доступные доски Jira по board_id. Исходный список issues — только личные задачи;
 его пустота не означает отсутствие задач команды или запрет доступа. На вопрос о своих задачах достаточно личного списка.
@@ -183,6 +185,25 @@ class Trace:
     explanation: bool = False
     raise_tool_errors: bool = False
     draft_answers: list[str] = field(default_factory=list)
+    action_requested: bool = False
+
+    def action_receipt(self) -> str | None:
+        for call in reversed(self.calls):
+            if call["name"] not in {
+                "prepare_service_action",
+                "submit_access_request",
+            } or not call["result"].get("ok"):
+                continue
+            value = call["result"]
+            source = value["data"]["references"][0]
+            if self.sources.get(source["id"]) != source["url"]:
+                continue
+            return (
+                service_receipt(json.dumps(value))
+                if call["name"] == "prepare_service_action"
+                else access_receipt(json.dumps(value))
+            )
+        return None
 
     def repair_feedback(self, text: str) -> str | None:
         if (
@@ -300,6 +321,57 @@ class Trace:
 
 Chat = Callable[[list[dict[str, Any]], list[dict[str, Any]]], Awaitable[dict[str, Any]]]
 
+ACTION_UNCONFIRMED = (
+    "Не удалось получить карточку подтверждения. Попробуй повторить запрос."
+)
+
+
+def action_request(question: str) -> bool:
+    return not re.search(
+        r"^\s*(?:как|зачем|почему|где|объясни|расскажи)\b", question, re.IGNORECASE
+    ) and bool(
+        re.search(
+            r"\b(?:создай|добавь|запланируй|поставь|запиши|организуй|подготовь|оформи|подай|отправь|измени|переведи|сохрани|отметь)\b|"
+            r"\b(?:хочу|нужно|надо|давай|можешь)\b.{0,60}\b(?:создать|добавить|запланировать|подготовить|оформить|отправить|изменить|перевести)\b",
+            question,
+            re.IGNORECASE,
+        )
+    )
+
+
+def action_state_claim(text: str) -> bool:
+    """Recognize completion claims, excluding negated and conditional instructions."""
+    text = re.sub(r"[*_`]", "", text.casefold())
+    verbs = (
+        r"\b(?:готов[аоы]?|сделано|подготов(?:лен[аоы]?|ил[аи]?)|созда(?:н[аоы]?|л[аи]?)|"
+        r"добав(?:лен[аоы]?|ил[аи]?)|запланир(?:ован[аоы]?|овал[аи]?)|оформ(?:лен[аоы]?|ил[аи]?)|"
+        r"измен[её]н[аоы]?|изменил[аи]?|перев[её]л[аи]?|перевед[её]н[аоы]?|"
+        r"сохран[её]н[аоы]?|сохранил[аи]?|отправ(?:лен[аоы]?|ил[аи]?)|выполн(?:ен[аоы]?|ил[аи]?))\b"
+    )
+    for match in re.finditer(verbs, text):
+        before = text[max(0, match.start() - 160) : match.start()]
+        if re.search(r"\b(?:не|не был[аои]?|будет|будут)\s*$", before):
+            continue
+        if re.search(r"\b(?:если|когда|после того как)\b[^.!?]*$", before):
+            continue
+        if re.match(r"\s+(?:помочь|создать|подготовить)\b", text[match.end() :]):
+            continue
+        if re.search(
+            r"черновик|карточк|действи|заявк|событи|встреч|созвон|задач|напоминан",
+            text,
+        ):
+            return True
+        if re.fullmatch(r"\s*(?:готово|сделано|выполнено)[.!\s]*", text):
+            return True
+    for match in re.finditer(
+        r"\b(?:открой(?:те)?.{0,30}карточк|вот.{0,30}карточк|нажми(?:те)?.{0,30}подтверд)",
+        text,
+    ):
+        before = text[max(0, match.start() - 160) : match.start()]
+        if not re.search(r"\b(?:после|когда|если|затем|потом)\b[^.!?]*$", before):
+            return True
+    return False
+
 
 async def direct_loop(
     gateway: Gateway,
@@ -314,6 +386,7 @@ async def direct_loop(
     recover_context: bool = False,
     checklist: ChecklistContext | None = None,
 ) -> str:
+    trace.action_requested = action_request(question)
     conversation = conversational_only(question)
     local_start = checklist is not None and narrow_focus(question) == "start"
     if conversation:
@@ -516,6 +589,28 @@ async def direct_loop(
                             {"question": question, "results": retrieved},
                             ensure_ascii=False,
                         ),
+                    }
+                )
+                continue
+            if trace.action_requested and action_state_claim(content):
+                receipt = trace.action_receipt()
+                if receipt is not None:
+                    return receipt
+                trace.guard_events.append("UNCONFIRMED_ACTION")
+                if (
+                    trace.model_calls >= 3
+                    or gateway.attempts >= gateway.settings.max_tool_calls
+                    or len(trace.calls) >= 6
+                    or not any(
+                        tool["function"]["name"] == "prepare_service_action"
+                        for tool in tools
+                    )
+                ):
+                    return ACTION_UNCONFIRMED
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": "Ты не получил успешный результат prepare_service_action в этом ходе. Чтение сервиса не создало карточку. Не повторяй заявление о готовности и не исправляй только цитату. Если параметры из поручения известны, вызови prepare_service_action сейчас; если нет — попроси недостающие значения. После успешного инструмента runtime покажет настоящую ссылку. Не выполняй действие и не придумывай URL.",
                     }
                 )
                 continue
@@ -837,6 +932,19 @@ async def jira_board_reads(
 
 
 def finalize(trace: Trace) -> None:
+    if trace.action_requested:
+        receipt = trace.action_receipt()
+        if receipt is not None:
+            trace.raw_answer = receipt
+        elif (
+            action_state_claim(trace.raw_answer)
+            or trace.raw_answer == ACTION_UNCONFIRMED
+        ):
+            trace.answer = ACTION_UNCONFIRMED
+            trace.answer_status = "safe_abstention"
+            if "UNCONFIRMED_ACTION" not in trace.guard_events:
+                trace.guard_events.append("UNCONFIRMED_ACTION")
+            return
     checked = check_answer(
         trace.raw_answer,
         trace.sources,

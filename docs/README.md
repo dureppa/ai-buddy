@@ -26,6 +26,7 @@
 - [Демосессия](specs/demo-session.md), [кабинет](specs/staff-workspace.md), [инструменты стажёра](specs/intern-tools.md)
 - [Путеводитель](specs/product-guide.md), [расписание](specs/schedule-hr.md), [рабочие инструменты](specs/work-tools-services.md)
 - [Календарь в агенте](specs/agent-calendar.md): чтение периода и создание с подтверждением.
+- [Проверка подготовки действия](specs/action-result-proof.md): результат инструмента и ссылка на карточку вместо неподтверждённого «готово».
 
 Контракты и проверка:
 
@@ -59,3 +60,4 @@
 
 - [Противоречащие инструкции](specs/conflicting-knowledge.md).
 - [Замер отзывчивости интерфейса](ui-responsiveness.md).
+- [Регрессия карточки подтверждения](ai/action-proof-check.md): ложное сообщение о готовности и восстановление с LLM.
