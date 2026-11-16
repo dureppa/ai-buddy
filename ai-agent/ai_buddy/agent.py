@@ -293,11 +293,7 @@ async def direct_loop(
     checklist: ChecklistContext | None = None,
 ) -> str:
     conversation = conversational_only(question)
-    local_start = (
-        checklist is not None
-        and selection is None
-        and narrow_focus(question) == "start"
-    )
+    local_start = checklist is not None and narrow_focus(question) == "start"
     if conversation:
         recover_context = False
     messages: list[dict[str, Any]] = [
@@ -319,6 +315,7 @@ async def direct_loop(
         )
     messages.append({"role": "user", "content": question})
     if local_start and checklist is not None:
+        selection = None
         if suspicious(checklist.model_dump_json()):
             trace.guard_events.append("UNTRUSTED_CONTENT")
             return "В описании пункта есть подозрительные инструкции. Проверь его вместе с наставником."
@@ -575,7 +572,7 @@ def narrow_focus(question: str) -> str:
     if re.fullmatch(
         r"(?:с чего (?:мне )?начать(?: сегодня)?|что (?:мне )?(?:нужно )?сделать сегодня|"
         r"какое (?:у меня )?(?:сейчас )?(?:(?:текущее|следующее) )?задание|какая (?:у меня )?(?:следующая|текущая) задача|что (?:мне )?делать дальше|"
-        r"какая (?:у меня )?задача (?:дальше|следующая)|какое (?:у меня )?задание (?:дальше|следующее)|"
+        r"какая (?:у меня )?задача (?:сейчас|дальше|следующая)|какое (?:у меня )?задание (?:сейчас|дальше|следующее)|"
         r"что дальше по (?:плану|чек-листу)|(?:покажи|назови) следующ(?:ую задачу|ее задание)|"
         r"что (?:у меня )?(?:сейчас )?в процессе|над чем (?:мне )?(?:сейчас )?работать|"
         r"(?:покажи|назови) (?:мою )?(?:текущую|следующую|активную) задачу|"

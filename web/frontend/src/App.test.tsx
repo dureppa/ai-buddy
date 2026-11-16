@@ -1181,6 +1181,62 @@ it('sends exactly the visible in-progress task and updates it after checking the
   });
 });
 
+it('uses the same current plan for the suggestion button and the typed current-task question', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Текущий пункт' });
+  await mount('/chat');
+  await vi.waitFor(async () => expect((await button('С чего начать сегодня?')).disabled).toBe(false));
+  await click(await button('С чего начать сегодня?'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(1));
+  await enterMessage('какая задача сейчас?');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(2));
+  const [suggested, typed] = vi.mocked(askBackend).mock.calls;
+  expect(typed[2]).toEqual(suggested[2]);
+  expect(typed[2]?.selection).toBeUndefined();
+  expect(typed[2]?.checklist?.status).toBe('in_progress');
+});
+
+it.each(['olga', 'sasha', 'timur', 'maria'] as ProfileId[])(
+  'switches from a selected old task to the current plan on a typed question for %s',
+  async (profile) => {
+    localStorage.setItem(demoSessionKey, profile);
+    vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Ответ о пункте' });
+    await mount('/onboarding');
+    const current = await waitForElement(() =>
+      [...container.querySelectorAll<HTMLElement>('.task-row')].find(
+        (row) => row.querySelector('.task-time')?.textContent === 'В процессе',
+      ),
+    );
+    const currentTitle = current.querySelector('strong')!.textContent!;
+    const completedBefore = [...readWorkspace(localStorage, profile).completed];
+    const other = await waitForElement(() =>
+      [...container.querySelectorAll<HTMLElement>('.task-row')].find(
+        (row) => row !== current && row.querySelector('button.task-ask'),
+      ),
+    );
+    const ask = [...other.querySelectorAll('button')].find((item) => item.textContent === 'Разобрать пункт')!;
+    await click(ask);
+    await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(askBackend).mock.calls[0][2]?.selection?.resource?.label).not.toBe(currentTitle);
+    await enterMessage('С чего начать этот пункт?');
+    await click(await button('Отправить сообщение'));
+    await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(askBackend).mock.calls[1][2]?.selection).toEqual(
+      vi.mocked(askBackend).mock.calls[0][2]?.selection,
+    );
+    await enterMessage('какая задача сейчас?');
+    await click(await button('Отправить сообщение'));
+    await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(3));
+    const context = vi.mocked(askBackend).mock.calls[2][2];
+    expect(context?.selection).toBeUndefined();
+    expect(context?.checklist).toMatchObject({ status: 'in_progress', task: { label: currentTitle } });
+    expect(context?.checklist?.status).toBe('in_progress');
+    if (context?.checklist?.status !== 'in_progress') throw new Error('Expected current task');
+    expect(readWorkspace(localStorage, profile).completed).toEqual(completedBefore);
+  },
+);
+
 it('completes the last practice memo by text, keeps retries idempotent and tells the next request the plan is complete', async () => {
   localStorage.setItem(demoSessionKey, 'olga');
   writeWorkspace(localStorage, 'olga', {

@@ -11,6 +11,7 @@ from ai_buddy.mcp_client import Gateway
 from ai_buddy.schemas import (
     ChecklistContext,
     HistoryMessage,
+    Selection,
 )
 from tests.helpers import FakeSession, context, settings
 
@@ -52,6 +53,7 @@ def test_invalid_web_plan_is_rejected(value: dict[str, Any]) -> None:
     "question",
     [
         "С чего начать сегодня?",
+        "какая задача сейчас?",
         "что делать дальше?",
         "Какая у меня текущая задача?",
         "Что сейчас в процессе?",
@@ -63,8 +65,9 @@ def test_invalid_web_plan_is_rejected(value: dict[str, Any]) -> None:
     ],
 )
 @pytest.mark.parametrize("completed", [False, True])
+@pytest.mark.parametrize("selected", [False, True])
 def test_current_web_task_overrides_old_server_plan(
-    question: str, completed: bool
+    question: str, completed: bool, selected: bool
 ) -> None:
     async def run() -> None:
         session = FakeSession()
@@ -106,6 +109,19 @@ def test_current_web_task_overrides_old_server_plan(
             model,
             trace,
             checklist=checklist,
+            selection=Selection.model_validate(
+                {
+                    "text": "Старый выбранный пункт",
+                    "title": "Выбранный пункт",
+                    "resource": {
+                        "kind": "task",
+                        "id": "old-task",
+                        "label": "Старый выбранный пункт",
+                    },
+                }
+            )
+            if selected
+            else None,
             recover_context=True,
             history=[
                 HistoryMessage(
@@ -121,6 +137,9 @@ def test_current_web_task_overrides_old_server_plan(
         )
         assert [name for name, _, _ in session.calls] == (
             [] if completed else ["search_knowledge"]
+        )
+        assert "Старый выбранный пункт" not in json.dumps(
+            session.calls, ensure_ascii=False
         )
 
     asyncio.run(run())
@@ -255,6 +274,9 @@ def test_unavailable_plan_does_not_mean_completed() -> None:
             model,
             trace,
             checklist=ChecklistContext(status="unavailable"),
+            selection=Selection(
+                text="Старый пункт", title="Разбор", resource=plan().task
+            ),
         )
         finalize(trace)
         assert trace.answer_status == "accepted" and not session.calls
@@ -379,7 +401,7 @@ def test_explicit_task_explanation_keeps_its_own_task_instead_of_current_plan() 
 
         trace.raw_answer = await direct_loop(
             gateway,
-            "С чего начать сегодня?",
+            "С чего начать этот пункт?",
             model,
             trace,
             selection=selected,

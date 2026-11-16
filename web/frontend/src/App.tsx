@@ -612,8 +612,9 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       return;
     }
     const shortcut = absenceServiceLink(text);
+    const currentTaskQuestion = isChecklistQuestion(text);
     setServiceShortcut(shortcut);
-    if (shortcut) {
+    if (shortcut || currentTaskQuestion) {
       setActiveTask(undefined);
       setCompletionTargetId(null);
       setAwaitingService(false);
@@ -623,7 +624,12 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     setEntries((items) => [...items, { id, from: 'user', text: text.trim() }]);
     answerMutation.mutate({
       text: text.trim(),
-      context: chatPageContext(profileId, workspace, shortcut ? undefined : activeTask, !surveysQuery.isError),
+      context: chatPageContext(
+        profileId,
+        workspace,
+        shortcut || currentTaskQuestion ? undefined : activeTask,
+        !surveysQuery.isError,
+      ),
     });
   }
 
