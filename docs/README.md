@@ -5,6 +5,8 @@
 - [Запуск](../README.md)
 - [Ответы на критерии кейса](criteria.md)
 - [Маршрут проверки](demo.md)
+- [Продуктовая презентация, PDF](ai-buddy-presentation.pdf)
+- [Видеодемонстрация](https://disk.yandex.ru/d/QYaiOk9O1Q7iig)
 - [Покрытие](coverage.md)
 - [Архитектура](architecture.md)
 - [Стек](stack.md)
