@@ -1,7 +1,7 @@
 import { WeekCalendar } from './WeekCalendar';
 import { HrDayEvents } from './HrDayEvents';
 import type { HrToday } from './hr-schedule';
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, type FormEvent } from 'react';
 import { eventKinds, eventTones, localDateTime, type ScheduleEvent } from './schedule';
 import { Modal, PageIntro } from './ui';
 import './schedule.css';
@@ -11,10 +11,15 @@ type Props = {
   hrEvents: HrToday['events'];
   hrError: boolean;
   now: number;
-  onChange: (events: ScheduleEvent[]) => boolean;
+  onChange: (events: ScheduleEvent[]) => boolean | Promise<boolean>;
+  loading?: boolean;
+  loadError?: boolean;
+  onRetry?: () => void;
 };
 
-export function Schedule({ events, hrEvents, hrError, now, onChange }: Props) {
+export function Schedule({ events, hrEvents, hrError, now, onChange, loading, loadError, onRetry }: Props) {
+  const [saving, setSaving] = useState(false);
+  const creatingId = useRef<string | null>(null);
   const [editing, setEditing] = useState<ScheduleEvent | Date | null>(null);
   const [removing, setRemoving] = useState<ScheduleEvent | null>(null);
   const [error, setError] = useState('');
@@ -23,6 +28,7 @@ export function Schedule({ events, hrEvents, hrError, now, onChange }: Props) {
   const [revealedEventId, setRevealedEventId] = useState<string>();
 
   function open(event: ScheduleEvent | Date) {
+    creatingId.current = null;
     setError('');
     setEditing(event);
   }
@@ -40,7 +46,7 @@ export function Schedule({ events, hrEvents, hrError, now, onChange }: Props) {
     }
   }
 
-  function save(event: FormEvent<HTMLFormElement>) {
+  async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const title = String(data.get('title') ?? '').trim();
@@ -58,28 +64,41 @@ export function Schedule({ events, hrEvents, hrError, now, onChange }: Props) {
     const saved: ScheduleEvent = {
       id:
         current?.id ??
-        'event-' +
+        (creatingId.current ??=
+          'event-' +
           Array.from(crypto.getRandomValues(new Uint32Array(4)), (value) => value.toString(16).padStart(8, '0')).join(
             '',
-          ),
+          )),
       title,
       kind,
       startsAt: startsAt.toISOString(),
       tone: eventTones[kind],
       description: current?.description ?? '',
     };
-    if (onChange([...events.filter((item) => item.id !== saved.id), saved])) {
+    setSaving(true);
+    const success = await onChange([...events.filter((item) => item.id !== saved.id), saved]);
+    setSaving(false);
+    if (success) {
       setSelected(startsAt);
       setRevealedEventId(saved.id);
       setEditing(null);
     } else {
-      setError('Не удалось сохранить событие в браузере.');
+      setError('Не удалось сохранить событие. Проверь календарь и попробуй ещё раз.');
     }
   }
 
   return (
     <>
       <PageIntro title="События" text="Встречи, созвоны и напоминания в одном расписании" tone="mint" icon="calendar" />
+      {loading && <p role="status">Загружаем календарь…</p>}
+      {loadError && (
+        <p role="alert">
+          Не удалось загрузить календарь.{' '}
+          <button className="button button--white" onClick={onRetry}>
+            Повторить
+          </button>
+        </p>
+      )}
       <div className="schedule">
         {(hrEvents.length > 0 || hrError) && (
           <section className="schedule-day">
@@ -102,7 +121,12 @@ export function Schedule({ events, hrEvents, hrError, now, onChange }: Props) {
           revealedEventId={revealedEventId}
         />
         <div className="schedule-toolbar">
-          <button type="button" className="button button--dark" onClick={openNew}>
+          <button
+            type="button"
+            className="button button--dark"
+            disabled={saving || loading || loadError}
+            onClick={openNew}
+          >
             Создать событие
           </button>
         </div>
@@ -132,7 +156,7 @@ export function Schedule({ events, hrEvents, hrError, now, onChange }: Props) {
               </label>
               {error && <p role="alert">{error}</p>}
               <div className="schedule-actions">
-                <button type="submit" className="button button--dark">
+                <button type="submit" className="button button--dark" disabled={saving}>
                   Сохранить
                 </button>
                 {current && (
@@ -162,8 +186,11 @@ export function Schedule({ events, hrEvents, hrError, now, onChange }: Props) {
                 <button
                   type="button"
                   className="button button--dark"
-                  onClick={() => {
-                    if (onChange(events.filter((event) => event.id !== removing.id))) setRemoving(null);
+                  disabled={saving}
+                  onClick={async () => {
+                    setSaving(true);
+                    if (await onChange(events.filter((event) => event.id !== removing.id))) setRemoving(null);
+                    setSaving(false);
                   }}
                 >
                   Удалить

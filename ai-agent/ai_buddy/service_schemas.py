@@ -1,12 +1,13 @@
 """Closed contracts for service reads and server-owned confirmation drafts."""
 
+from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import Field, field_validator, model_validator
 
 from ai_buddy.schemas import AccessArguments, ClosedModel, Identifier, Source, safe_url
 
-ServiceName = Literal["hiring", "offboarding", "benefits", "jira", "access"]
+ServiceName = Literal["hiring", "offboarding", "benefits", "jira", "access", "calendar"]
 UUIDString = Annotated[
     str,
     Field(
@@ -17,7 +18,10 @@ DateString = Annotated[str, Field(pattern=r"^\d{4}-\d{2}-\d{2}$")]
 
 
 class ServiceContextArguments(ClosedModel):
-    service: Literal["hiring", "offboarding", "benefits", "jira"]
+    service: Literal["hiring", "offboarding", "benefits", "jira", "calendar"]
+    period: Literal["today", "tomorrow", "week", "next_week", "month"] | None = None
+    start_date: DateString | None = None
+    end_date: DateString | None = None
     board_id: Identifier | None = None
     issue_id: UUIDString | None = Field(
         default=None,
@@ -26,6 +30,14 @@ class ServiceContextArguments(ClosedModel):
 
     @model_validator(mode="after")
     def resource_scope(self) -> "ServiceContextArguments":
+        if (
+            self.period or self.start_date or self.end_date
+        ) and self.service != "calendar":
+            raise ValueError("calendar period only")
+        if bool(self.start_date) != bool(self.end_date) or (
+            self.period and self.start_date
+        ):
+            raise ValueError("one period or both dates")
         if (self.board_id or self.issue_id) and self.service != "jira":
             raise ValueError("Jira resource only")
         if self.board_id and self.issue_id:
@@ -146,10 +158,34 @@ class JiraContext(ClosedModel):
     references: Annotated[list[Source], Field(max_length=5)]
 
 
+class CalendarEvent(ClosedModel):
+    id: Identifier
+    title: Annotated[str, Field(min_length=1, max_length=120)]
+    kind: Literal["Встреча", "Созвон", "Напоминание"]
+    startsAt: str
+    tone: Literal["mint", "blue", "lilac"]
+    description: Annotated[str, Field(max_length=4000)]
+
+
+class CalendarContext(ClosedModel):
+    service: Literal["calendar"]
+    today: DateString
+    timezone: Literal["Europe/Moscow"]
+    start_date: DateString
+    end_date: DateString
+    events: Annotated[list[CalendarEvent], Field(max_length=30)]
+    has_more: bool
+    references: Annotated[list[Source], Field(min_length=1, max_length=5)]
+
+
 class ServiceContextEnvelope(ClosedModel):
     ok: Literal[True]
     data: Annotated[
-        HiringContext | OffboardingContext | BenefitsContext | JiraContext,
+        HiringContext
+        | OffboardingContext
+        | BenefitsContext
+        | JiraContext
+        | CalendarContext,
         Field(discriminator="service"),
     ]
 
@@ -219,6 +255,22 @@ class UpdateJiraIssue(ClosedModel):
     changes: JiraChanges
 
 
+class CreateCalendarEvent(ClosedModel):
+    operation: Literal["create_calendar_event"]
+    title: Annotated[str, Field(min_length=1, max_length=120)]
+    kind: Literal["Встреча", "Созвон", "Напоминание"] = "Встреча"
+    starts_at: Annotated[str, Field(min_length=20, max_length=40)]
+    description: Annotated[str, Field(max_length=4000)] = ""
+
+    @field_validator("starts_at")
+    @classmethod
+    def zoned_time(cls, value: str) -> str:
+        parsed = datetime.fromisoformat(value)
+        if parsed.tzinfo is None:
+            raise ValueError("timezone required")
+        return value
+
+
 class PrepareServiceActionArguments(ClosedModel):
     action: Annotated[
         ReferCandidate
@@ -227,7 +279,8 @@ class PrepareServiceActionArguments(ClosedModel):
         | RequestBenefit
         | RequestAccess
         | CreateJiraIssue
-        | UpdateJiraIssue,
+        | UpdateJiraIssue
+        | CreateCalendarEvent,
         Field(discriminator="operation"),
     ]
 
@@ -248,6 +301,7 @@ class ServiceActionDraft(ClosedModel):
         "request_access",
         "create_jira_issue",
         "update_jira_issue",
+        "create_calendar_event",
     ]
     state: Literal[
         "prepared",
@@ -267,6 +321,8 @@ class ServiceActionDraft(ClosedModel):
     @field_validator("service_url")
     @classmethod
     def public_url(cls, value: str) -> str:
+        if value == "/events":
+            return value
         return safe_url(value)
 
 

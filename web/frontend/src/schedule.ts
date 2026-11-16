@@ -8,13 +8,17 @@ export const eventTones = {
   Созвон: 'blue',
   Напоминание: 'lilac',
 } as const satisfies Record<(typeof eventKinds)[number], (typeof tones)[number]>;
-const eventSchema = z.object({
-  id: z.string().min(1),
+export const eventSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .max(128)
+    .regex(/^[A-Za-z0-9_.:-]+$/),
   title: z.string().trim().min(1).max(120),
   kind: z.enum(eventKinds),
   startsAt: z.iso.datetime(),
   tone: z.enum(tones),
-  description: z.string(),
+  description: z.string().max(4000),
 });
 export type ScheduleEvent = z.infer<typeof eventSchema>;
 type DemoEvent = Pick<ScheduleEvent, 'title' | 'description'> & { time: string };

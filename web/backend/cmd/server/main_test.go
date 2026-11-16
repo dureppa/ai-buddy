@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"net/http"
 	"os"
@@ -47,6 +48,45 @@ func TestServerStartupShutdownAndAIWiring(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	require.True(t, ready, "server did not become ready")
+	client.Timeout = 2 * time.Second
+	response, err := client.Post("http://"+addr+"/api/v1/demo/sessions", "application/json", strings.NewReader(`{"profile_id":"olga"}`))
+	require.NoError(t, err)
+	require.Equal(t, 201, response.StatusCode)
+	var session struct {
+		AccessToken string `json:"access_token"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&session))
+	_ = response.Body.Close()
+	calendarCall := func(method, path, body string) *http.Response {
+		request, requestErr := http.NewRequest(method, "http://"+addr+path, strings.NewReader(body))
+		require.NoError(t, requestErr)
+		request.Header.Set("Authorization", "Bearer "+session.AccessToken)
+		request.Header.Set("Content-Type", "application/json")
+		result, callErr := client.Do(request)
+		require.NoError(t, callErr)
+		return result
+	}
+	stamp := time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339)
+	response = calendarCall("PUT", "/api/v1/schedule/events/http-calendar-wiring", `{"id":"http-calendar-wiring","title":"HTTP calendar test","kind":"Встреча","startsAt":"`+stamp+`","tone":"mint","description":""}`)
+	require.Equal(t, 200, response.StatusCode)
+	_ = response.Body.Close()
+	response = calendarCall("GET", "/api/v1/schedule/events", "")
+	require.Equal(t, 200, response.StatusCode)
+	var page struct {
+		Events []struct {
+			ID string `json:"id"`
+		} `json:"events"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&page))
+	_ = response.Body.Close()
+	found := false
+	for _, event := range page.Events {
+		found = found || event.ID == "http-calendar-wiring"
+	}
+	require.True(t, found)
+	response = calendarCall("DELETE", "/api/v1/schedule/events/http-calendar-wiring", "")
+	require.Equal(t, 200, response.StatusCode)
+	_ = response.Body.Close()
 	cancel()
 	require.NoError(t, <-done)
 	t.Setenv("AI_DELEGATION_SECRET", strings.Repeat("s", 32))

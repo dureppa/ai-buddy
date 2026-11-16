@@ -124,6 +124,71 @@ paths:
                 confirm:
                   type: boolean
                   const: false
+  /schedule/events:
+    get:
+      operationId: listCalendarEvents
+      summary: Личный календарь текущего профиля, до 500 записей по времени
+      responses:
+        '200':
+          description: События владельца; has_more сообщает об усечении.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events, has_more]
+                properties:
+                  events: {type: array, maxItems: 500, items: {$ref: '#/components/schemas/CalendarEvent'}}
+                  has_more: {type: boolean}
+        '401': {description: Требуется сессия.}
+        '503': {description: Календарь недоступен.}
+  /schedule/events/{event_id}:
+    parameters:
+      - {in: path, name: event_id, required: true, schema: {type: string, maxLength: 128}}
+    put:
+      operationId: saveCalendarEvent
+      summary: Создать или изменить личное событие; новая дата должна быть будущей
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CalendarEvent'}
+      responses:
+        '200':
+          description: Сохранённое событие.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CalendarEvent'}
+        '400': {description: Неверное событие или прошедшая новая дата.}
+        '401': {description: Требуется сессия.}
+        '503': {description: Результат сохранения не подтверждён.}
+    delete:
+      operationId: deleteCalendarEvent
+      summary: Удалить событие текущего профиля
+      responses:
+        '200': {description: 'Подтверждение {ok: true}.'}
+        '400': {description: Неверный идентификатор.}
+        '401': {description: Требуется сессия.}
+        '404': {description: Событие владельца не найдено.}
+        '503': {description: Результат удаления не подтверждён.}
+  /schedule/import:
+    post:
+      operationId: importLocalCalendar
+      summary: Идемпотентно перенести старый календарь браузера; серверные изменения имеют приоритет
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [events]
+              properties:
+                events: {type: array, maxItems: 500, items: {$ref: '#/components/schemas/CalendarEvent'}}
+      responses:
+        '200': {description: 'Атомарный перенос или уже перенесено, {ok: true}.'}
+        '400': {description: Неверные события или дубли идентификаторов.}
+        '401': {description: Требуется сессия.}
+        '503': {description: Перенос не подтверждён; браузер сохраняет исходный ключ.}
   /schedule/hr-today:
     get:
       operationId: readHRToday
@@ -581,6 +646,17 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
+    CalendarEvent:
+      type: object
+      additionalProperties: false
+      required: [id, title, kind, startsAt, tone, description]
+      properties:
+        id: {type: string, pattern: '^[A-Za-z0-9_.:-]{1,128}$'}
+        title: {type: string, minLength: 1, maxLength: 120}
+        kind: {type: string, enum: [Встреча, Созвон, Напоминание]}
+        startsAt: {type: string, format: date-time}
+        tone: {type: string, enum: [mint, blue, lilac, pink], description: Цвет вычисляется сервером из типа.}
+        description: {type: string, maxLength: 4000}
     ServiceActionDraft:
       additionalProperties: false
       properties:
@@ -595,6 +671,7 @@ components:
           - benefits
           - jira
           - access
+          - calendar
           title: Service
           type: string
         operation:
@@ -606,6 +683,7 @@ components:
           - request_access
           - create_jira_issue
           - update_jira_issue
+          - create_calendar_event
           title: Operation
           type: string
         state:

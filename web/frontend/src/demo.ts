@@ -150,6 +150,8 @@ export function confirmAccess(storage: StoragePort, profile: ProfileId, draft: A
 }
 
 export function absenceServiceLink(text: string): { label: string; to: string } | undefined {
+  if (/календар|расписан|событи|встреч|созвон|напоминан/i.test(text))
+    return { label: 'Открыть календарь событий', to: '/events' };
   const question = text.toLowerCase().replaceAll('ё', 'е');
   if (!/отгул|отпуск|отсутстви/.test(question) || !/оформ|подать|заявк|откр|взять|хочу|нужен/.test(question))
     return undefined;

@@ -62,6 +62,8 @@ func operationService(op string) string {
 	switch op {
 	case "request_access":
 		return "access"
+	case "create_calendar_event":
+		return "calendar"
 	case "refer_candidate":
 		return "hiring"
 	case "set_exit_step", "save_exit_draft":
@@ -76,8 +78,9 @@ func operationService(op string) string {
 func normalize(action map[string]any) (string, map[string]any, error) {
 	op := stringValue(action, "operation")
 	allowed := map[string][]string{
-		"request_access":  {"template_id", "catalog_version", "system", "resource_key", "justification", "permission", "duration_days", "fields"},
-		"refer_candidate": {"vacancy", "name", "email"}, "set_exit_step": {"step", "checked"}, "save_exit_draft": {"date"}, "request_benefit": {"benefit"},
+		"create_calendar_event": {"title", "kind", "starts_at", "description"},
+		"request_access":        {"template_id", "catalog_version", "system", "resource_key", "justification", "permission", "duration_days", "fields"},
+		"refer_candidate":       {"vacancy", "name", "email"}, "set_exit_step": {"step", "checked"}, "save_exit_draft": {"date"}, "request_benefit": {"benefit"},
 		"create_jira_issue": {"board_id", "title", "description", "status", "priority", "assignee_id", "due_date"}, "update_jira_issue": {"issue_id", "version", "changes"},
 	}[op]
 	if allowed == nil {
@@ -99,6 +102,16 @@ func normalize(action map[string]any) (string, map[string]any, error) {
 		}
 	}
 	switch op {
+	case "create_calendar_event":
+		if _, ok := p["kind"]; !ok {
+			p["kind"] = "Встреча"
+		}
+		if _, ok := p["description"]; !ok {
+			p["description"] = ""
+		}
+		if _, err := calendarEvent("pending", p); err != nil {
+			return "", nil, err
+		}
 	case "refer_candidate":
 		vacancy, ok := text(p["vacancy"], 1, 128)
 		if !ok || !validID(vacancy) {
@@ -247,6 +260,9 @@ func (s *Service) Prepare(ctx context.Context, profile, requestID string, args m
 	return map[string]any{"draft": d, "references": []any{map[string]any{"id": "action:" + d.ID, "title": "Проверить действие: " + d.Title, "url": address, "version": "draft-v1", "is_demo": true}}}, nil
 }
 func (s *Service) plan(ctx context.Context, profile, op string, p map[string]any) (Draft, error) {
+	if op == "create_calendar_event" {
+		return s.planCalendar(p)
+	}
 	if op == "request_access" {
 		return s.planAccess(ctx, profile, p)
 	}

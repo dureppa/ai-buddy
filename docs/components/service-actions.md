@@ -5,6 +5,7 @@
 [публичные HTTP-контракты](../../contracts/openapi.yaml).
 
 Go `internal/serviceactions` подключает найм, увольнения, бенефиты, Jira и доступы.
+Личный календарь использует локальный `internal/calendar` с тем же подтверждением.
 `get_service_context` читает данные текущего профиля; `prepare_service_action`
 проверяет параметры и сохраняет подтверждение в Buddy PostgreSQL.
 Выполняющего инструмента у модели нет. Ссылка из чата открывает `/actions/:id`;
@@ -19,6 +20,7 @@ Go `internal/serviceactions` подключает найм, увольнения
 | request_benefit | POST /api/v1/me/benefit-requests |
 | create_jira_issue | POST /api/v1/boards/{board}/issues |
 | update_jira_issue | PUT /api/v1/issues/{issue} |
+| create_calendar_event | Запись в calendar_events текущего профиля; ID черновика предотвращает дубли |
 
 Чтения используют summary API HR; Jira — видимые пространства/доски,
 назначенные пользователю задачи и выбранную доску/задачу. Jira проверяет

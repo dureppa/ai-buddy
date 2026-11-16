@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dureppa/ai-buddy/web/backend/internal/calendar"
 	"github.com/dureppa/ai-buddy/web/backend/internal/portal"
 )
 
@@ -50,14 +51,18 @@ type Config struct {
 	HRSecret, JiraSecret                string
 }
 type Service struct {
-	Access *portal.Service
-	Store  Repository
-	Config Config
-	Client *http.Client
+	Calendar *calendar.Service
+	Access   *portal.Service
+	Store    Repository
+	Config   Config
+	Client   *http.Client
 }
 
 type contextArgs struct {
-	Service string  `json:"service"`
-	BoardID *string `json:"board_id"`
-	IssueID *string `json:"issue_id"`
+	Period    string  `json:"period"`
+	StartDate string  `json:"start_date"`
+	EndDate   string  `json:"end_date"`
+	Service   string  `json:"service"`
+	BoardID   *string `json:"board_id"`
+	IssueID   *string `json:"issue_id"`
 }

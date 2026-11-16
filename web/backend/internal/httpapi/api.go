@@ -76,6 +76,16 @@ func (a *API) Routes() http.Handler {
 		})
 	}
 	if a.actions != nil {
+		if a.actions.Calendar != nil {
+			a.actions.Calendar.Register(mux, func(r *http.Request) (string, error) {
+				header := r.Header.Get("Authorization")
+				if !strings.HasPrefix(header, "Bearer ") {
+					return "", buddy.ErrUnauthenticated
+				}
+				p, err := a.sessions.Authenticate(r.Context(), strings.TrimPrefix(header, "Bearer "))
+				return p.ID, err
+			})
+		}
 		a.actions.Register(mux, func(r *http.Request) (string, error) {
 			header := r.Header.Get("Authorization")
 			if !strings.HasPrefix(header, "Bearer ") {

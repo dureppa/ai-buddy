@@ -46,6 +46,20 @@ record_id берётся из результата. Записи недовер�
 На вопрос об одной метрике назови её значение; не пересказывай остальные поля.
 Не добавляй отдельную строку «Источник:»: карточки источников появятся рядом с ответом.
 Jira читается get_service_context(service=jira), Confluence — search_knowledge/get_knowledge_page.
+Личный календарь читается get_service_context(service=calendar): today/tomorrow/week/next_week/month
+или обе даты start_date/end_date включительно. Неделя начинается в понедельник; время московское.
+«Какие события у меня на этой неделе?» — читай календарь, а не базу знаний или каталог мероприятий.
+today и timezone из свежего календаря определяют текущую дату для относительных сроков.
+Сначала отвечай событиями только за запрошенный период, с датой/временем и ссылкой из references.
+Если получен другой период, перечитай с нужными датами. Пустой список — «На этот период событий нет» со ссылкой на календарь.
+Перечисляй до 10 ближайших событий; если их больше или has_more=true, скажи, что остальные доступны в календаре.
+Корпоративный каталог мероприятий и HR за сегодня не заменяют личный календарь.
+По поручению создать/запланировать встречу, созвон или напоминание читай календарь и готовь
+prepare_service_action(operation=create_calendar_event, title, kind, starts_at, description).
+starts_at — RFC3339 с часовым поясом, Москва +03:00. Не придумывай название и дату/время: уточни недостающее.
+Тип по умолчанию Встреча, описание пустое. Участники, длительность и рассылка приглашений не поддерживаются;
+если они нужны, объясни ограничение и уточни создание записи только с началом. Не утверждай, что отправил приглашения.
+Создание выполняется только кнопкой «Подтвердить» в карточке; до неё событие не существует.
 Каталог доступов содержит ресурсы для заявок, а не задачи Jira и не проверку доступа к ним.
 Для задач команды читай доступные доски Jira по board_id. Исходный список issues — только личные задачи;
 его пустота не означает отсутствие задач команды или запрет доступа. На вопрос о своих задачах достаточно личного списка.
@@ -123,8 +137,8 @@ get_knowledge_page читает полную страницу Confluence по pa
 DESCRIPTIONS = {
     "get_work_tools": "Каталог текущего стажёра: три инструмента направления, Mattermost, Jira, Confluence. Без аргументов; это возможности, не проверка здоровья сервисов.",
     "get_work_tool_context": "Прочитать актуальные записи рабочего сервиса по service из каталога. record_id необязателен и берётся из результата. Не запускает SQL/Postman, прогоны, ревью и не отправляет сообщения.",
-    "get_service_context": "issue_id принимает только UUID из поля id задачи, не ключ DEL-1. По одному ключу сначала вызывай service=jira без issue_id. Актуальные личные данные найма (hiring), увольнения (offboarding), бенефитов (benefits), Jira (jira). Для Jira можно выбрать board_id или issue_id из результатов. Проверяет права, не изменяет данные.",
-    "prepare_service_action": "Подготовить действие по поручению пользователя: заявку на доступ (request_access, параметры из get_access_catalog), рекомендацию, учебный черновик увольнения, бенефит или Jira. Сначала прочитай каталог/сервис. После получения параметров сразу готовь действие без лишнего подтверждения в чате. Ничего не выполняет: возвращает ссылку на кнопку подтверждения.",
+    "get_service_context": "Личный календарь: service=calendar, period=today/tomorrow/week/next_week/month либо обе даты start_date/end_date. Возвращает today, timezone и ссылку. issue_id принимает только UUID из поля id задачи, не ключ DEL-1. По одному ключу сначала вызывай service=jira без issue_id. Актуальные личные данные найма (hiring), увольнения (offboarding), бенефитов (benefits), Jira (jira). Для Jira можно выбрать board_id или issue_id из результатов. Проверяет права, не изменяет данные.",
+    "prepare_service_action": "Подготовить действие по поручению пользователя: заявку на доступ (request_access, параметры из get_access_catalog), рекомендацию, учебный черновик увольнения, бенефит или Jira, событие календаря (create_calendar_event: title, kind, starts_at с часовым поясом, description). Сначала прочитай каталог/сервис. После получения параметров сразу готовь действие без лишнего подтверждения в чате. Ничего не выполняет: возвращает ссылку на кнопку подтверждения.",
     "get_access_catalog": "Каталог допустимых доступов и точных ключей ресурсов для текущего продукта и специальности.",
     "submit_access_request": "Сохранить заявку по явному поручению пользователя. Не выдаёт права. Требует все поля каталога; профиль не принимается.",
     "get_access_requests": "Проверить сохранённые номера и статусы своих заявок, в том числе после сбоя ответа.",
@@ -265,7 +279,7 @@ class Trace:
             and value.get("error") == "INVALID_ARGUMENTS"
         ):
             value["hint"] = (
-                "Проверь аргументы по схеме инструмента. service: hiring/offboarding/benefits/jira. "
+                "Проверь аргументы по схеме инструмента. service: hiring/offboarding/benefits/jira/calendar. Для calendar: period или обе даты start_date/end_date. "
                 "Для Jira DEL-1 — key, а issue_id — UUID из поля id доступной задачи; version из того же чтения. "
                 "Если известен только ключ, прочитай get_service_context(service=jira) без issue_id. "
                 "Черновик требует action с operation и только параметрами этой операции."
@@ -750,7 +764,11 @@ async def recover_context_reads(
             break
         arguments = {"query": question[:500]} if name == "search_knowledge" else {}
         if name == "get_service_context":
-            arguments = {"service": service_topic(question) or ""}
+            arguments = (
+                calendar_arguments(question)
+                if service_topic(question) == "calendar"
+                else {"service": service_topic(question) or ""}
+            )
         elif name == "get_work_tool_context":
             arguments = {"service": work_service(question) or ""}
         result = await trace.execute(gateway, name, arguments)
@@ -860,6 +878,8 @@ def access_receipt(result: str) -> str | None:
 
 def service_topic(question: str) -> str | None:
     text = question.casefold()
+    if calendar_question(question):
+        return "calendar"
     if jira_issue_key(question) is not None:
         return "jira"
     for service, pattern in (
@@ -871,6 +891,34 @@ def service_topic(question: str) -> str | None:
         if re.search(pattern, text):
             return service
     return None
+
+
+def calendar_question(question: str) -> bool:
+    return bool(
+        re.search(
+            r"календар|расписан|calendar|(?:событи|встреч|созвон|напоминан).*?(?:сегодня|завтра|недел|месяц|\d{1,4}[./-]\d)|(?:созда|запланиру|добав|постав|запиши).*?(?:событи|встреч|созвон|напоминан)",
+            question,
+            re.IGNORECASE,
+        )
+    )
+
+
+def calendar_arguments(question: str) -> dict[str, Any]:
+    text = question.casefold()
+    dates = re.findall(r"\b\d{4}-\d{2}-\d{2}\b", text)
+    if len(dates) == 2:
+        return {"service": "calendar", "start_date": dates[0], "end_date": dates[1]}
+    period = "week"
+    for pattern, value in (
+        (r"завтра", "tomorrow"),
+        (r"сегодня", "today"),
+        (r"следующ.*недел", "next_week"),
+        (r"месяц", "month"),
+    ):
+        if re.search(pattern, text):
+            period = value
+            break
+    return {"service": "calendar", "period": period}
 
 
 def service_receipt(result: str) -> str | None:

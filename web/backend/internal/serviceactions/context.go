@@ -12,6 +12,12 @@ func (s *Service) Context(ctx context.Context, profile string, args map[string]a
 	if strict(raw, &in) != nil || in.Service == "" || (in.Service != "jira" && (in.BoardID != nil || in.IssueID != nil)) || (in.BoardID != nil && in.IssueID != nil) {
 		return nil, ErrInvalid
 	}
+	if in.Service == "calendar" {
+		return s.calendarContext(ctx, profile, in)
+	}
+	if in.Period != "" || in.StartDate != "" || in.EndDate != "" {
+		return nil, ErrInvalid
+	}
 	e, err := s.endpoint(in.Service)
 	if err != nil {
 		return nil, err

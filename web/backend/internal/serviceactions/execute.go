@@ -66,6 +66,9 @@ func (s *Service) Confirm(ctx context.Context, profile, id string) (Draft, error
 	state, message := "succeeded", "Сервис подтвердил сохранение."
 	if d.Operation == "request_access" {
 		message, err = s.executeAccess(ctx, profile, d, p)
+	} else if d.Operation == "create_calendar_event" {
+		err = s.executeCalendar(ctx, profile, d, p)
+		message = "Событие сохранено в календаре."
 	} else {
 		err = s.execute(ctx, profile, d, p)
 	}

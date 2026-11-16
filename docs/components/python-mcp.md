@@ -29,6 +29,12 @@ MCP_BACKEND=go_http GO_API_URL=http://127.0.0.1:8080 MCP_ADAPTER_SERVICE_TOKEN=r
 
 ## Режим Go HTTP
 
+`get_service_context` поддерживает `service=calendar`, относительный период либо
+обе календарные даты. `prepare_service_action` поддерживает `create_calendar_event`.
+Это те же внутренние POST-маршруты, с прежней делегацией, read_only и лимитами.
+Само создание через MCP недоступно: нужен confirm владельца на сайте.
+[Календарь и контракты](calendar.md).
+
 `GO_API_URL` — только фиксированный origin. HTTP допускается для localhost/127.0.0.1/::1, для других адресов нужен HTTPS; запрещены userinfo, пути, query и fragment. Новых библиотек нет. Настройки считываются из окружения; .env.example — образец, файл .env автоматически не загружается. MCP слушает только 127.0.0.1:8002; контейнерное/удалённое развёртывание и полноценный OAuth остаются отдельной задачей.
 
 Flask запускается командой из [ai-python](ai-python.md) с `MCP_URL=http://127.0.0.1:8002/mcp`. В `delegation_token` передаётся короткоживущая делегация Go. `AI_SERVICE_TOKEN` и `MCP_ADAPTER_SERVICE_TOKEN` — разные секреты.
