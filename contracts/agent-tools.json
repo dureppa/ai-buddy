@@ -1377,6 +1377,84 @@
           "title": "ReferCandidate",
           "type": "object"
         },
+        "RequestAccess": {
+          "additionalProperties": false,
+          "properties": {
+            "template_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Template Id",
+              "type": "string"
+            },
+            "catalog_version": {
+              "maximum": 1,
+              "minimum": 1,
+              "title": "Catalog Version",
+              "type": "integer"
+            },
+            "system": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "System",
+              "type": "string"
+            },
+            "resource_key": {
+              "maxLength": 160,
+              "minLength": 1,
+              "title": "Resource Key",
+              "type": "string"
+            },
+            "justification": {
+              "maxLength": 2000,
+              "minLength": 10,
+              "title": "Justification",
+              "type": "string"
+            },
+            "permission": {
+              "enum": [
+                "read",
+                "write",
+                "admin"
+              ],
+              "title": "Permission",
+              "type": "string"
+            },
+            "duration_days": {
+              "maximum": 90,
+              "minimum": 1,
+              "title": "Duration Days",
+              "type": "integer"
+            },
+            "fields": {
+              "additionalProperties": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "title": "Fields",
+              "type": "object"
+            },
+            "operation": {
+              "const": "request_access",
+              "title": "Operation",
+              "type": "string"
+            }
+          },
+          "required": [
+            "template_id",
+            "catalog_version",
+            "system",
+            "resource_key",
+            "justification",
+            "permission",
+            "duration_days",
+            "fields",
+            "operation"
+          ],
+          "title": "RequestAccess",
+          "type": "object"
+        },
         "RequestBenefit": {
           "additionalProperties": false,
           "properties": {
@@ -1489,6 +1567,7 @@
             "mapping": {
               "create_jira_issue": "#/$defs/CreateJiraIssue",
               "refer_candidate": "#/$defs/ReferCandidate",
+              "request_access": "#/$defs/RequestAccess",
               "request_benefit": "#/$defs/RequestBenefit",
               "save_exit_draft": "#/$defs/SaveExitDraft",
               "set_exit_step": "#/$defs/SetExitStep",
@@ -1508,6 +1587,9 @@
             },
             {
               "$ref": "#/$defs/RequestBenefit"
+            },
+            {
+              "$ref": "#/$defs/RequestAccess"
             },
             {
               "$ref": "#/$defs/CreateJiraIssue"
@@ -1585,7 +1667,8 @@
                 "hiring",
                 "offboarding",
                 "benefits",
-                "jira"
+                "jira",
+                "access"
               ],
               "title": "Service",
               "type": "string"
@@ -1596,6 +1679,7 @@
                 "set_exit_step",
                 "save_exit_draft",
                 "request_benefit",
+                "request_access",
                 "create_jira_issue",
                 "update_jira_issue"
               ],

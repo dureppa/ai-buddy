@@ -265,9 +265,6 @@ func (b *Bridge) resolve(w http.ResponseWriter, r *http.Request) {
 	allowed := []string{"search_knowledge", "get_team_context", "get_onboarding_progress", "get_task_context", "get_task_evidence"}
 	if b.Portal != nil {
 		allowed = append(allowed, "get_access_catalog", "get_access_requests", "get_knowledge_page")
-		if c.AccessIntent && !c.ReadOnly {
-			allowed = append(allowed, "submit_access_request")
-		}
 	}
 	if b.Actions != nil {
 		allowed = append(allowed, "get_service_context")
@@ -302,7 +299,7 @@ func (b *Bridge) read(tool string) http.HandlerFunc {
 			return
 		}
 		var data map[string]any
-		if (tool == "submit_access_request" && !c.AccessIntent) || (c.ReadOnly && (tool == "submit_access_request" || tool == "prepare_service_action")) {
+		if tool == "submit_access_request" || (c.ReadOnly && tool == "prepare_service_action") {
 			failure(w, 403, "FORBIDDEN")
 			return
 		}
