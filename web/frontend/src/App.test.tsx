@@ -14,6 +14,7 @@ import { surveys } from './surveys';
 import { readServiceQuestions } from './service-questions';
 import { readMaterials, saveMaterial, setTaskMaterials } from './staff-data';
 import { toolViews } from '../../../tools/shared/frontend/WorkToolViews';
+import { scheduleKey } from './schedule';
 
 const backendMode = vi.hoisted(() => ({ enabled: true }));
 vi.mock('./backend', () => ({
@@ -213,7 +214,11 @@ it('toggles an onboarding task and restores the completion mark from storage', a
   ).toBe('true');
 });
 
-it('adds a personal calendar event and deletes it after confirmation', async () => {
+it.each([
+  ['Созвон', 'blue'],
+  ['Встреча', 'mint'],
+  ['Напоминание', 'lilac'],
+] as const)('creates a %s in %s and deletes it after confirmation', async (kind, tone) => {
   localStorage.setItem(demoSessionKey, 'olga');
   await mount('/events');
   await click(await button('Создать событие'));
@@ -221,7 +226,16 @@ it('adds a personal calendar event and deletes it after confirmation', async () 
   const startsAt = await waitForElement(() => container.querySelector<HTMLInputElement>('input[name="startsAt"]'));
   title.value = 'Встреча с командой теста';
   startsAt.value = '2099-06-16T10:00';
+  container.querySelector<HTMLSelectElement>('select[name="kind"]')!.value = kind;
   await click(await button('Сохранить'));
+
+  const created = await waitForElement(() =>
+    container.querySelector<HTMLElement>('button[title="Встреча с командой теста"]'),
+  );
+  expect(created.classList.contains('tone-' + tone)).toBe(true);
+  expect(JSON.parse(localStorage.getItem(scheduleKey('olga')) ?? '[]')).toContainEqual(
+    expect.objectContaining({ title: 'Встреча с командой теста', kind, tone }),
+  );
 
   await click(
     await waitForElement(() => container.querySelector<HTMLElement>('button[title="Встреча с командой теста"]')),
@@ -570,7 +584,11 @@ it('saves a valid service question for the active profile and blocks an empty su
   expect(readServiceQuestions(localStorage, 'sasha')).toEqual([]);
 });
 
-it('keeps an invalid event in the editor, then updates an existing event without creating a second one', async () => {
+it.each([
+  ['Созвон', 'blue'],
+  ['Встреча', 'mint'],
+  ['Напоминание', 'lilac'],
+] as const)('validates dates and updates an existing event to %s in %s', async (kind, tone) => {
   localStorage.setItem(demoSessionKey, 'olga');
   await mount('/events');
   await click(await button('Создать событие'));
@@ -585,8 +603,16 @@ it('keeps an invalid event in the editor, then updates an existing event without
   await click(await waitForElement(() => container.querySelector<HTMLButtonElement>('button[title="Планирование"]')));
   (await waitForElement(() => container.querySelector<HTMLInputElement>('input[name="title"]'))).value =
     'Синхронизация';
+  container.querySelector<HTMLSelectElement>('select[name="kind"]')!.value = kind;
   await click(await button('Сохранить'));
-  await waitForElement(() => container.querySelector<HTMLButtonElement>('button[title="Синхронизация"]'));
+  const updated = await waitForElement(() =>
+    container.querySelector<HTMLButtonElement>('button[title="Синхронизация"]'),
+  );
+  expect(updated.classList.contains('tone-' + tone)).toBe(true);
+  const saved = JSON.parse(localStorage.getItem(scheduleKey('olga')) ?? '[]');
+  expect(saved.filter((event: { title: string }) => event.title === 'Синхронизация')).toEqual([
+    expect.objectContaining({ kind, tone }),
+  ]);
   expect(container.querySelector('button[title="Планирование"]')).toBeNull();
 });
 
