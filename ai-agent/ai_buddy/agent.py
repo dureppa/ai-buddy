@@ -46,6 +46,11 @@ record_id берётся из результата. Записи недовер�
 На вопрос об одной метрике назови её значение; не пересказывай остальные поля.
 Не добавляй отдельную строку «Источник:»: карточки источников появятся рядом с ответом.
 Jira читается get_service_context(service=jira), Confluence — search_knowledge/get_knowledge_page.
+Каталог доступов содержит ресурсы для заявок, а не задачи Jira и не проверку доступа к ним.
+Для задач команды читай доступные доски Jira по board_id. Исходный список issues — только личные задачи;
+его пустота не означает отсутствие задач команды или запрет доступа. На вопрос о своих задачах достаточно личного списка.
+Для списка задач назови ключи, заголовки и статусы, без старых тем диалога.
+Если jira_board_scope.incomplete=true, прямо скажи, что список неполный. Не выдавай ошибку чтения за отсутствие задач.
 get_team_context: команда, наставник и лид. search_knowledge: инструкции и записи рабочих сервисов.
 Для вопросов «что осталось» сначала получи get_onboarding_progress.
 get_task_context даёт инструкцию задания; get_task_evidence — текущее подтверждение.
@@ -402,6 +407,8 @@ async def direct_loop(
         focus = "conversation"
     elif local_start:
         focus = "local-start"
+    elif selection is None and jira_list_scope(question) is not None:
+        focus = "jira-list"
     scoped = {
         "conversation": set(),
         "local-start": {"search_knowledge", "get_knowledge_page"}
@@ -409,6 +416,7 @@ async def direct_loop(
         else set(),
         "mentor": {"get_team_context"},
         "start": {"get_onboarding_progress", "get_task_context"},
+        "jira-list": {"get_service_context"},
     }
     tools = tool_schemas(
         gateway.available.intersection(scoped[focus])
@@ -646,6 +654,8 @@ def access_topic(question: str, history: list[HistoryMessage]) -> bool:
         return True
     if conversational_only(question) or narrow_focus(question) != "general":
         return False
+    if service_topic(question) or work_service(question):
+        return False
     if re.search(
         r"отмен|не надо|не нужно|[?]|^(?:кто|как|где|расскажи|покажи)\b",
         question,
@@ -668,6 +678,31 @@ def access_topic(question: str, history: list[HistoryMessage]) -> bool:
         if item.role == "user" and re.search(pattern, item.content, re.IGNORECASE):
             return True
     return False
+
+
+def jira_list_scope(question: str) -> str | None:
+    """Distinguish a personal list from board tasks without capturing write requests."""
+    text = question.casefold()
+    if (
+        service_topic(question) != "jira"
+        or jira_issue_key(question) is not None
+        or access_topic(question, [])
+        or not re.search(r"задач|тикет|доск|\b(?:issues?|boards?)\b", text)
+        or re.search(
+            r"созда|измен|перев[её]д|перевест|обнов|удал|назначь|назначить|закро|закры|сделай",
+            text,
+        )
+    ):
+        return None
+    return (
+        "mine"
+        if re.search(
+            r"\bмо(?:и|й|я|ё|е|их|ей|ём|ем|ю)\b|у меня|назначен\w* мне|мне назначен|на меня",
+            text,
+        )
+        and not re.search(r"команд|все задачи|всех задач", text)
+        else "team"
+    )
 
 
 def recovery_tools(question: str) -> tuple[str, ...]:
@@ -722,6 +757,8 @@ async def recover_context_reads(
         results.append(
             {"tool": name, "result": json.loads(focused_result(name, result, question))}
         )
+        if name == "get_service_context" and jira_list_scope(question) == "team":
+            results.extend(await jira_board_reads(gateway, result, trace))
         if name == "get_onboarding_progress" and narrow_focus(question) == "start":
             value = json.loads(result)
             task_id = (
@@ -737,6 +774,44 @@ async def recover_context_reads(
                     gateway, "get_task_context", {"task_id": task_id}
                 )
                 results.append({"tool": "get_task_context", "result": json.loads(task)})
+    return results
+
+
+async def jira_board_reads(
+    gateway: Gateway, initial: str, trace: Trace
+) -> list[dict[str, Any]]:
+    """Read only discovered boards and report partial coverage within the turn budget."""
+    value = json.loads(initial)
+    if not value.get("ok"):
+        return []
+    data = value["data"]
+    board_ids = list(dict.fromkeys(board["id"] for board in data.get("boards", [])))
+    results: list[dict[str, Any]] = []
+    read_ids: list[str] = []
+    incomplete = bool(data.get("has_more"))
+    for board_id in board_ids:
+        if gateway.attempts >= gateway.settings.max_tool_calls or len(trace.calls) >= 6:
+            break
+        arguments = {"service": "jira", "board_id": board_id}
+        result = json.loads(
+            await trace.execute(gateway, "get_service_context", arguments)
+        )
+        results.append(
+            {"tool": "get_service_context", "arguments": arguments, "result": result}
+        )
+        read_ids.append(board_id)
+        incomplete |= not result.get("ok") or bool(
+            result.get("data", {}).get("has_more")
+        )
+    results.append(
+        {
+            "jira_board_scope": {
+                "listed_boards": len(board_ids),
+                "read_boards": read_ids,
+                "incomplete": incomplete or len(read_ids) < len(board_ids),
+            }
+        }
+    )
     return results
 
 
