@@ -2,7 +2,7 @@ import { WeekCalendar } from './WeekCalendar';
 import { HrDayEvents } from './HrDayEvents';
 import type { HrToday } from './hr-schedule';
 import { useState, type FormEvent } from 'react';
-import { eventKinds, localDateTime, type ScheduleEvent } from './schedule';
+import { eventKinds, eventTones, localDateTime, type ScheduleEvent } from './schedule';
 import { Modal, PageIntro } from './ui';
 import './schedule.css';
 
@@ -65,7 +65,7 @@ export function Schedule({ events, hrEvents, hrError, now, onChange }: Props) {
       title,
       kind,
       startsAt: startsAt.toISOString(),
-      tone: current?.tone ?? 'lilac',
+      tone: eventTones[kind],
       description: current?.description ?? '',
     };
     if (onChange([...events.filter((item) => item.id !== saved.id), saved])) {

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
-import { eventTime, type ScheduleEvent } from './schedule';
+import { eventTime, eventTones, type ScheduleEvent } from './schedule';
 import { Icon } from './ui';
 
 const monthLabel = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' });
@@ -169,7 +169,7 @@ export function WeekCalendar({
                           key={event.id}
                           ref={event.id === revealedEventId ? revealedButton : undefined}
                           type="button"
-                          className={'calendar-event tone-' + event.tone}
+                          className={'calendar-event tone-' + eventTones[event.kind]}
                           onClick={() => onOpen(event)}
                           title={event.title}
                         >
