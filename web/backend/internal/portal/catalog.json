@@ -224,6 +224,215 @@
           "placeholder": "work-laptop-123"
         }
       ]
+    },
+    {
+      "id": "confluence",
+      "title": "Пространство Confluence",
+      "description": "Страницы продукта, команды и инструкции для стажёров.",
+      "icon": "book",
+      "color": "blue",
+      "roles": [],
+      "system": "Confluence",
+      "keyHint": "team-space",
+      "levels": ["read", "write"],
+      "owner": "Владелец пространства",
+      "fields": [
+        {
+          "key": "section",
+          "label": "Раздел",
+          "options": ["Продукт", "Команда", "Адаптация"]
+        }
+      ]
+    },
+    {
+      "id": "calendar",
+      "title": "Календарь команды",
+      "description": "Встречи адаптации, дейли и слоты наставника.",
+      "icon": "calendar",
+      "color": "orange",
+      "roles": [],
+      "system": "Календарь",
+      "keyHint": "team-calendar",
+      "levels": ["read", "write"],
+      "owner": "Администратор календаря",
+      "fields": [
+        {
+          "key": "calendar",
+          "label": "Календарь",
+          "options": ["Команда", "Адаптация", "Дежурства"]
+        }
+      ]
+    },
+    {
+      "id": "mail",
+      "title": "Корпоративная почта",
+      "description": "Ящик стажёра и рассылки команды.",
+      "icon": "send",
+      "color": "teal",
+      "roles": [],
+      "system": "Почта",
+      "keyHint": "intern-mailbox",
+      "levels": ["read", "write"],
+      "owner": "IT-поддержка",
+      "fields": [
+        {
+          "key": "mailbox",
+          "label": "Ящик",
+          "options": ["Личный", "Команда", "Стажёры"]
+        }
+      ]
+    },
+    {
+      "id": "messenger",
+      "title": "Корпоративный мессенджер",
+      "description": "Чаты продукта, команды и личные переписки.",
+      "icon": "message",
+      "color": "purple",
+      "roles": [],
+      "system": "Мессенджер",
+      "keyHint": "team-messenger",
+      "levels": ["read", "write"],
+      "owner": "Администратор мессенджера",
+      "fields": [
+        {
+          "key": "workspace",
+          "label": "Пространство",
+          "options": ["Продукт", "Команда", "Стажёры"]
+        }
+      ]
+    },
+    {
+      "id": "grafana",
+      "title": "Дашборды Grafana",
+      "description": "Метрики сервисов, алерты и дежурные панели.",
+      "icon": "monitor",
+      "color": "green",
+      "roles": [],
+      "system": "Grafana",
+      "keyHint": "team-grafana",
+      "levels": ["read"],
+      "owner": "Владелец наблюдаемости",
+      "fields": [
+        {
+          "key": "board",
+          "label": "Панель",
+          "options": ["Сервис", "Продукт", "Дежурство"]
+        }
+      ]
+    },
+    {
+      "id": "paas",
+      "title": "Платформа PaaS",
+      "description": "Сервисы команды, окружения и журнал выкладок.",
+      "icon": "layers",
+      "color": "orange",
+      "roles": [],
+      "system": "PaaS",
+      "keyHint": "team-paas",
+      "levels": ["read"],
+      "owner": "Владелец платформы",
+      "fields": [
+        {
+          "key": "service",
+          "label": "Сервис",
+          "options": ["Основной", "Фоновые задачи", "Интеграции"]
+        }
+      ]
+    },
+    {
+      "id": "redash",
+      "title": "Отчёты Redash",
+      "description": "Сохранённые запросы и отчёты команды.",
+      "icon": "grid",
+      "color": "blue",
+      "roles": ["analyst"],
+      "system": "Redash",
+      "keyHint": "team-redash",
+      "levels": ["read", "write"],
+      "owner": "Владелец аналитического пространства",
+      "fields": [
+        {
+          "key": "report",
+          "label": "Отчёт",
+          "options": ["Воронка", "Качество данных", "Еженедельный срез"]
+        }
+      ]
+    },
+    {
+      "id": "trino",
+      "title": "SQL-клиент Trino",
+      "description": "Запросы к витринам, которыми пользуется команда.",
+      "icon": "search",
+      "color": "green",
+      "roles": ["analyst"],
+      "system": "Trino",
+      "keyHint": "team-trino",
+      "levels": ["read"],
+      "owner": "Владелец данных",
+      "fields": [
+        {
+          "key": "catalog",
+          "label": "Каталог",
+          "options": ["Витрины", "Сырые события", "Справочники"]
+        }
+      ]
+    },
+    {
+      "id": "tms",
+      "title": "Система тест-кейсов",
+      "description": "Репозиторий сценариев и прогонов команды.",
+      "icon": "check",
+      "color": "teal",
+      "roles": ["tester"],
+      "system": "TMS",
+      "keyHint": "team-tms",
+      "levels": ["read", "write"],
+      "owner": "Владелец тестовой модели",
+      "fields": [
+        {
+          "key": "suite",
+          "label": "Набор",
+          "options": ["Дымовые", "Регресс", "Приёмка"]
+        }
+      ]
+    },
+    {
+      "id": "test-stand",
+      "title": "Тестовые стенды",
+      "description": "Стенды, на которых команда проверяет сценарии.",
+      "icon": "flag",
+      "color": "orange",
+      "roles": ["tester"],
+      "system": "Тестовые стенды",
+      "keyHint": "team-stand",
+      "levels": ["read", "write"],
+      "owner": "Владелец стенда",
+      "fields": [
+        {
+          "key": "stand",
+          "label": "Стенд",
+          "options": ["Интеграционный", "Приёмочный", "Нагрузочный"]
+        }
+      ]
+    },
+    {
+      "id": "design-system",
+      "title": "Дизайн-система",
+      "description": "Библиотека компонентов, токены и правила интерфейса.",
+      "icon": "sparkles",
+      "color": "pink",
+      "roles": ["designer"],
+      "system": "Дизайн-система",
+      "keyHint": "team-design-system",
+      "levels": ["read", "write"],
+      "owner": "Владелец дизайн-системы",
+      "fields": [
+        {
+          "key": "library",
+          "label": "Библиотека",
+          "options": ["Компоненты", "Иконки", "Макеты продукта"]
+        }
+      ]
     }
   ]
 }
