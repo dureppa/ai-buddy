@@ -14,6 +14,7 @@
 - [Веб](components/web.md), [расширение](components/extension.md), [Go](components/backend-go.md), [Python](components/ai-python.md), [MCP](components/python-mcp.md)
 - [Docker Compose](components/docker-compose.md), [сервер](components/server-deployment.md), [поставка](components/continuous-delivery.md)
 - [Действия агента](components/service-actions.md)
+- [Личный календарь](components/calendar.md)
 - [Корпоративные сайты](components/corporate-services.md), [доступы](components/access-portal.md), [Jira](components/jira.md), [Confluence](components/confluence.md)
 
 Спецификации:
@@ -24,6 +25,7 @@
 - [Доступы и Confluence](specs/007-agent-access-confluence.md), [остальные действия](specs/008-remaining-agent-services.md)
 - [Демосессия](specs/demo-session.md), [кабинет](specs/staff-workspace.md), [инструменты стажёра](specs/intern-tools.md)
 - [Путеводитель](specs/product-guide.md), [расписание](specs/schedule-hr.md), [рабочие инструменты](specs/work-tools-services.md)
+- [Календарь в агенте](specs/agent-calendar.md): чтение периода и создание с подтверждением.
 
 Контракты и проверка:
 
@@ -53,3 +55,4 @@
 - [Текущая задача и общение](specs/current-checklist-and-dialogue.md): единый выбор пункта в UI/чате, поддержка и границы.
 
 - [Проверка текущей задачи и диалога](ai/current-task-dialogue-check.md): тесты, браузер и разрешённый LLM-прогон.
+- [Проверка календаря](ai/calendar-check.md): автотесты и разрешённый синтетический LLM-прогон.

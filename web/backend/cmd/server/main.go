@@ -17,6 +17,7 @@ import (
 
 	"github.com/dureppa/ai-buddy/web/backend/internal/ai"
 	"github.com/dureppa/ai-buddy/web/backend/internal/buddy"
+	"github.com/dureppa/ai-buddy/web/backend/internal/calendar"
 	"github.com/dureppa/ai-buddy/web/backend/internal/config"
 	"github.com/dureppa/ai-buddy/web/backend/internal/httpapi"
 	"github.com/dureppa/ai-buddy/web/backend/internal/portal"
@@ -97,6 +98,7 @@ func runContext(ctx context.Context) error {
 		return fmt.Errorf("service actions: %w", err)
 	}
 	actions.Access = portalService
+	actions.Calendar = &calendar.Service{Store: &calendar.PGStore{Pool: pool}}
 	st := store.New(pool)
 	tokens := buddy.NewTokens(cfg.SessionSecret, cfg.SessionTTL)
 	onboarding := buddy.NewOnboarding(st)

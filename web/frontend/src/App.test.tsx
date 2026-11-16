@@ -14,7 +14,7 @@ import { surveys } from './surveys';
 import { readServiceQuestions } from './service-questions';
 import { readMaterials, saveMaterial, setTaskMaterials } from './staff-data';
 import { toolViews } from '../../../tools/shared/frontend/WorkToolViews';
-import { scheduleKey } from './schedule';
+import { scheduleKey, type ScheduleEvent } from './schedule';
 
 const backendMode = vi.hoisted(() => ({ enabled: true }));
 vi.mock('./backend', () => ({
@@ -27,10 +27,44 @@ vi.mock('./backend', () => ({
 }));
 
 function defaultAPIResponse(path: string) {
+  if (path === '/api/v1/schedule/events') return Response.json({ events: [], has_more: false });
   return Response.json(
     path === '/api/v1/onboarding/surveys' || path === '/api/v1/notifications' ? [] : { events: [], unavailable: [] },
   );
 }
+
+it('saves calendar events through Go and reuses the event ID after an uncertain response', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  const serverEvents = new Map<string, ScheduleEvent>();
+  const sentIds: string[] = [];
+  vi.mocked(apiFetch).mockImplementation(async (_profile, path, options) => {
+    if (path === '/api/v1/schedule/events')
+      return Response.json({ events: [...serverEvents.values()], has_more: false });
+    if (path.startsWith('/api/v1/schedule/events/') && options?.method === 'PUT') {
+      const event = JSON.parse(String(options.body)) as ScheduleEvent;
+      sentIds.push(event.id);
+      serverEvents.set(event.id, event);
+      if (sentIds.length === 1) throw new Error('response lost');
+      return Response.json(event);
+    }
+    return defaultAPIResponse(path);
+  });
+  await mount('/events');
+  await click(await button('Создать событие'));
+  const title = await waitForElement(() => container.querySelector<HTMLInputElement>('input[name="title"]'));
+  const starts = await waitForElement(() => container.querySelector<HTMLInputElement>('input[name="startsAt"]'));
+  title.value = 'Проверка серверного календаря';
+  starts.value = '2080-01-01T12:00';
+  await click(await button('Сохранить'));
+  expect(container.textContent).toContain('Не удалось сохранить событие');
+  await click(await button('Сохранить'));
+  expect(sentIds).toHaveLength(2);
+  expect(sentIds[0]).toBe(sentIds[1]);
+  expect(serverEvents.size).toBe(1);
+  expect(localStorage.getItem(scheduleKey('olga'))).toBeNull();
+  await waitForElement(() => (container.textContent?.includes('Проверка серверного календаря') ? true : null));
+  expect(container.textContent).toContain('Проверка серверного календаря');
+});
 
 let root: Root;
 let client: QueryClient;
@@ -219,6 +253,7 @@ it.each([
   ['Встреча', 'mint'],
   ['Напоминание', 'lilac'],
 ] as const)('creates a %s in %s and deletes it after confirmation', async (kind, tone) => {
+  backendMode.enabled = false;
   localStorage.setItem(demoSessionKey, 'olga');
   await mount('/events');
   await click(await button('Создать событие'));
@@ -589,6 +624,7 @@ it.each([
   ['Встреча', 'mint'],
   ['Напоминание', 'lilac'],
 ] as const)('validates dates and updates an existing event to %s in %s', async (kind, tone) => {
+  backendMode.enabled = false;
   localStorage.setItem(demoSessionKey, 'olga');
   await mount('/events');
   await click(await button('Создать событие'));

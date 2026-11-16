@@ -3,6 +3,7 @@ import { apiFetch } from './backend';
 import type { ProfileId } from './data';
 
 const safeUrl = z.string().refine((value) => {
+  if (value === '/events') return true;
   try {
     const url = new URL(value);
     return (
@@ -18,7 +19,7 @@ const safeUrl = z.string().refine((value) => {
 });
 export const serviceActionSchema = z.object({
   id: z.string().uuid(),
-  service: z.enum(['hiring', 'offboarding', 'benefits', 'jira', 'access']),
+  service: z.enum(['hiring', 'offboarding', 'benefits', 'jira', 'access', 'calendar']),
   operation: z.enum([
     'refer_candidate',
     'set_exit_step',
@@ -27,6 +28,7 @@ export const serviceActionSchema = z.object({
     'request_access',
     'create_jira_issue',
     'update_jira_issue',
+    'create_calendar_event',
   ]),
   state: z.enum(['prepared', 'executing', 'succeeded', 'failed', 'uncertain', 'cancelled', 'expired']),
   title: z.string().min(1),

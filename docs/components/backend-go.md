@@ -4,6 +4,11 @@
 
 ## Интеграция с агентом
 
+`internal/calendar` хранит личный календарь веба и агента (миграция 14).
+HTTP CRUD/импорт требуют сессию владельца; MCP чтение периода и
+`create_calendar_event` используют существующий serviceactions с ручным
+подтверждением. [Контракты и ограничения](calendar.md).
+
 При AI_SERVICE_URL включается Go → Flask → Python MCP → Go. Обязательны отдельные
 AI_SERVICE_TOKEN, MCP_ADAPTER_SERVICE_TOKEN и AI_DELEGATION_SECRET (32+ символа).
 HR_CONSENTS_URL, HR_DOCUMENTS_URL и HR_EVENTS_URL задают API согласий, документов

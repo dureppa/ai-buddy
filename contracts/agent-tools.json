@@ -397,10 +397,56 @@
             "hiring",
             "offboarding",
             "benefits",
-            "jira"
+            "jira",
+            "calendar"
           ],
           "title": "Service",
           "type": "string"
+        },
+        "period": {
+          "anyOf": [
+            {
+              "enum": [
+                "today",
+                "tomorrow",
+                "week",
+                "next_week",
+                "month"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period"
+        },
+        "start_date": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Date"
+        },
+        "end_date": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Date"
         },
         "board_id": {
           "anyOf": [
@@ -568,6 +614,124 @@
             "references"
           ],
           "title": "BenefitsContext",
+          "type": "object"
+        },
+        "CalendarContext": {
+          "additionalProperties": false,
+          "properties": {
+            "service": {
+              "const": "calendar",
+              "title": "Service",
+              "type": "string"
+            },
+            "today": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "title": "Today",
+              "type": "string"
+            },
+            "timezone": {
+              "const": "Europe/Moscow",
+              "title": "Timezone",
+              "type": "string"
+            },
+            "start_date": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "title": "Start Date",
+              "type": "string"
+            },
+            "end_date": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "title": "End Date",
+              "type": "string"
+            },
+            "events": {
+              "items": {
+                "$ref": "#/$defs/CalendarEvent"
+              },
+              "maxItems": 30,
+              "title": "Events",
+              "type": "array"
+            },
+            "has_more": {
+              "title": "Has More",
+              "type": "boolean"
+            },
+            "references": {
+              "items": {
+                "$ref": "#/$defs/Source"
+              },
+              "maxItems": 5,
+              "minItems": 1,
+              "title": "References",
+              "type": "array"
+            }
+          },
+          "required": [
+            "service",
+            "today",
+            "timezone",
+            "start_date",
+            "end_date",
+            "events",
+            "has_more",
+            "references"
+          ],
+          "title": "CalendarContext",
+          "type": "object"
+        },
+        "CalendarEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "Встреча",
+                "Созвон",
+                "Напоминание"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "startsAt": {
+              "title": "Startsat",
+              "type": "string"
+            },
+            "tone": {
+              "enum": [
+                "mint",
+                "blue",
+                "lilac"
+              ],
+              "title": "Tone",
+              "type": "string"
+            },
+            "description": {
+              "maxLength": 4000,
+              "title": "Description",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "kind",
+            "startsAt",
+            "tone",
+            "description"
+          ],
+          "title": "CalendarEvent",
           "type": "object"
         },
         "ExitDraft": {
@@ -1124,6 +1288,7 @@
           "discriminator": {
             "mapping": {
               "benefits": "#/$defs/BenefitsContext",
+              "calendar": "#/$defs/CalendarContext",
               "hiring": "#/$defs/HiringContext",
               "jira": "#/$defs/JiraContext",
               "offboarding": "#/$defs/OffboardingContext"
@@ -1142,6 +1307,9 @@
             },
             {
               "$ref": "#/$defs/JiraContext"
+            },
+            {
+              "$ref": "#/$defs/CalendarContext"
             }
           ],
           "title": "Data"
@@ -1158,6 +1326,51 @@
   "prepare_service_action": {
     "arguments": {
       "$defs": {
+        "CreateCalendarEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "create_calendar_event",
+              "title": "Operation",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "kind": {
+              "default": "Встреча",
+              "enum": [
+                "Встреча",
+                "Созвон",
+                "Напоминание"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "starts_at": {
+              "maxLength": 40,
+              "minLength": 20,
+              "title": "Starts At",
+              "type": "string"
+            },
+            "description": {
+              "default": "",
+              "maxLength": 4000,
+              "title": "Description",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation",
+            "title",
+            "starts_at"
+          ],
+          "title": "CreateCalendarEvent",
+          "type": "object"
+        },
         "CreateJiraIssue": {
           "additionalProperties": false,
           "properties": {
@@ -1565,6 +1778,7 @@
         "action": {
           "discriminator": {
             "mapping": {
+              "create_calendar_event": "#/$defs/CreateCalendarEvent",
               "create_jira_issue": "#/$defs/CreateJiraIssue",
               "refer_candidate": "#/$defs/ReferCandidate",
               "request_access": "#/$defs/RequestAccess",
@@ -1596,6 +1810,9 @@
             },
             {
               "$ref": "#/$defs/UpdateJiraIssue"
+            },
+            {
+              "$ref": "#/$defs/CreateCalendarEvent"
             }
           ],
           "title": "Action"
@@ -1668,7 +1885,8 @@
                 "offboarding",
                 "benefits",
                 "jira",
-                "access"
+                "access",
+                "calendar"
               ],
               "title": "Service",
               "type": "string"
@@ -1681,7 +1899,8 @@
                 "request_benefit",
                 "request_access",
                 "create_jira_issue",
-                "update_jira_issue"
+                "update_jira_issue",
+                "create_calendar_event"
               ],
               "title": "Operation",
               "type": "string"

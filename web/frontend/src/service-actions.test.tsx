@@ -48,6 +48,19 @@ it('shows exact fields and explicit confirmation without executing on open', () 
   expect(html).toContain('только после подтверждения');
   expect(render(draft, true)).toContain('disabled');
 });
+it('shows a calendar creation confirmation and the internal calendar link', () => {
+  const value = serviceActionSchema.parse({
+    ...draft,
+    service: 'calendar',
+    operation: 'create_calendar_event',
+    title: 'Создать событие',
+    service_url: '/events',
+  });
+  const html = render(value);
+  expect(html).toContain('Подтвердить');
+  expect(html).toContain('href="/events"');
+  expect(serviceActionSchema.safeParse({ ...value, service_url: '//other.example/events' }).success).toBe(false);
+});
 it('renders a BI access draft with its exact parameters and manual confirmation', () => {
   const access = serviceActionSchema.parse({
     ...draft,

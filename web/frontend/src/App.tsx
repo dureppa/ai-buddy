@@ -8,6 +8,7 @@ import { accountCookieValue } from './service-session';
 import { readHrToday } from './hr-schedule';
 import { Schedule } from './EventsPage';
 import { readSchedule, scheduleKey, type ScheduleEvent } from './schedule';
+import { readCalendar, changeCalendar } from './schedule-api';
 import { askBackend, backendEnabled, readBackendConversation } from './backend';
 import { InternshipSurvey } from './InternshipSurvey';
 import {
@@ -258,9 +259,18 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   });
   const hrEvents = hrToday.data?.events ?? [];
   const hrError = hrToday.isError || Boolean(hrToday.data?.unavailable.length);
-  const [events, setEvents] = useState(() => readSchedule(localStorage, profileId));
+  const [localEvents, setEvents] = useState(() => readSchedule(localStorage, profileId));
+  const calendar = useQuery({
+    queryKey: ['calendar', profileId],
+    queryFn: ({ signal }) => readCalendar(profileId, signal),
+    enabled: backendEnabled,
+    refetchOnWindowFocus: 'always',
+    refetchInterval: 30_000,
+  });
+  const events = backendEnabled ? (calendar.data?.events ?? []) : localEvents;
   const [scheduleNow, setScheduleNow] = useState(Date.now);
   useEffect(() => {
+    if (backendEnabled) return;
     const key = scheduleKey(profileId);
     try {
       if (localStorage.getItem(key) === null) {
@@ -285,8 +295,26 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     };
   }, [profileId]);
 
-  function changeSchedule(next: ScheduleEvent[]) {
+  async function changeSchedule(next: ScheduleEvent[]) {
     try {
+      if (backendEnabled) {
+        const result = await changeCalendar(profileId, events, next);
+        queryClient.setQueryData(
+          ['calendar', profileId],
+          (old: Awaited<ReturnType<typeof readCalendar>> | undefined) => {
+            const current = old?.events ?? [];
+            const saved = result.saved;
+            return {
+              has_more: old?.has_more ?? false,
+              events: saved
+                ? [...current.filter((event) => event.id !== saved.id), saved]
+                : current.filter((event) => event.id !== result.removed),
+            };
+          },
+        );
+        void queryClient.invalidateQueries({ queryKey: ['calendar', profileId] });
+        return true;
+      }
       localStorage.setItem(scheduleKey(profileId), JSON.stringify(next));
       setEvents(next);
       setScheduleNow(Date.now());
@@ -881,6 +909,9 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                   path="/events"
                   element={
                     <Schedule
+                      loading={backendEnabled && calendar.isPending}
+                      loadError={backendEnabled && calendar.isError}
+                      onRetry={() => void calendar.refetch()}
                       hrEvents={hrEvents}
                       hrError={hrError}
                       events={events}
