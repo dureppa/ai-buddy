@@ -2,13 +2,15 @@
 
 Проверка для жюри описана в [README](../../README.md). Эта страница — состав контейнеров.
 
+Команды выполняются из корня репозитория. Сначала запусти Docker Desktop/Engine и проверь `docker info` и `docker compose version`. Для Compose локальная установка Node.js, Go и Python не требуется.
+
 В корневом `.env` укажи `DEEPSEEK_API_KEY`. Модель и адрес берутся из `.env.example`: `deepseek-flash` и `https://api.deepseek.com`. Файл `ai-agent/.env` в Compose не подставляется. Не публикуй вывод `docker compose config` с настоящим ключом.
 
 ```bash
 COMPOSE_PARALLEL_LIMIT=1 docker compose --profile hr --profile jira up -d --build --wait --wait-timeout 900
 ```
 
-Веб: http://127.0.0.1:5173/. В этой сборке чат ходит в Go и DeepSeek. Без ключа ответ модели не подменяется.
+Веб: http://127.0.0.1:5173/. В этой сборке чат ходит в Go и DeepSeek. Без ключа ответ модели не подменяется; агент возвращает 503 на `/health/ready`, поэтому `up --wait` завершится ошибкой. После заполнения ключа повтори команду запуска. Readiness не проверяет баланс и не вызывает LLM.
 
 PostgreSQL поднимается первым. `migrate` применяет миграции и сиды. Обычный `down` сохраняет том, `down -v` удаляет данные.
 
