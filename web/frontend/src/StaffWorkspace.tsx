@@ -1,3 +1,6 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { backendEnabled } from './backend';
+import { changeTeamPlan, readTeamPlans, type ChecklistPlan } from './role-checklist-api';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { isProfileId, products, profiles, staffAccounts, type ProfileId, type StaffId } from './demo-accounts';
 import { readDemoSession } from './demo-session';
@@ -19,6 +22,7 @@ import {
   removeMaterial,
   setTaskMaterials,
   saveMaterial,
+  type ChecklistItemInput,
   type MaterialInput,
   type ShownMaterial,
   type StaffMaterial,
@@ -412,7 +416,12 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
   const isMentor = account.role === 'Наставник';
   const [section, setSection] = useState<'interns' | 'materials'>('interns');
   const [openGroup, setOpenGroup] = useState<string>();
-  const [interns, setInterns] = useState(() => internOverview(localStorage, id));
+  const [, setLocalRevision] = useState(0);
+  const queryClient = useQueryClient();
+  const plansKey = ['role-checklist-team', id] as const;
+  const plansQuery = useQuery({ queryKey: plansKey, queryFn: () => readTeamPlans(id), enabled: backendEnabled });
+  const plans = backendEnabled ? (plansQuery.data ?? []) : undefined;
+  const interns = internOverview(localStorage, id, plans);
   const [selected, setSelected] = useState<ProfileId>();
   const [materials, setMaterials] = useState(() => readMaterials(localStorage));
   const [editor, setEditor] = useState<'new' | StaffMaterial>();
@@ -423,7 +432,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
   useEffect(() => {
     function refresh(event: StorageEvent) {
       if (event.key === null || event.key === checklistEditsKey || event.key.startsWith('ai-buddy.workspace.'))
-        setInterns(internOverview(localStorage, id));
+        setLocalRevision((value) => value + 1);
       if (event.key === null || event.key === materialsKey) setMaterials(readMaterials(localStorage));
     }
     window.addEventListener('storage', refresh);
@@ -437,6 +446,21 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
   }, [notice]);
 
   const current = interns.find((intern) => intern.id === selected);
+  const currentPlan = plans?.find((plan) => plan.profile_id === selected);
+  async function editChecklist(intern: ProfileId, change: ChecklistItemInput | string) {
+    if (backendEnabled) {
+      const plan = await changeTeamPlan(id, intern, change);
+      await queryClient.cancelQueries({ queryKey: plansKey });
+      queryClient.setQueryData<ChecklistPlan[]>(plansKey, (previous) =>
+        previous?.map((old) => (old.profile_id === intern ? plan : old)),
+      );
+      void queryClient.invalidateQueries({ queryKey: ['role-checklist', intern] });
+    } else {
+      if (typeof change === 'string') removeChecklistItem(localStorage, id, change);
+      else addChecklistItem(localStorage, id, change);
+      setLocalRevision((value) => value + 1);
+    }
+  }
   const ownMaterials = materials.filter(
     (material) => material.author === id && material.audience.includes(product.intern),
   );
@@ -520,29 +544,36 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
           </button>
         </nav>
         {section === 'interns' ? (
-          current ? (
+          backendEnabled && plansQuery.isError ? (
+            <button className="button button--white" onClick={() => void plansQuery.refetch()}>
+              Повторить загрузку прогресса
+            </button>
+          ) : backendEnabled && plansQuery.isPending ? (
+            <p role="status">Загружаем прогресс стажёров…</p>
+          ) : current ? (
             <InternChecklist
+              key={current.id}
               name={current.profile.fullName}
               stageLabel={current.profile.stage + ' · ' + current.progress.percent + '% выполнено'}
               items={current.checklist}
               materials={internMaterials(localStorage, current.id)}
               canEdit
               onBack={() => setSelected(undefined)}
-              onAdd={(input) => {
-                addChecklistItem(localStorage, id, input);
-                setInterns(internOverview(localStorage, id));
+              onAdd={async (input) => {
+                await editChecklist(current.id, input);
                 setNotice({ message: 'Пункт добавлен в чек-лист.' });
               }}
               onChangeMaterial={(taskId, materialId, attach) => {
-                const savedIds = materialsForTask(localStorage, current.id, taskId).map((material) => material.id);
+                const savedIds = materialsForTask(localStorage, current.id, taskId, currentPlan).map(
+                  (material) => material.id,
+                );
                 const materialIds = attach ? [...savedIds, materialId] : savedIds.filter((id) => id !== materialId);
-                setTaskMaterials(localStorage, id, taskId, materialIds);
-                setInterns(internOverview(localStorage, id));
+                setTaskMaterials(localStorage, id, taskId, materialIds, currentPlan);
+                setLocalRevision((value) => value + 1);
                 setNotice({ message: attach ? 'Материал прикреплён.' : 'Материал откреплён.' });
               }}
-              onRemove={(taskId) => {
-                removeChecklistItem(localStorage, id, taskId);
-                setInterns(internOverview(localStorage, id));
+              onRemove={async (taskId) => {
+                await editChecklist(current.id, taskId);
                 setNotice({ message: 'Пункт удалён.' });
               }}
             />

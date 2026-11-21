@@ -284,12 +284,49 @@ paths:
   /onboarding/role-checklist:
     get:
       operationId: getRoleChecklist
-      summary: Прочитать отметки ролевого чек-листа
+      summary: Получить серверный прогресс адаптации
+      description: >-
+        Стажёр получает свой план. Наставник или руководитель без profile_id получает
+        список планов стажёров своей команды, с profile_id получает один доступный план.
+      parameters:
+        - $ref: '#/components/parameters/ChecklistProfile'
+      responses:
+        '200':
+          description: Снимок плана или список снимков команды.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ChecklistProgress'
+                  - type: object
+                    required: [plans]
+                    properties:
+                      plans:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ChecklistProgress'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          description: Профиль недоступен.
+    post:
+      operationId: addRoleChecklistTask
+      summary: Добавить пункт стажёру своей команды
+      parameters:
+        - $ref: '#/components/parameters/ChecklistProfile'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChecklistExtraInput'
       responses:
         '200':
           $ref: '#/components/responses/RoleChecklistMarks'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '403':
+          description: Добавление недоступно для этого профиля.
   /onboarding/role-checklist/import:
     post:
       operationId: importRoleChecklist
@@ -344,6 +381,23 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           description: Текущий пункт изменился (stale_checklist).
+    delete:
+      operationId: deleteRoleChecklistTask
+      summary: Удалить добавленный пункт стажёра своей команды
+      parameters:
+        - $ref: '#/components/parameters/ChecklistProfile'
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/RoleChecklistMarks'
+        '403':
+          description: Удаление недоступно для этого профиля.
+        '404':
+          $ref: '#/components/responses/NotFound'
   /chat/messages:
     post:
       operationId: askBuddy
@@ -665,13 +719,20 @@ components:
     sessionToken:
       type: http
       scheme: bearer
+  parameters:
+    ChecklistProfile:
+      name: profile_id
+      in: query
+      schema:
+        type: string
+
   responses:
     RoleChecklistMarks:
-      description: Текущие самостоятельные отметки встроенных пунктов.
+      description: Текущий снимок чек-листа после сохранения.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RoleChecklistMarks'
+            $ref: '#/components/schemas/ChecklistProgress'
     TeamGuide:
       description: Статус описания команды. Карточки присутствуют при статусе ready.
       content:
@@ -844,6 +905,34 @@ components:
           type: string
         profile_id:
           type: string
+    ChecklistExtraInput:
+      type: object
+      required: [stage, title, summary]
+      properties:
+        stage:
+          type: string
+          enum: [week-1, week-2, month-1, month-2, month-3, after-3]
+        title: {type: string, minLength: 2, maxLength: 120}
+        summary: {type: string, minLength: 2, maxLength: 240}
+    ChecklistProgress:
+      type: object
+      required: [profile_id, completed, extras, total, percent]
+      properties:
+        profile_id: {type: string}
+        completed:
+          type: array
+          items: {type: string}
+        extras:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/ChecklistExtraInput'
+              - type: object
+                required: [id]
+                properties:
+                  id: {type: string}
+        total: {type: integer, minimum: 0}
+        percent: {type: integer, minimum: 0, maximum: 100}
     RoleChecklistMarks:
       type: object
       required: [completed]

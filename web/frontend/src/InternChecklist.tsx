@@ -21,13 +21,14 @@ export function InternChecklist({
   materials: ShownMaterial[];
   canEdit: boolean;
   onBack: () => void;
-  onAdd: (input: ChecklistItemInput) => void;
+  onAdd: (input: ChecklistItemInput) => Promise<void>;
   onChangeMaterial: (taskId: string, materialId: string, attach: boolean) => void;
-  onRemove: (taskId: string) => void;
+  onRemove: (taskId: string) => Promise<void>;
 }) {
   const [openId, setOpenId] = useState<string>();
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   const task = items.find((item) => item.id === openId);
 
   return (
@@ -48,13 +49,17 @@ export function InternChecklist({
             onChangeMaterial(task.id, materialId, attach);
             setError('');
           }}
-          onRemove={() => {
+          onRemove={async () => {
+            if (saving) return;
+            setSaving(true);
             try {
-              onRemove(task.id);
+              await onRemove(task.id);
               setOpenId(undefined);
               setError('');
             } catch (problem) {
               setError(problem instanceof Error ? problem.message : 'Не удалось удалить пункт.');
+            } finally {
+              setSaving(false);
             }
           }}
         />
@@ -132,13 +137,18 @@ export function InternChecklist({
         <Modal title="Новый пункт" onClose={() => setAdding(false)}>
           <ItemForm
             error={error}
-            onSubmit={(input) => {
+            saving={saving}
+            onSubmit={async (input) => {
+              if (saving) return;
+              setSaving(true);
               try {
-                onAdd(input);
+                await onAdd(input);
                 setAdding(false);
                 setError('');
               } catch (problem) {
                 setError(problem instanceof Error ? problem.message : 'Не удалось добавить пункт.');
+              } finally {
+                setSaving(false);
               }
             }}
           />
@@ -148,7 +158,15 @@ export function InternChecklist({
   );
 }
 
-function ItemForm({ error, onSubmit }: { error: string; onSubmit: (input: ChecklistItemInput) => void }) {
+function ItemForm({
+  error,
+  saving,
+  onSubmit,
+}: {
+  error: string;
+  saving: boolean;
+  onSubmit: (input: ChecklistItemInput) => void;
+}) {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -185,7 +203,7 @@ function ItemForm({ error, onSubmit }: { error: string; onSubmit: (input: Checkl
           {error}
         </p>
       )}
-      <button className="button button--dark" type="submit">
+      <button className="button button--dark" type="submit" disabled={saving}>
         Добавить в чек-лист
       </button>
     </form>
