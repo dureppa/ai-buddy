@@ -485,12 +485,19 @@ it('publishes, edits and removes a link in the mentor’s materials', async () =
   title.value = 'Руководство по витринам';
   description.value = 'Данные для первой задачи.';
   url.value = 'https://example.com/guide';
+  expect(container.querySelectorAll('input[name="audience"]')).toHaveLength(3);
+  await click(container.querySelector<HTMLInputElement>('input[name="audience"][value="olga"]')!);
   await click(await button('Опубликовать материал'));
+  expect(readMaterials(localStorage)[0].audience).toEqual(['delivery-ivan', 'delivery-elena']);
   await waitForElement(() => container.querySelector<HTMLAnchorElement>('a[href="https://example.com/guide"]'));
 
   await click(await button('Редактировать'));
   const editTitle = await waitForElement(() => container.querySelector<HTMLInputElement>('input[name="title"]'));
   expect(editTitle.value).toBe('Руководство по витринам');
+  expect(container.querySelector<HTMLInputElement>('input[name="audience"][value="olga"]')?.checked).toBe(false);
+  expect(container.querySelector<HTMLInputElement>('input[name="audience"][value="delivery-ivan"]')?.checked).toBe(
+    true,
+  );
   editTitle.value = 'Обновлённое руководство';
   await click(await button('Сохранить изменения'));
   expect(container.textContent).toContain('Обновлённое руководство');
@@ -1747,4 +1754,62 @@ it('restores saved messages without reviving an old task selection or completion
   await click(await button('Отправить сообщение'));
   await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(1));
   expect(vi.mocked(askBackend).mock.calls[0][2]?.selection).toBeUndefined();
+});
+
+it.each([false, true])('switches between team interns and edits only the selected checklist (API=%s)', async (api) => {
+  backendMode.enabled = api;
+  localStorage.setItem(demoSessionKey, 'manager');
+  const second: ProfileId = 'delivery-ivan';
+  const third: ProfileId = 'delivery-elena';
+  const plans = [snapshot('olga', []), snapshot(second, []), snapshot(third, [])];
+  vi.mocked(readTeamPlans).mockResolvedValue(plans);
+  vi.mocked(changeTeamPlan).mockImplementation(async (_staff, profile, change) =>
+    snapshot(profile, [], typeof change === 'string' ? [] : [{ ...change, id: 'extra-test-person' }]),
+  );
+  saveMaterial(localStorage, 'manager', {
+    title: 'Личный учебник',
+    description: 'Материал второго стажёра',
+    group: 'Документы',
+    audience: [second],
+    source: { kind: 'link', href: 'https://example.com/personal' },
+  });
+  await mount('/staff');
+  const card = (name: string) =>
+    waitForElement(() =>
+      [...container.querySelectorAll<HTMLButtonElement>('.staff-intern')].find((item) =>
+        item.textContent?.includes(name),
+      ),
+    );
+  await click(await card(profiles[second].fullName));
+  await click(await button('Добавить пункт'));
+  container.querySelector<HTMLInputElement>('input[name="title"]')!.value = 'Личное задание Ивана';
+  container.querySelector<HTMLTextAreaElement>('textarea[name="summary"]')!.value = 'Прочитать свой учебник';
+  await click(await button('Добавить в чек-лист'));
+  const task = () =>
+    waitForElement(() =>
+      [...container.querySelectorAll<HTMLButtonElement>('.task-link')].find((item) =>
+        item.textContent?.includes('Личное задание Ивана'),
+      ),
+    );
+  await click(await task());
+  await click(await button('Прикрепить материал'));
+  await fill(
+    await waitForElement(() => container.querySelector<HTMLInputElement>('.material-picker input[type="search"]')),
+    'Личный учебник',
+  );
+  await click(await button('Прикрепить Личный учебник'));
+  await click(await button('Мои стажёры'));
+  await click(await card(profiles[third].fullName));
+  expect(container.textContent).not.toContain('Личное задание Ивана');
+  expect(container.textContent).not.toContain('Личный учебник');
+  await click(await button('Мои стажёры'));
+  await click(await card(profiles[second].fullName));
+  await click(await task());
+  expect(container.textContent).toContain('Личный учебник');
+  if (api)
+    expect(changeTeamPlan).toHaveBeenCalledWith(
+      'manager',
+      second,
+      expect.objectContaining({ title: 'Личное задание Ивана' }),
+    );
 });

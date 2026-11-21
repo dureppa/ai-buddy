@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readWorkspace, toggleTask } from './demo';
 import { tasksFor } from './checklist';
-import { products } from './demo-accounts';
+import { products, teamInterns, profiles } from './demo-accounts';
 import { demoSessionKey } from './demo-session';
 import {
   addChecklistItem,
@@ -47,8 +47,8 @@ describe('staff workspace', () => {
     storage.setItem(demoSessionKey, 'mentor');
     expect(readStaffId(storage)).toBe('mentor');
     for (const { intern, mentor, manager } of Object.values(products)) {
-      expect(internOverview(storage, mentor).map(({ id }) => id)).toEqual([intern]);
-      expect(internOverview(storage, manager).map(({ id }) => id)).toEqual([intern]);
+      expect(internOverview(storage, mentor).map(({ id }) => id)).toEqual(teamInterns(profiles[intern].productId));
+      expect(internOverview(storage, manager).map(({ id }) => id)).toEqual(teamInterns(profiles[intern].productId));
     }
   });
 
@@ -191,4 +191,66 @@ describe('staff workspace', () => {
     expect(groupByName(shown)[0].items.at(-1)?.author).toBe('Анна Ким');
     expect(() => saveMaterial(storage, 'mentor', { ...input, group: ' ' })).toThrow();
   });
+});
+
+it.each(Object.values(products))('keeps all three $name interns independent', (product) => {
+  const storage = memoryStorage();
+  const ids = teamInterns(profiles[product.intern].productId);
+  expect(ids).toHaveLength(3);
+  const [, second, third] = ids;
+  expect(internOverview(storage, product.manager).map((item) => item.id)).toEqual(ids);
+  const extra = addChecklistItem(
+    storage,
+    product.manager,
+    {
+      title: 'Личное задание',
+      summary: 'Подготовить свой отчёт',
+      stage: 'week-1',
+    },
+    second,
+  );
+  saveMaterial(storage, product.manager, { ...input, audience: [second, third] });
+  const [published] = readMaterials(storage);
+  expect(materialsFor(storage, product.intern)).toEqual([]);
+  expect(materialsFor(storage, third)).toHaveLength(1);
+  setTaskMaterials(storage, product.manager, extra.id, [published.id], undefined, second);
+  setTaskMaterials(storage, product.manager, 'meet-team', [published.id], undefined, second);
+  expect(materialsForTask(storage, second, extra.id)).toHaveLength(1);
+  expect(materialsForTask(storage, second, 'meet-team')).toHaveLength(1);
+  expect(materialsForTask(storage, third, 'meet-team')).toEqual([]);
+  expect(checklistFor(storage, third).some((item) => item.id === extra.id)).toBe(false);
+  expect(() => removeChecklistItem(storage, product.manager, extra.id, third)).toThrow();
+  toggleTask(storage, second, 'meet-team');
+  expect(checklistFor(storage, second).find((item) => item.id === 'meet-team')?.done).toBe(true);
+  expect(checklistFor(storage, third).find((item) => item.id === 'meet-team')?.done).toBe(false);
+  setTaskMaterials(storage, product.mentor, extra.id, [], undefined, second);
+  expect(materialsForTask(storage, second, extra.id)).toEqual([]);
+  removeChecklistItem(storage, product.mentor, extra.id, second);
+  expect(checklistFor(storage, second).some((item) => item.id === extra.id)).toBe(false);
+  saveMaterial(storage, product.manager, { ...input, audience: [third] }, published.id);
+  expect(materialsFor(storage, second)).toEqual([]);
+  expect(materialsFor(storage, third)).toHaveLength(1);
+});
+
+it('rejects checklist changes and attachments outside the staff team', () => {
+  const storage = memoryStorage();
+  const before = JSON.stringify(storage.getItem('ai-buddy.checklist-edits'));
+  expect(() =>
+    addChecklistItem(
+      storage,
+      'manager',
+      {
+        title: 'Чужое задание',
+        summary: 'Описание задания',
+        stage: 'week-1',
+      },
+      'travel-pavel',
+    ),
+  ).toThrow('своих стажёров');
+  expect(() => setTaskMaterials(storage, 'manager', 'meet-team', [], undefined, 'travel-pavel')).toThrow(
+    'своих стажёров',
+  );
+  expect(() => removeChecklistItem(storage, 'manager', 'extra-any', 'travel-pavel')).toThrow('своих стажёров');
+  expect(JSON.stringify(storage.getItem('ai-buddy.checklist-edits'))).toBe(before);
+  expect(() => saveMaterial(storage, 'manager', { ...input, audience: ['travel-pavel'] })).toThrow('своих стажёров');
 });

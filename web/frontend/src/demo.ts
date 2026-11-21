@@ -43,7 +43,7 @@ export type BuddyReply = ReplyText &
 
 function seedWorkspace(profile: ProfileId): Workspace {
   return {
-    completed: [...roleChecklist.initialCompleted[profile]],
+    completed: [...(roleChecklist.initialCompleted[profile as keyof typeof roleChecklist.initialCompleted] ?? [])],
     requests:
       profile === 'maria' ? [{ id: 'maria-grafana', number: 'Д-001', serviceId: 'grafana', status: 'submitted' }] : [],
   };

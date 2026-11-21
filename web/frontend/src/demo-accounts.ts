@@ -91,7 +91,7 @@ type Intern = {
   stageId: Stage;
 } & (typeof internshipStages)[Stage];
 
-export const profiles = {
+const primaryProfiles = {
   olga: {
     name: 'Оля',
     fullName: 'Ольга Соколова',
@@ -134,7 +134,91 @@ export const profiles = {
   },
 } as const satisfies Record<string, Intern>;
 
+export const profiles = {
+  ...primaryProfiles,
+  'delivery-ivan': {
+    ...primaryProfiles.olga,
+    name: 'Иван',
+    fullName: 'Иван Смирнов',
+    initials: 'ИС',
+    avatar: 'alexander',
+    stageId: 'first',
+    ...internshipStages.first,
+  },
+  'delivery-elena': {
+    ...primaryProfiles.olga,
+    name: 'Елена',
+    fullName: 'Елена Кузнецова',
+    initials: 'ЕК',
+    avatar: 'maria',
+    stageId: 'first',
+    ...internshipStages.first,
+  },
+  'travel-pavel': {
+    ...primaryProfiles.sasha,
+    name: 'Павел',
+    fullName: 'Павел Волков',
+    initials: 'ПВ',
+    avatar: 'timur',
+    stageId: 'first',
+    ...internshipStages.first,
+  },
+  'travel-sofia': {
+    ...primaryProfiles.sasha,
+    name: 'София',
+    fullName: 'София Новикова',
+    initials: 'СН',
+    avatar: 'olga',
+    stageId: 'first',
+    ...internshipStages.first,
+  },
+  'autoteca-egor': {
+    ...primaryProfiles.timur,
+    name: 'Егор',
+    fullName: 'Егор Попов',
+    initials: 'ЕП',
+    avatar: 'alexander',
+    stageId: 'first',
+    ...internshipStages.first,
+  },
+  'autoteca-alisa': {
+    ...primaryProfiles.timur,
+    name: 'Алиса',
+    fullName: 'Алиса Федорова',
+    initials: 'АФ',
+    avatar: 'maria',
+    stageId: 'first',
+    ...internshipStages.first,
+  },
+  'help-mark': {
+    ...primaryProfiles.maria,
+    name: 'Марк',
+    fullName: 'Марк Васильев',
+    initials: 'МВ',
+    avatar: 'timur',
+    stageId: 'first',
+    ...internshipStages.first,
+  },
+  'help-eva': {
+    ...primaryProfiles.maria,
+    name: 'Ева',
+    fullName: 'Ева Михайлова',
+    initials: 'ЕМ',
+    avatar: 'olga',
+    stageId: 'first',
+    ...internshipStages.first,
+  },
+} as const satisfies Record<string, Intern>;
+
 export type ProfileId = keyof typeof profiles;
+
+export function teamInterns(productId: ProductId): ProfileId[] {
+  return (Object.keys(profiles) as ProfileId[]).filter((id) => profiles[id].productId === productId);
+}
+
+export function primaryProfile(profileId: ProfileId) {
+  return products[profiles[profileId].productId].intern;
+}
 
 type StaffAccount = {
   name: string;

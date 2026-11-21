@@ -80,3 +80,62 @@ func TestTeamAndInternReadSameChecklistProgress(t *testing.T) {
 	require.NotContains(t, removed.Completed, id)
 	require.Equal(t, removed, read(trainee, "GET", endpoint, ""))
 }
+
+func TestDemoManagersHaveThreeIndependentInterns(t *testing.T) {
+	dsn := os.Getenv("TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("TEST_DATABASE_URL required")
+	}
+	db, err := pgxpool.New(t.Context(), dsn)
+	require.NoError(t, err)
+	defer db.Close()
+	st := store.New(db)
+	sessions := buddy.NewSessions(st, buddy.NewTokens(strings.Repeat("s", 32), time.Hour), true)
+	api := NewAPI(sessions, buddy.NewOnboarding(st), nil, nil, nil)
+	const endpoint = "/api/v1/onboarding/role-checklist"
+	for _, team := range []struct {
+		manager string
+		interns []string
+	}{
+		{"manager", []string{"olga", "delivery-ivan", "delivery-elena"}},
+		{"travel-manager", []string{"sasha", "travel-pavel", "travel-sofia"}},
+		{"autoteca-manager", []string{"timur", "autoteca-egor", "autoteca-alisa"}},
+		{"help-manager", []string{"maria", "help-mark", "help-eva"}},
+	} {
+		t.Run(team.manager, func(t *testing.T) {
+			token, err := sessions.CreateDemo(t.Context(), team.manager)
+			require.NoError(t, err)
+			response := doRequest(api, token, "GET", endpoint, "", true)
+			require.Equal(t, http.StatusOK, response.Code)
+			for _, intern := range team.interns {
+				require.Contains(t, response.Body.String(), intern)
+			}
+			target := "?profile_id=" + team.interns[1]
+			before := doRequest(api, token, "GET", endpoint+"?profile_id="+team.interns[2], "", true)
+			added := doRequest(api, token, "POST", endpoint+target,
+				`{"stage":"week-1","title":"Личное задание","summary":"Прочитать учебник"}`, true)
+			require.Equal(t, http.StatusOK, added.Code)
+			var plan buddy.ChecklistProgress
+			require.NoError(t, json.Unmarshal(added.Body.Bytes(), &plan))
+			require.NotEmpty(t, plan.Extras)
+			taskID := plan.Extras[len(plan.Extras)-1].ID
+			for _, extra := range plan.Extras {
+				if extra.Title == "Личное задание" {
+					taskID = extra.ID
+				}
+			}
+			defer doRequest(api, token, "DELETE", endpoint+"/"+taskID+target, "", true)
+			after := doRequest(api, token, "GET", endpoint+"?profile_id="+team.interns[2], "", true)
+			require.JSONEq(t, before.Body.String(), after.Body.String())
+			otherManager := "manager"
+			if team.manager == otherManager {
+				otherManager = "travel-manager"
+			}
+			foreign, err := sessions.CreateDemo(t.Context(), otherManager)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusForbidden, doRequest(api, foreign, "GET", endpoint+target, "", true).Code)
+			require.Equal(t, http.StatusForbidden, doRequest(api, foreign, "POST", endpoint+target,
+				`{"stage":"week-1","title":"Чужое задание","summary":"Недоступное изменение"}`, true).Code)
+		})
+	}
+}

@@ -7,6 +7,14 @@ export const profileRoles: Record<ProfileId, JobRole> = {
   sasha: 'backend',
   timur: 'tester',
   maria: 'designer',
+  'delivery-ivan': 'analyst',
+  'delivery-elena': 'analyst',
+  'travel-pavel': 'backend',
+  'travel-sofia': 'backend',
+  'autoteca-egor': 'tester',
+  'autoteca-alisa': 'tester',
+  'help-mark': 'designer',
+  'help-eva': 'designer',
 };
 export function resourceKit(profile: ProfileId) {
   const person = profiles[profile];

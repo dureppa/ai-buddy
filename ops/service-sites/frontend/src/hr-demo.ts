@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ProfileId } from '../../../../web/frontend/src/data';
+import { primaryProfile, type ProfileId } from '../../../../web/frontend/src/demo-accounts';
 import type { StoragePort } from '../../../../web/frontend/src/demo';
 import { benefitOptions, consentOptions, destinations, exitSteps, vacancies, type HrService } from './hr-catalog';
 import fixtures from './hr-profiles.json';
@@ -65,7 +65,7 @@ export function todayInMoscow() {
 
 export function makeHrDemo(storage: StoragePort, profile: ProfileId, today = todayInMoscow()) {
   const key = 'ai-buddy.hr.' + profile;
-  const settings = fixtures[profile];
+  const settings = fixtures[primaryProfile(profile)];
   const fallback: HrState = { history: [], exitChecklist: settings.exitChecklist };
 
   function read(): HrState {
