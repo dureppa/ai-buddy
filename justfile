@@ -4,9 +4,7 @@ default: check
 
 # Isolated frontend and HTTP handlers; no servers, databases or paid model calls.
 load-test requests="2000" workers="16":
-	LOAD_REQUESTS={{quote(requests)}} LOAD_WORKERS={{quote(workers)}} npm run test:load --workspace=@ai-buddy/web
-	cd web/backend && LOAD_REQUESTS={{quote(requests)}} LOAD_WORKERS={{quote(workers)}} go test ./internal/httpapi -run '^TestBackendLoad$' -count=1 -v -timeout=10m
-	cd ai-agent && LOAD_REQUESTS={{quote(requests)}} LOAD_WORKERS={{quote(workers)}} uv run --locked pytest tests/test_load.py -q -s
+	LOAD_REQUESTS={{quote(requests)}} LOAD_WORKERS={{quote(workers)}} sh ops/checks/load-suite.sh
 
 load-bench:
 	cd web/backend && go test ./internal/httpapi -run '^$' -bench '^BenchmarkBackend' -benchmem -benchtime=3s -cpu=1,4,16

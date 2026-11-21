@@ -1,5 +1,10 @@
 # Запуск через Docker Compose
 
+Нагрузочные тесты имеют отдельный вход: `sh load-test.sh [requests] [workers]`.
+Он использует `ops/docker/Dockerfile.load`, не запускает Compose-сервисы и не
+требует `.env` или API-ключа. Языки и зависимости устанавливаются в образе;
+сам прогон идёт с `--network=none`. [Подробности](../load-testing.md).
+
 Проверка для жюри описана в [README](../../README.md). Эта страница — состав контейнеров.
 
 Основные команды выполняются из корня репозитория через Docker Compose: подходят PowerShell и терминалы Linux/macOS, `sh` не требуется. Docker использует Linux-контейнеры. Сначала запусти Docker Desktop/Engine и проверь `docker info` и `docker compose version`. Для Compose локальная установка Node.js, Go и Python не требуется.

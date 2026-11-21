@@ -212,9 +212,12 @@ npm run dev --workspace=@ai-buddy/web -- --host 127.0.0.1 --strictPort
 
 Полная проверка: `just check`. По частям: `just frontend-check`, `just python-check`, `just go-check`.
 
-Нагрузочные тесты frontend, Go и Python без обращений к LLM: `just load-test 120 8`
-или `just load-test 1000 16`. Только frontend: `just load-frontend 1000 16`.
-Сервисы и ключ модели не нужны. RPS, p50/p95/p99 и границы замера описаны в
+Нагрузочные тесты frontend, Go и Python после `git clone`: `sh load-test.sh`
+или `sh load-test.sh 1000 16`. Нужен только запущенный Docker; языки, just,
+ручной PATH, `.env` и ключ модели не требуются. Сборка скачивает зависимости,
+а тестовый контейнер выполняется без сети. При установленных нативных зависимостях
+доступны `just load-test 120 8` и `just load-frontend 1000 16`.
+RPS, p50/p95/p99 и границы замера описаны в
 [инструкции](docs/load-testing.md). Go benchmark: `just load-bench`.
 
 Порог покрытия — выше 80% отдельно для веба, Go API и Python-агента, без усреднения. Последний замер: веб 92,30% строк, Python и Go выше порога. Команды, точные числа и методика для Go — в [отчёте покрытия](docs/coverage.md).

@@ -16,6 +16,10 @@ Redis, Zustand, Kafka, Grafana и Clickstream не подключены: для 
 
 ### Локальная установка
 
+Для одних нагрузочных тестов достаточно Docker Engine/Desktop и `sh`:
+`sh load-test.sh` подготавливает закреплённые инструменты в отдельном образе
+без установки языков и just на хост. [Инструкция](load-testing.md).
+
 **Python.** Из `ai-agent/` выполни `uv sync --locked`. Команды запускай как `uv run --locked …`. Зависимости меняй через `uv add` и `uv remove` и коммить `pyproject.toml` вместе с `uv.lock`.
 
 **Go.** Из `web/backend/` выполни `go mod download`. После изменения импортов — `go mod tidy`, коммить `go.mod` и `go.sum`.

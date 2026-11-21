@@ -65,8 +65,12 @@ CI запускает эти проверки отдельными jobs `fronten
 
 `just load-test [requests] [workers]` запускает frontend API/React DOM, Go и
 Python с подменами зависимостей и без платных вызовов модели.
+Для чистого клона `sh load-test.sh [requests] [workers]` собирает изолированный
+Docker-образ с инструментами и запускает его без сети; языки и just на хосте
+не нужны. Оба способа используют общий `ops/checks/load-suite.sh`.
 `just load-frontend [requests] [workers]` проверяет только frontend.
 Короткие прогоны входят в обычные npm test, go test и pytest, включая CI.
+CI repository также выполняет короткий Docker-прогон из чистого checkout.
 `just load-bench` запускает Go benchmark.
 [Сценарии, защита от сети и методика](load-testing.md).
 
