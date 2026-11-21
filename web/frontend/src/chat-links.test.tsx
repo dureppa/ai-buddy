@@ -81,6 +81,7 @@ it.each([ChatWindow, ChatPage])('routes links consistently in both chat presenta
             },
           },
         ]}
+        suggestedQuestions={[]}
         waiting={false}
         confirming={false}
         drafts={{}}

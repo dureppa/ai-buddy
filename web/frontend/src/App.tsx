@@ -1,3 +1,5 @@
+import { chatSuggestions } from './chat-suggestions';
+import { taskSelectionResource } from './task-selection';
 import { chatPageContext, isChecklistQuestion, isTaskCompletionMessage } from './current-task';
 import { checklistQuestion } from './checklist-question';
 import type { ChatPageContext, ExplanationContext } from './selection-context';
@@ -490,6 +492,15 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
 
   const taskQuestionSending = useRef(false);
   const [activeTask, setActiveTask] = useState<ExplanationContext>();
+  const selectedResource = activeTask?.selection.resource;
+  const taskContext =
+    selectedResource?.kind === 'task' ? { id: selectedResource.id, title: selectedResource.label } : undefined;
+  const questions = chatSuggestions(
+    catalog,
+    surveysQuery.isSuccess ? workspace?.completed : undefined,
+    taskContext?.id,
+    (item) => Boolean(taskSelectionResource(profileId, item).page_ids?.length),
+  );
   const [chatError, setChatError] = useState<string>();
   const lastQuestion = useRef<{ text: string; context?: ChatPageContext } | undefined>(undefined);
   const answerMutation = useMutation({
@@ -516,8 +527,9 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     },
     onSuccess: (reply, question) => {
       const context = question.context;
+      const serviceQuestion = context?.selection?.resource?.kind !== 'task' && absenceServiceLink(question.text);
       setCompletionTargetId(
-        absenceServiceLink(question.text)
+        serviceQuestion
           ? null
           : context?.selection?.resource?.kind === 'task'
             ? context.selection.resource.id
@@ -526,7 +538,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
               : undefined,
       );
       setCompletionVisible(
-        !absenceServiceLink(question.text) &&
+        !serviceQuestion &&
           (context?.selection?.resource?.kind === 'task' ||
             (isChecklistQuestion(question.text) && context?.checklist?.status === 'in_progress')),
       );
@@ -639,10 +651,16 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       confirmChatTask(text.trim());
       return;
     }
-    const shortcut = absenceServiceLink(text);
-    const currentTaskQuestion = isChecklistQuestion(text);
+    const suggestion = questions.find((question) => question.text === text.trim());
+    const shortcut = suggestion?.task ? undefined : absenceServiceLink(text);
+    const currentTaskQuestion = !suggestion?.task && isChecklistQuestion(text);
+    const selection = suggestion?.task
+      ? checklistQuestion(profileId, suggestion.task).context
+      : shortcut || currentTaskQuestion || suggestion
+        ? undefined
+        : activeTask;
     setServiceShortcut(shortcut);
-    if (shortcut || currentTaskQuestion) {
+    if (shortcut || currentTaskQuestion || (suggestion && !suggestion.task)) {
       setActiveTask(undefined);
       setCompletionTargetId(null);
       setAwaitingService(false);
@@ -652,12 +670,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     setEntries((items) => [...items, { id, from: 'user', text: text.trim() }]);
     answerMutation.mutate({
       text: text.trim(),
-      context: chatPageContext(
-        profileId,
-        workspace,
-        shortcut || currentTaskQuestion ? undefined : activeTask,
-        !surveysQuery.isError,
-      ),
+      context: chatPageContext(profileId, workspace, selection, !surveysQuery.isError),
     });
   }
 
@@ -731,6 +744,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     profileId,
     name: profile.name,
     entries,
+    suggestedQuestions: questions.map(({ text }) => text),
     waiting:
       answerMutation.isPending || historyLoading || !workspace || surveysQuery.isPending || taskMutation.isPending,
     confirming: confirmation.isPending,
@@ -751,14 +765,10 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     onDismiss: (draft: AccessDraft) => setDrafts((previous) => ({ ...previous, [draft.id]: { type: 'dismissed' } })),
     onSurvey: () => openSurvey(),
     surveyDone: completedStages?.includes(profile.stageId) ?? false,
-    taskContext:
-      activeTask?.selection.resource?.kind === 'task'
-        ? { id: activeTask.selection.resource.id, title: activeTask.selection.resource.label }
-        : undefined,
-    contextMaterials:
-      activeTask?.selection.resource?.kind === 'task' ? (
-        <TaskMaterialList profileId={profileId} taskId={activeTask.selection.resource.id} compact />
-      ) : undefined,
+    taskContext,
+    contextMaterials: taskContext ? (
+      <TaskMaterialList profileId={profileId} taskId={taskContext.id} compact />
+    ) : undefined,
     onClearContext: () => {
       setCompletionVisible(false);
       setActiveTask(undefined);
