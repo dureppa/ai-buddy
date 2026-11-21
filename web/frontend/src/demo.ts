@@ -1,3 +1,4 @@
+import roleChecklist from '../../backend/internal/buddy/role-checklist.json';
 import { toolsFor } from './tool-links';
 import { z } from 'zod';
 import { tasksFor } from './checklist';
@@ -40,24 +41,9 @@ export type BuddyReply = ReplyText &
     | { kind: 'access_confirmation_required'; draft: AccessDraft }
   );
 
-function seedCompleted(profile: ProfileId) {
-  const list = tasksFor(profile);
-  const stageId = profiles[profile].stageId;
-  if (stageId === 'final') return list.map((task) => task.id);
-  if (stageId === 'midpoint') {
-    return list
-      .filter((task) => task.stage === 'week-1' || task.stage === 'week-2' || task.stage === 'month-1')
-      .map((task) => task.id);
-  }
-  return list
-    .filter((task) => task.stage === 'week-1')
-    .slice(0, 3)
-    .map((task) => task.id);
-}
-
 function seedWorkspace(profile: ProfileId): Workspace {
   return {
-    completed: seedCompleted(profile),
+    completed: [...roleChecklist.initialCompleted[profile]],
     requests:
       profile === 'maria' ? [{ id: 'maria-grafana', number: 'Д-001', serviceId: 'grafana', status: 'submitted' }] : [],
   };

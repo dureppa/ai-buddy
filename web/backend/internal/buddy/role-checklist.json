@@ -1,0 +1,225 @@
+{
+  "tasks": [
+    {
+      "id": "meet-team"
+    },
+    {
+      "id": "mentor-work"
+    },
+    {
+      "id": "cluster-space"
+    },
+    {
+      "id": "dev-principles"
+    },
+    {
+      "id": "avito-numbers"
+    },
+    {
+      "id": "avito-cli"
+    },
+    {
+      "id": "stash-keys"
+    },
+    {
+      "id": "tech-dep"
+    },
+    {
+      "id": "sentry"
+    },
+    {
+      "id": "learning-platform"
+    },
+    {
+      "id": "internship-survey-first",
+      "survey": "first"
+    },
+    {
+      "id": "team-docs"
+    },
+    {
+      "id": "data-stores"
+    },
+    {
+      "id": "observer"
+    },
+    {
+      "id": "paas"
+    },
+    {
+      "id": "role-docs"
+    },
+    {
+      "id": "role-profiles"
+    },
+    {
+      "id": "data-protection"
+    },
+    {
+      "id": "agile"
+    },
+    {
+      "id": "architecture"
+    },
+    {
+      "id": "sniffer"
+    },
+    {
+      "id": "spt"
+    },
+    {
+      "id": "zbp"
+    },
+    {
+      "id": "grafana"
+    },
+    {
+      "id": "api"
+    },
+    {
+      "id": "effective-go"
+    },
+    {
+      "id": "practice-memo"
+    },
+    {
+      "id": "tech-platform"
+    },
+    {
+      "id": "load-testing"
+    },
+    {
+      "id": "infomodel"
+    },
+    {
+      "id": "redash"
+    },
+    {
+      "id": "code-patterns"
+    },
+    {
+      "id": "communities"
+    },
+    {
+      "id": "shataliti"
+    },
+    {
+      "id": "equator-prep"
+    },
+    {
+      "id": "equator-meeting"
+    },
+    {
+      "id": "internship-survey-midpoint",
+      "survey": "midpoint"
+    },
+    {
+      "id": "graduation"
+    },
+    {
+      "id": "internship-survey",
+      "survey": "final"
+    },
+    {
+      "id": "book-primary"
+    },
+    {
+      "id": "book-systems"
+    },
+    {
+      "id": "book-practice"
+    },
+    {
+      "id": "book-scale"
+    },
+    {
+      "id": "book-recommendations"
+    }
+  ],
+  "initialCompleted": {
+    "olga": [
+      "meet-team",
+      "mentor-work",
+      "cluster-space"
+    ],
+    "timur": [
+      "meet-team",
+      "mentor-work",
+      "cluster-space"
+    ],
+    "sasha": [
+      "meet-team",
+      "mentor-work",
+      "cluster-space",
+      "dev-principles",
+      "avito-numbers",
+      "avito-cli",
+      "stash-keys",
+      "tech-dep",
+      "sentry",
+      "learning-platform",
+      "internship-survey-first",
+      "team-docs",
+      "data-stores",
+      "observer",
+      "paas",
+      "role-docs",
+      "role-profiles",
+      "data-protection",
+      "agile",
+      "architecture",
+      "sniffer",
+      "spt",
+      "zbp",
+      "grafana",
+      "api",
+      "effective-go"
+    ],
+    "maria": [
+      "meet-team",
+      "mentor-work",
+      "cluster-space",
+      "dev-principles",
+      "avito-numbers",
+      "avito-cli",
+      "stash-keys",
+      "tech-dep",
+      "sentry",
+      "learning-platform",
+      "internship-survey-first",
+      "team-docs",
+      "data-stores",
+      "observer",
+      "paas",
+      "role-docs",
+      "role-profiles",
+      "data-protection",
+      "agile",
+      "architecture",
+      "sniffer",
+      "spt",
+      "zbp",
+      "grafana",
+      "api",
+      "effective-go",
+      "practice-memo",
+      "tech-platform",
+      "load-testing",
+      "infomodel",
+      "redash",
+      "code-patterns",
+      "communities",
+      "shataliti",
+      "equator-prep",
+      "equator-meeting",
+      "internship-survey-midpoint",
+      "graduation",
+      "internship-survey",
+      "book-primary",
+      "book-systems",
+      "book-practice",
+      "book-scale",
+      "book-recommendations"
+    ]
+  }
+}

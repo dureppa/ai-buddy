@@ -41,6 +41,9 @@ func NewAPI(
 func (a *API) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/demo/sessions", a.handleDemoSession)
+	mux.HandleFunc("GET /api/v1/onboarding/role-checklist", a.requireAuth(a.handleRoleChecklist))
+	mux.HandleFunc("POST /api/v1/onboarding/role-checklist/import", a.requireAuth(a.handleRoleChecklist))
+	mux.HandleFunc("PUT /api/v1/onboarding/role-checklist/{task_id}", a.requireAuth(a.handleRoleChecklist))
 	mux.HandleFunc("GET /api/v1/onboarding", a.requireAuth(a.handleGetOnboarding))
 	mux.HandleFunc("PUT /api/v1/onboarding/tasks/{task_id}/completion", a.requireAuth(a.handleCompleteTask))
 	mux.HandleFunc("GET /api/v1/access-requests", a.requireAuth(a.handleListAccessRequests))

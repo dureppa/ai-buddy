@@ -281,6 +281,69 @@ paths:
           $ref: '#/components/responses/Unauthenticated'
         '404':
           $ref: '#/components/responses/NotFound'
+  /onboarding/role-checklist:
+    get:
+      operationId: getRoleChecklist
+      summary: Прочитать отметки ролевого чек-листа
+      responses:
+        '200':
+          $ref: '#/components/responses/RoleChecklistMarks'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /onboarding/role-checklist/import:
+    post:
+      operationId: importRoleChecklist
+      summary: Перенести ранее сохранённые отметки из браузера
+      description: Уже сохранённые на сервере отметки остаются в силе.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleChecklistMarks'
+      responses:
+        '200':
+          $ref: '#/components/responses/RoleChecklistMarks'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /onboarding/role-checklist/{task_id}:
+    put:
+      operationId: updateRoleChecklistTask
+      summary: Сохранить самостоятельную отметку
+      description: >-
+        При current_only сервер проверяет, что указанный пункт всё ещё текущий.
+        Отметки анкет определяются по сохранённым ответам.
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [done]
+              properties:
+                done: {type: boolean}
+                current_only: {type: boolean, default: false}
+      responses:
+        '200':
+          $ref: '#/components/responses/RoleChecklistMarks'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          description: Пункт или способ отметки недоступен.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Текущий пункт изменился (stale_checklist).
   /chat/messages:
     post:
       operationId: askBuddy
@@ -603,6 +666,12 @@ components:
       type: http
       scheme: bearer
   responses:
+    RoleChecklistMarks:
+      description: Текущие самостоятельные отметки встроенных пунктов.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RoleChecklistMarks'
     TeamGuide:
       description: Статус описания команды. Карточки присутствуют при статусе ready.
       content:
@@ -775,6 +844,14 @@ components:
           type: string
         profile_id:
           type: string
+    RoleChecklistMarks:
+      type: object
+      required: [completed]
+      properties:
+        completed:
+          type: array
+          maxItems: 100
+          items: {type: string}
     Onboarding:
       type: object
       required: [tasks, next_task_id]

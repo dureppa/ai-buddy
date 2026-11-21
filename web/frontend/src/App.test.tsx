@@ -10,11 +10,14 @@ import { readWorkspace, writeWorkspace } from './demo';
 import { tasksFor } from './checklist';
 import { demoSessionKey } from './demo-session';
 import { profiles, type ProfileId } from './demo-accounts';
-import { surveys } from './surveys';
+import { surveyForTask, surveys } from './surveys';
+import { readRoleMarks, saveRoleMark } from './role-checklist-api';
 import { readServiceQuestions } from './service-questions';
 import { readMaterials, saveMaterial, setTaskMaterials } from './staff-data';
 import { toolViews } from '../../../tools/shared/frontend/WorkToolViews';
 import { scheduleKey, type ScheduleEvent } from './schedule';
+
+vi.mock('./role-checklist-api', () => ({ readRoleMarks: vi.fn(), saveRoleMark: vi.fn() }));
 
 const backendMode = vi.hoisted(() => ({ enabled: true }));
 vi.mock('./backend', () => ({
@@ -101,6 +104,20 @@ beforeEach(() => {
     .mockReset()
     .mockImplementation(async (_profile, path) => defaultAPIResponse(path));
   vi.mocked(readBackendConversation).mockReset().mockResolvedValue([]);
+  vi.mocked(readRoleMarks)
+    .mockReset()
+    .mockImplementation(async (profile) =>
+      readWorkspace(localStorage, profile).completed.filter((id) => !surveyForTask(id) && !id.startsWith('extra-')),
+    );
+  vi.mocked(saveRoleMark)
+    .mockReset()
+    .mockImplementation(async (profile, id, done) => {
+      const workspace = readWorkspace(localStorage, profile);
+      const completed = workspace.completed.filter((entry) => entry !== id);
+      if (done) completed.push(id);
+      writeWorkspace(localStorage, profile, { ...workspace, completed });
+      return completed.filter((entry) => !surveyForTask(entry) && !entry.startsWith('extra-'));
+    });
   vi.mocked(askBackend).mockReset();
   container = document.createElement('div');
   document.body.append(container);
@@ -1331,24 +1348,77 @@ it('completes a task from the Buddy panel and restores its actual checklist chec
   expect(checkbox.getAttribute('aria-checked')).toBe('true');
 });
 
-it('confirms the explicitly discussed task instead of a different current task', async () => {
+it('completes the real current task after discussing a different one and restores the result', async () => {
   localStorage.setItem(demoSessionKey, 'olga');
+  const tasks = tasksFor('olga');
+  const first = tasks.findIndex(({ id }) => id === 'avito-numbers');
+  let serverMarks = tasks.slice(0, first).map(({ id }) => id);
+  vi.mocked(readRoleMarks).mockImplementation(async () => serverMarks);
+  vi.mocked(saveRoleMark).mockImplementationOnce(async (_profile, id) => {
+    serverMarks = [...serverMarks, id];
+    return serverMarks;
+  });
   vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Прочитай памятку.' });
   await mount('/onboarding?task=practice-memo');
-  const detail = await waitForElement(() =>
-    container.querySelector('dialog[aria-label="Изучи памятку по закрытию практики"]'),
-  );
-  const discuss = [...detail.querySelectorAll('button')].find(
-    (item) => item.textContent?.trim() === 'Разобрать пункт',
-  )!;
-  await click(discuss);
-  await waitForElement(() => {
-    return container.querySelector('.suggestions button[title*="закрытию практики"]');
+  const detail = await waitForElement(() => container.querySelector('dialog'));
+  await click([...detail.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Разобрать пункт')!);
+  const action = await button('Отметить текущую задачу выполненной');
+  expect(action.title).toBe('Изучи Авито в цифрах');
+  await enterMessage('А какие материалы нужны для этого пункта?');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(askBackend).mock.calls[1][2]).toMatchObject({
+    selection: { resource: { id: 'practice-memo' } },
+    checklist: { task: { id: 'avito-numbers' } },
   });
+  await enterMessage('готово');
+  await click(await button('Отправить сообщение'));
+  await waitForElement(() =>
+    container.querySelector('[role="log"]')?.textContent?.includes('Сейчас мы обсуждаем другой пункт'),
+  );
+  expect(saveRoleMark).not.toHaveBeenCalled();
   await click(await button('Отметить текущую задачу выполненной'));
   await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('отмечен выполненным'));
-  expect(readWorkspace(localStorage, 'olga').completed).toContain('practice-memo');
-  expect(readWorkspace(localStorage, 'olga').completed).not.toContain('dev-principles');
+  expect(saveRoleMark).toHaveBeenCalledExactlyOnceWith('olga', 'avito-numbers', true, true);
+  expect(serverMarks).not.toContain('practice-memo');
+  expect(readWorkspace(localStorage, 'olga').completed).toContain('avito-numbers');
+  writeWorkspace(localStorage, 'olga', { completed: [], requests: [] });
+  await act(async () => root.unmount());
+  root = createRoot(container);
+  client.clear();
+  await mount('/onboarding');
+  const checked = await waitForElement(() =>
+    container.querySelector('[role="checkbox"][aria-label="Изучи Авито в цифрах"]'),
+  );
+  expect(checked.getAttribute('aria-checked')).toBe('true');
+  await act(async () => container.querySelector<HTMLAnchorElement>('a[href="/chat"]')!.click());
+  await enterMessage('Какая задача сейчас?');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(3));
+  expect(vi.mocked(askBackend).mock.calls[2][2]).toMatchObject({
+    checklist: { task: { id: tasks[first + 1].id } },
+  });
+  expect(vi.mocked(askBackend).mock.calls[2][2]?.selection).toBeUndefined();
+});
+
+it('refreshes the plan after a rejected stale confirmation without sending the next task', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Текущий пункт.' });
+  vi.mocked(saveRoleMark).mockImplementationOnce(async () => {
+    const completed = [...readWorkspace(localStorage, 'olga').completed, 'dev-principles'];
+    vi.mocked(readRoleMarks).mockResolvedValue(completed);
+    throw new Error('stale_checklist');
+  });
+  await mount('/chat');
+  await enterMessage('Какая задача сейчас?');
+  await click(await button('Отправить сообщение'));
+  await click(await button('Отметить текущую задачу выполненной'));
+  await waitForElement(() =>
+    container.querySelector('[role="log"]')?.textContent?.includes('Не удалось сохранить отметку'),
+  );
+  await vi.waitFor(() => expect(readRoleMarks).toHaveBeenCalledTimes(2));
+  expect(saveRoleMark).toHaveBeenCalledExactlyOnceWith('olga', 'dev-principles', true, true);
+  expect(container.querySelector('.suggestions button[title]')).toBeNull();
 });
 
 it('does not report success after a storage failure and allows a successful retry', async () => {
@@ -1404,7 +1474,7 @@ it('opens the absence service from a task discussion even without an LLM and nev
     container.querySelector('dialog[aria-label="Изучи памятку по закрытию практики"]'),
   );
   await click([...detail.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Разобрать пункт')!);
-  await waitForElement(() => container.querySelector('.suggestions button[title*="закрытию практики"]'));
+  await waitForElement(() => container.querySelector('.suggestions button[title*="продуктовой аналитики"]'));
   vi.mocked(askBackend).mockRejectedValue(new Error('LLM unavailable'));
   await enterMessage('Как оформить отгул?');
   await vi.waitFor(async () => expect((await button('Отправить сообщение')).disabled).toBe(false));
