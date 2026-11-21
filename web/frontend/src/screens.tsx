@@ -2,7 +2,7 @@ import { currentChecklistTask } from './current-task';
 import { HrDayEvents } from './HrDayEvents';
 import type { HrToday } from './hr-schedule';
 import { eventDay, eventMonth, eventTime, upcomingEvents, type ScheduleEvent } from './schedule';
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { stages, type Person, type ProfileId, type Task, profiles } from './data';
 import { homeSectionTitle, homeTasks } from './checklist';
@@ -314,6 +314,11 @@ export function Dashboard({
   );
 }
 
+const adaptationTabs = [
+  { id: 'tasks', label: 'Задачи', icon: 'check' },
+  { id: 'materials', label: 'Материалы', icon: 'book' },
+] as const;
+
 export function Adaptation({
   profileId,
   workspace,
@@ -328,6 +333,8 @@ export function Adaptation({
     ...task,
     summary: task.materialIds.length ? task.summary + ' · Материалы: ' + task.materialIds.length : task.summary,
   }));
+  const tabsId = useId();
+  const [tab, setTab] = useState<(typeof adaptationTabs)[number]['id']>('tasks');
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all');
   const next = currentChecklistTask(tasks, workspace.completed)?.id;
   const visible = tasks.filter(
@@ -341,79 +348,139 @@ export function Adaptation({
         tone="mint"
         icon="map"
       />
-      <div className="adaptation-layout">
-        <section>
-          <div className="filter-row" aria-label="Фильтр задач">
-            <button type="button" className="filter" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
-              Все задачи
-            </button>
-            <button
-              type="button"
-              className="filter"
-              aria-pressed={filter === 'pending'}
-              onClick={() => setFilter('pending')}
-            >
-              Осталось
-            </button>
-            <button type="button" className="filter" aria-pressed={filter === 'done'} onClick={() => setFilter('done')}>
-              Выполнено
-            </button>
-          </div>
-          {visible.length === 0 && (
-            <EmptyState title="В этом списке пока пусто" text="Выбери другой фильтр, чтобы увидеть задачи." />
-          )}
-          <ol className="stage-list">
-            {stages.map((stage) => {
-              const stageTasks = visible.filter((task) => task.stage === stage.id);
-              if (!stageTasks.length) return null;
-              const total = tasks.filter((task) => task.stage === stage.id);
-              const done = total.filter((task) => workspace.completed.includes(task.id)).length;
-              return (
-                <li key={stage.id} className="panel stage">
-                  <div className={'stage__header tone-' + stage.tone}>
-                    <span className="icon-tile">
-                      <Icon name="flag" size={18} />
-                    </span>
-                    <div>
-                      <h2>{stage.name}</h2>
-                      <small>{stage.dates}</small>
-                    </div>
-                    <span className="pill">
-                      {done} / {total.length}
-                    </span>
-                  </div>
-                  <ul className="task-list">
-                    {stageTasks.map((task) => (
-                      <TaskRow
-                        key={task.id}
-                        task={task}
-                        checked={workspace.completed.includes(task.id)}
-                        next={next === task.id}
-                        saving={savingTask === task.id}
-                        onOpen={onOpen}
-                        onToggle={onToggle}
-                        onAsk={onAsk}
-                        asking={asking}
-                      />
-                    ))}
-                  </ul>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-        <aside>
-          <Progress workspace={workspace} taskIds={tasks.map((task) => task.id)} />
-          <div className="aside-note">
-            <Buddy mood={next ? 'supportive' : 'celebrating'} compact />
-            <p>{next ? 'Если шаг непонятен, я помогу разобраться.' : 'Все задачи выполнены. Ты отлично справился!'}</p>
-            <button type="button" className="text-link" onClick={onOpenBuddy}>
-              Спросить Buddy <Icon name="arrow" size={17} />
-            </button>
-          </div>
-        </aside>
+      <div
+        className="adaptation-tabs"
+        role="tablist"
+        aria-label="Разделы адаптации"
+        onKeyDown={(event) => {
+          const { key } = event;
+          if (key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'Home' && key !== 'End') return;
+          event.preventDefault();
+          const nextTab =
+            key === 'Home' ? 'tasks' : key === 'End' ? 'materials' : tab === 'tasks' ? 'materials' : 'tasks';
+          setTab(nextTab);
+          document.getElementById(tabsId + '-' + nextTab)?.focus();
+        }}
+      >
+        {adaptationTabs.map(({ id, label, icon }) => (
+          <button
+            key={id}
+            id={tabsId + '-' + id}
+            type="button"
+            className="adaptation-tab"
+            role="tab"
+            aria-selected={tab === id}
+            aria-controls={tabsId + '-' + id + '-panel'}
+            tabIndex={tab === id ? 0 : -1}
+            onClick={() => setTab(id)}
+          >
+            <Icon name={icon} size={19} />
+            {label}
+          </button>
+        ))}
       </div>
-      <InternMaterials />
+      <section
+        role="tabpanel"
+        id={tabsId + '-materials-panel'}
+        aria-labelledby={tabsId + '-materials'}
+        hidden={tab !== 'materials'}
+        tabIndex={0}
+      >
+        {tab === 'materials' && <InternMaterials />}
+      </section>
+      <section
+        role="tabpanel"
+        id={tabsId + '-tasks-panel'}
+        aria-labelledby={tabsId + '-tasks'}
+        hidden={tab !== 'tasks'}
+      >
+        {tab === 'tasks' && (
+          <div className="adaptation-layout">
+            <section>
+              <div className="filter-row" aria-label="Фильтр задач">
+                <button
+                  type="button"
+                  className="filter"
+                  aria-pressed={filter === 'all'}
+                  onClick={() => setFilter('all')}
+                >
+                  Все задачи
+                </button>
+                <button
+                  type="button"
+                  className="filter"
+                  aria-pressed={filter === 'pending'}
+                  onClick={() => setFilter('pending')}
+                >
+                  Осталось
+                </button>
+                <button
+                  type="button"
+                  className="filter"
+                  aria-pressed={filter === 'done'}
+                  onClick={() => setFilter('done')}
+                >
+                  Выполнено
+                </button>
+              </div>
+              {visible.length === 0 && (
+                <EmptyState title="В этом списке пока пусто" text="Выбери другой фильтр, чтобы увидеть задачи." />
+              )}
+              <ol className="stage-list">
+                {stages.map((stage) => {
+                  const stageTasks = visible.filter((task) => task.stage === stage.id);
+                  if (!stageTasks.length) return null;
+                  const total = tasks.filter((task) => task.stage === stage.id);
+                  const done = total.filter((task) => workspace.completed.includes(task.id)).length;
+                  return (
+                    <li key={stage.id} className="panel stage">
+                      <div className={'stage__header tone-' + stage.tone}>
+                        <span className="icon-tile">
+                          <Icon name="flag" size={18} />
+                        </span>
+                        <div>
+                          <h2>{stage.name}</h2>
+                          <small>{stage.dates}</small>
+                        </div>
+                        <span className="pill">
+                          {done} / {total.length}
+                        </span>
+                      </div>
+                      <ul className="task-list">
+                        {stageTasks.map((task) => (
+                          <TaskRow
+                            key={task.id}
+                            task={task}
+                            checked={workspace.completed.includes(task.id)}
+                            next={next === task.id}
+                            saving={savingTask === task.id}
+                            onOpen={onOpen}
+                            onToggle={onToggle}
+                            onAsk={onAsk}
+                            asking={asking}
+                          />
+                        ))}
+                      </ul>
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
+            <aside>
+              <Progress workspace={workspace} taskIds={tasks.map((task) => task.id)} />
+              <div className="aside-note">
+                <Buddy mood={next ? 'supportive' : 'celebrating'} compact />
+                <p>
+                  {next ? 'Если шаг непонятен, я помогу разобраться.' : 'Все задачи выполнены. Ты отлично справился!'}
+                </p>
+                <button type="button" className="text-link" onClick={onOpenBuddy}>
+                  Спросить Buddy <Icon name="arrow" size={17} />
+                </button>
+              </div>
+            </aside>
+          </div>
+        )}
+      </section>
     </>
   );
 }
