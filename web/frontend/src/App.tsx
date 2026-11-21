@@ -1,4 +1,4 @@
-import { chatSuggestions, chatTopic } from './chat-suggestions';
+import { chatSuggestions, chatTopic, isTaskFollowUp } from './chat-suggestions';
 import { taskSelectionResource } from './task-selection';
 import { chatPageContext, currentChecklistTask, isChecklistQuestion, isTaskCompletionMessage } from './current-task';
 import { checklistQuestion } from './checklist-question';
@@ -422,16 +422,14 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
 
   const [completionTargetId, setCompletionTargetId] = useState<string | null>();
   const completionSending = useRef(false);
-  const [completionVisible, setCompletionVisible] = useState(false);
   const [serviceShortcut, setServiceShortcut] = useState<{ label: string; to: string }>();
   const catalog = checklistFor(localStorage, profileId);
   const completionTarget = workspace && catalog.find((item) => item.id === completionTargetId);
-  const completionDone = Boolean(workspace && completionTarget && workspace.completed.includes(completionTarget.id));
-  useEffect(() => {
-    if (!completionVisible || !completionDone) return;
-    const timer = window.setTimeout(() => setCompletionVisible(false), 2000);
-    return () => window.clearTimeout(timer);
-  }, [completionVisible, completionDone, completionTargetId]);
+  const canCompleteTask =
+    surveysQuery.isSuccess &&
+    completionTarget &&
+    !surveyForTask(completionTarget.id) &&
+    !workspace?.completed.includes(completionTarget.id);
   const taskMutation = useMutation({
     mutationFn: async ({ id, completion }: { id: string; completion?: boolean; title?: string }) => {
       if (completion && (!checklistFor(localStorage, profileId).some((item) => item.id === id) || surveyForTask(id)))
@@ -539,11 +537,6 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
               ? context.checklist.task.id
               : undefined,
       );
-      setCompletionVisible(
-        !serviceQuestion &&
-          (context?.selection?.resource?.kind === 'task' ||
-            (isChecklistQuestion(question.text) && context?.checklist?.status === 'in_progress')),
-      );
       const id = nextEntry.current++;
       setEntries((items) => [...items, { id, from: 'buddy', reply }]);
       setAwaitingService(reply.kind === 'clarification' && reply.awaitingService);
@@ -627,7 +620,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       ]);
       return;
     }
-    setCompletionTargetId(item.id);
+    if (workspace.completed.includes(item.id)) return;
     const survey = surveyForTask(item.id);
     if (survey) {
       openSurvey(survey);
@@ -657,30 +650,28 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     const shortcut = suggestion?.task ? undefined : absenceServiceLink(text);
     const currentTaskQuestion = !suggestion?.task && isChecklistQuestion(text);
     const topic = chatTopic(text);
-    const clearTask =
-      shortcut || currentTaskQuestion || (suggestion && !suggestion.task) || (topic && topic !== 'task');
+    const continuesSelection =
+      !shortcut && !currentTaskQuestion && !suggestion && activeTask && isTaskFollowUp(text, taskContext?.title);
     const followUpTask =
-      !clearTask &&
+      !shortcut &&
+      !currentTaskQuestion &&
+      !suggestion &&
       !activeTask &&
       surveysQuery.isSuccess &&
       chatTopic(recentQuestions.at(-1) ?? '') === 'task' &&
-      /^(?:что может помешать выполнить (?:задачу|этот пункт)|где могут быть сложности|какие материалы нужны)[?!.]*$/i.test(
-        text.trim(),
-      )
+      isTaskFollowUp(text)
         ? currentChecklistTask(catalog, workspace.completed)
         : undefined;
     const suggestedTask = suggestion?.task ?? followUpTask;
     const selection = suggestedTask
       ? checklistQuestion(profileId, suggestedTask).context
-      : clearTask
-        ? undefined
-        : activeTask;
+      : continuesSelection
+        ? activeTask
+        : undefined;
     setServiceShortcut(shortcut);
-    if (clearTask && !suggestion?.task) {
-      setActiveTask(undefined);
-      setCompletionTargetId(null);
-      setAwaitingService(false);
-    }
+    setActiveTask(selection);
+    setCompletionTargetId(null);
+    if (shortcut || currentTaskQuestion || (topic && topic !== 'task')) setAwaitingService(false);
     taskQuestionSending.current = true;
     const id = nextEntry.current++;
     setEntries((items) => [...items, { id, from: 'user', text: text.trim() }]);
@@ -691,7 +682,6 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   }
 
   function openBuddy() {
-    setCompletionVisible(false);
     setActiveTask(undefined);
     setCompletionTargetId(undefined);
     setDrawerOpen(true);
@@ -767,16 +757,10 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     drafts,
     onSend: send,
     serviceShortcut,
-    completionTask:
-      completionVisible && completionTarget && !surveysQuery.isError
-        ? {
-            id: completionTarget.id,
-            title: completionTarget.title,
-            completed: workspace?.completed.includes(completionTarget.id) ?? false,
-            survey: Boolean(surveyForTask(completionTarget.id)),
-          }
+    completionAction:
+      canCompleteTask && completionTarget
+        ? { title: completionTarget.title, onComplete: () => confirmChatTask() }
         : undefined,
-    onCompleteTask: () => confirmChatTask(),
     onConfirm: (draft: AccessDraft) => confirmation.mutate(draft),
     onDismiss: (draft: AccessDraft) => setDrafts((previous) => ({ ...previous, [draft.id]: { type: 'dismissed' } })),
     onSurvey: () => openSurvey(),
@@ -786,7 +770,6 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       <TaskMaterialList profileId={profileId} taskId={taskContext.id} compact />
     ) : undefined,
     onClearContext: () => {
-      setCompletionVisible(false);
       setActiveTask(undefined);
       setCompletionTargetId(undefined);
     },

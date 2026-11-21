@@ -2708,24 +2708,3 @@ button.task-check:active {
 button.quick-card {
   text-align: left;
 }
-
-.chat-task-completion {
-  display: grid;
-  gap: 6px;
-  padding: 10px 12px;
-  margin-bottom: 10px;
-  border: 1px solid var(--line, #dce5dc);
-  border-radius: 16px;
-  background: #edf6e9;
-}
-.chat-task-completion small {
-  color: #50664e;
-}
-.chat-task-completion strong {
-  font-size: 13px;
-}
-.chat-task-completion .button {
-  justify-self: start;
-  min-height: 34px;
-  padding: 7px 12px;
-}

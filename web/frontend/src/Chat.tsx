@@ -25,8 +25,7 @@ export type ChatProps = {
   surveyDone: boolean;
   onNavigate?: () => void;
   taskContext?: { id: string; title: string };
-  completionTask?: { id: string; title: string; completed: boolean; survey: boolean };
-  onCompleteTask?: () => void;
+  completionAction?: { title: string; onComplete: () => void };
   serviceShortcut?: { label: string; to: string };
   contextMaterials?: ReactNode;
   onClearContext?: () => void;
@@ -94,8 +93,7 @@ export function ChatWindow({
   surveyDone,
   onNavigate,
   taskContext,
-  completionTask,
-  onCompleteTask,
+  completionAction,
   serviceShortcut,
   contextMaterials,
   onClearContext,
@@ -243,25 +241,18 @@ export function ChatWindow({
             {serviceShortcut.label} <Icon name="diagonal" size={16} />
           </a>
         )}
-        {completionTask && onCompleteTask && (
-          <div className="chat-task-completion">
-            <small>Самостоятельная отметка в чек-листе</small>
-            <strong>{completionTask.title}</strong>
+        <div className="suggestions" aria-label="Предложенные вопросы">
+          {completionAction && (
             <button
               type="button"
-              className="button button--white"
-              disabled={waiting || completionTask.completed}
-              onClick={onCompleteTask}
+              className="filter"
+              title={completionAction.title}
+              disabled={waiting}
+              onClick={completionAction.onComplete}
             >
-              {completionTask.completed
-                ? 'Выполнено ✓'
-                : completionTask.survey
-                  ? 'Заполнить анкету'
-                  : 'Отметить выполненной'}
+              Отметить текущую задачу выполненной
             </button>
-          </div>
-        )}
-        <div className="suggestions" aria-label="Предложенные вопросы">
+          )}
           {suggestedQuestions.slice(0, entries.length ? 2 : 4).map((question) => (
             <button type="button" className="filter" key={question} disabled={waiting} onClick={() => onSend(question)}>
               {question}

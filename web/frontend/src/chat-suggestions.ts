@@ -9,6 +9,7 @@ const documents = { text: 'Где найти документы?' };
 const generalQuestions = [mentor, tools, documents];
 
 const followUps = {
+  jira: ['Как создать задачу в Jira?', 'Какие задачи Jira назначены мне?'],
   calendar: ['Какие события у меня завтра?', 'Что в моём календаре на этой неделе?', 'Какие встречи у меня сегодня?'],
   access: ['Как проверить статус моих заявок на доступ?', 'Какие ресурсы есть в каталоге доступов?'],
   mentor: ['Как связаться с моим наставником?', 'Кто входит в мою команду?'],
@@ -17,6 +18,7 @@ const followUps = {
 };
 
 export function chatTopic(text: string) {
+  if (/jira|джир/i.test(text)) return 'jira';
   if (
     /^(?:(?:как выполнить|что может помешать выполнить|что стоит проверить перед|на что обратить внимание в|как понять, что|какие доступы понадобятся для) «|отметить выполненной:)|пункт|чек.лист|по плану|материалы нужны|с чего начать/i.test(
       text,
@@ -97,4 +99,19 @@ export function chatSuggestions(
   if (topic !== 'task' && (selected || stageStarted || stage > 0)) questions.push(followUp);
   questions.push(...generalQuestions);
   return rank(questions);
+}
+
+// A task selection changes the server's permissions. Keep it for follow-ups that refer to the task.
+export function isTaskFollowUp(text: string, title?: string): boolean {
+  const value = text.trim().toLowerCase();
+  if (/эт(?:от|ого|ому|им|ом) (?:пункт|задан)|эт(?:у|ой|ая) задач/i.test(value)) return true;
+  if (title && value.includes(title.toLowerCase())) return true;
+  const topic = chatTopic(value);
+  if (topic && topic !== 'task') return false;
+  return (
+    /эт(?:о|ого|ой|ом)(?=\s|[?!.]|$)/i.test(value) ||
+    /^(?:а )?(?:какие материалы (?:мне )?(?:нужны|к нему)|какой (?:мой )?первый шаг|что может помешать(?: выполнить задачу)?|какие (?:есть )?препятствия|где могут быть сложности|объясни простыми словами|(?:а )?почему|зачем|(?:а )?дальше|как это проверить)[?!.]*$/i.test(
+      value,
+    )
+  );
 }

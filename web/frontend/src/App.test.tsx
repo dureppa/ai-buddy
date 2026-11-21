@@ -1288,13 +1288,11 @@ it('completes the last practice memo by text, keeps retries idempotent and tells
   await mount('/chat');
   await enterMessage('С чего начать сегодня?');
   await click(await button('Отправить сообщение'));
-  await waitForElement(() =>
-    container.querySelector('.chat-task-completion strong')?.textContent?.includes('закрытию практики'),
-  );
-  await vi.waitFor(async () => expect((await button('Отметить выполненной')).disabled).toBe(false));
+  await waitForElement(() => container.querySelector('.suggestions button[title*="закрытию практики"]'));
+  await vi.waitFor(async () => expect((await button('Отметить текущую задачу выполненной')).disabled).toBe(false));
   await enterMessage('ознакомился');
   await click(await button('Отправить сообщение'));
-  expect((await button('Выполнено ✓')).disabled).toBe(true);
+  await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('отмечен выполненным'));
   const completed = readWorkspace(localStorage, 'olga');
   expect(completed.completed).toContain('practice-memo');
   expect(completed.requests).toEqual([]);
@@ -1314,13 +1312,13 @@ it('completes a task from the Buddy panel and restores its actual checklist chec
   vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Твой текущий пункт — принципы аналитики.' });
   await mount('/home');
   await click(await button('Открыть панель Buddy'));
-  expect(container.querySelector('.chat-task-completion')).toBeNull();
+  expect(container.querySelector('.suggestions button[title]')).toBeNull();
   await enterMessage('Какое у меня текущее задание?');
   const send = await button('Отправить сообщение');
   await vi.waitFor(() => expect(send.disabled).toBe(false));
   await click(send);
-  await click(await button('Отметить выполненной'));
-  await button('Выполнено ✓');
+  await click(await button('Отметить текущую задачу выполненной'));
+  await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('отмечен выполненным'));
   expect(readWorkspace(localStorage, 'olga').completed).toContain('dev-principles');
   expect(askBackend).toHaveBeenCalledTimes(1);
   await act(async () => root.unmount());
@@ -1345,11 +1343,10 @@ it('confirms the explicitly discussed task instead of a different current task',
   )!;
   await click(discuss);
   await waitForElement(() => {
-    const title = container.querySelector('.chat-task-completion strong');
-    return title?.textContent?.includes('закрытию практики') ? title : null;
+    return container.querySelector('.suggestions button[title*="закрытию практики"]');
   });
-  await click(await button('Отметить выполненной'));
-  await button('Выполнено ✓');
+  await click(await button('Отметить текущую задачу выполненной'));
+  await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('отмечен выполненным'));
   expect(readWorkspace(localStorage, 'olga').completed).toContain('practice-memo');
   expect(readWorkspace(localStorage, 'olga').completed).not.toContain('dev-principles');
 });
@@ -1360,7 +1357,7 @@ it('does not report success after a storage failure and allows a successful retr
   await mount('/chat');
   await enterMessage('С чего начать сегодня?');
   await click(await button('Отправить сообщение'));
-  const confirm = await button('Отметить выполненной');
+  const confirm = await button('Отметить текущую задачу выполненной');
   const save = vi.spyOn(localStorage, 'setItem').mockImplementationOnce(() => {
     throw new Error('Storage unavailable');
   });
@@ -1370,8 +1367,8 @@ it('does not report success after a storage failure and allows a successful retr
   );
   expect(readWorkspace(localStorage, 'olga').completed).not.toContain('dev-principles');
   save.mockRestore();
-  await click(await button('Отметить выполненной'));
-  await button('Выполнено ✓');
+  await click(await button('Отметить текущую задачу выполненной'));
+  await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('отмечен выполненным'));
   expect(readWorkspace(localStorage, 'olga').completed).toContain('dev-principles');
 });
 
@@ -1387,7 +1384,10 @@ it('opens the required survey instead of faking its completion from chat', async
   await mount('/chat');
   await enterMessage('Какое у меня задание?');
   await click(await button('Отправить сообщение'));
-  await click(await button('Заполнить анкету'));
+  await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('Твой пункт — опрос.'));
+  expect(container.querySelector('.suggestions button[title]')).toBeNull();
+  await enterMessage('готово');
+  await click(await button('Отправить сообщение'));
   await button('Далее');
   expect(container.querySelector('dialog')?.getAttribute('aria-label')).toBe(surveys.first.title);
   expect(readWorkspace(localStorage, 'olga').completed).not.toContain('internship-survey-first');
@@ -1404,9 +1404,7 @@ it('opens the absence service from a task discussion even without an LLM and nev
     container.querySelector('dialog[aria-label="Изучи памятку по закрытию практики"]'),
   );
   await click([...detail.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Разобрать пункт')!);
-  await waitForElement(() =>
-    container.querySelector('.chat-task-completion strong')?.textContent?.includes('закрытию практики'),
-  );
+  await waitForElement(() => container.querySelector('.suggestions button[title*="закрытию практики"]'));
   vi.mocked(askBackend).mockRejectedValue(new Error('LLM unavailable'));
   await enterMessage('Как оформить отгул?');
   await vi.waitFor(async () => expect((await button('Отправить сообщение')).disabled).toBe(false));
@@ -1419,7 +1417,7 @@ it('opens the absence service from a task discussion even without an LLM and nev
   expect(askBackend).toHaveBeenCalledTimes(2);
   expect(vi.mocked(askBackend).mock.calls[1][2]?.selection).toBeUndefined();
   expect(container.querySelector('.buddy-task-context')).toBeNull();
-  expect(container.querySelector('.chat-task-completion')).toBeNull();
+  expect(container.querySelector('.suggestions button[title]')).toBeNull();
   await enterMessage('готово');
   await click(await button('Отправить сообщение'));
   await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('Выбери задачу в плане'));
@@ -1427,27 +1425,29 @@ it('opens the absence service from a task discussion even without an LLM and nev
   expect(askBackend).toHaveBeenCalledTimes(2);
 });
 
-it('shows completion only for a task question and hides it two seconds after saving', async () => {
+it('shows completion only for a task question and removes it after saving', async () => {
   localStorage.setItem(demoSessionKey, 'olga');
   vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Да, я тут.' });
   await mount('/chat');
   await enterMessage('ты тут?');
   await click(await button('Отправить сообщение'));
   await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('Да, я тут.'));
-  expect(container.querySelector('.chat-task-completion')).toBeNull();
+  expect(container.querySelector('.suggestions button[title]')).toBeNull();
   await enterMessage('Какое у меня задание?');
   await click(await button('Отправить сообщение'));
-  await click(await button('Отметить выполненной'));
-  await button('Выполнено ✓');
+  const confirm = await button('Отметить текущую задачу выполненной');
   await act(async () => {
-    await new Promise((resolve) => window.setTimeout(resolve, 2100));
+    confirm.click();
+    confirm.click();
   });
-  expect(container.querySelector('.chat-task-completion')).toBeNull();
+  await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('отмечен выполненным'));
+  expect(container.querySelector('.suggestions button[title]')).toBeNull();
+  expect(container.querySelector('[role="log"]')?.textContent?.match(/отмечен выполненным/g)).toHaveLength(1);
   const saved = readWorkspace(localStorage, 'olga');
   await enterMessage('готово');
   await click(await button('Отправить сообщение'));
   await vi.waitFor(() => expect(readWorkspace(localStorage, 'olga')).toEqual(saved));
-  expect(container.querySelector('.chat-task-completion')).toBeNull();
+  expect(container.querySelector('.suggestions button[title]')).toBeNull();
 });
 
 it('updates both suggestion lists and sends the freshly selected task after checklist completion', async () => {
@@ -1467,7 +1467,7 @@ it('updates both suggestion lists and sends the freshly selected task after chec
   const firstContext = vi.mocked(askBackend).mock.calls[0][2];
   expect(firstContext?.checklist).toMatchObject({ task: { id: 'dev-principles' } });
 
-  await click(await button('Отметить выполненной'));
+  await click(await button('Отметить текущую задачу выполненной'));
   const nextHelp = await waitForElement(() =>
     chips().find((item) => item.textContent?.includes('Изучи Авито в цифрах')),
   );
@@ -1500,6 +1500,10 @@ it('offers only general questions and sends an unavailable snapshot when survey 
   ]);
   await click(mentorQuestion);
   expect(vi.mocked(askBackend).mock.calls[0][2]).toMatchObject({ checklist: { status: 'unavailable' } });
+  await enterMessage('Какая задача сейчас?');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(2));
+  expect(container.querySelector('.suggestions button[title]')).toBeNull();
 });
 
 it('switches to work questions after the API confirms the last survey', async () => {
@@ -1546,4 +1550,49 @@ it('replaces task suggestions in both places after a topic switch and sends no o
     () => container.querySelector('.chat-topic')?.textContent?.includes('Где найти путеводитель') || null,
   );
   expect(container.querySelector('.suggestions button')?.textContent).toBe('Где найти путеводитель по продукту?');
+});
+
+it.each(['Как создать задачу в Jira?', 'Как запросить доступ к BI?'])(
+  'keeps a related question across chats and detaches the task for %s',
+  async (independent) => {
+    localStorage.setItem(demoSessionKey, 'olga');
+    vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Ответ.' });
+    const before = readWorkspace(localStorage, 'olga');
+    await mount('/onboarding?task=practice-memo');
+    const detail = await waitForElement(() => container.querySelector('dialog'));
+    await click([...detail.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Разобрать пункт')!);
+    await waitForElement(() => container.querySelector('.suggestions button[title]'));
+    const link = await waitForElement(() => container.querySelector<HTMLAnchorElement>('aside a[href="/chat"]'));
+    await click(link);
+    await enterMessage('А какие материалы нужны для этого пункта?');
+    await click(await button('Отправить сообщение'));
+    await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(askBackend).mock.calls[1][2]?.selection?.resource).toMatchObject({ id: 'practice-memo' });
+    await enterMessage(independent);
+    await click(await button('Отправить сообщение'));
+    await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(3));
+    expect(vi.mocked(askBackend).mock.calls[2][2]?.selection).toBeUndefined();
+    expect(container.querySelector('.buddy-task-context')).toBeNull();
+    expect(container.querySelector('.suggestions button[title]')).toBeNull();
+    expect(readWorkspace(localStorage, 'olga')).toEqual(before);
+  },
+);
+
+it('restores saved messages without reviving an old task selection or completion action', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(readBackendConversation).mockResolvedValue([
+    { role: 'user', content: 'Объясни пункт моего чек-листа «Изучи продуктовые алерты»' },
+    { role: 'assistant', content: 'Описание пункта из истории.' },
+  ]);
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Инструкция Jira.' });
+  await mount('/chat');
+  await waitForElement(() =>
+    container.querySelector('[role="log"]')?.textContent?.includes('Описание пункта из истории.'),
+  );
+  expect(container.querySelector('.buddy-task-context')).toBeNull();
+  expect(container.querySelector('.suggestions button[title]')).toBeNull();
+  await enterMessage('Как создать задачу в Jira?');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(1));
+  expect(vi.mocked(askBackend).mock.calls[0][2]?.selection).toBeUndefined();
 });
