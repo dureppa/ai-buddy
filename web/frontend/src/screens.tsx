@@ -344,12 +344,7 @@ export function Adaptation({
       <div className="adaptation-layout">
         <section>
           <div className="filter-row" aria-label="Фильтр задач">
-            <button
-              type="button"
-              className="filter"
-              aria-pressed={filter === 'all'}
-              onClick={() => setFilter('all')}
-            >
+            <button type="button" className="filter" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
               Все задачи
             </button>
             <button
@@ -360,12 +355,7 @@ export function Adaptation({
             >
               Осталось
             </button>
-            <button
-              type="button"
-              className="filter"
-              aria-pressed={filter === 'done'}
-              onClick={() => setFilter('done')}
-            >
+            <button type="button" className="filter" aria-pressed={filter === 'done'} onClick={() => setFilter('done')}>
               Выполнено
             </button>
           </div>
@@ -416,9 +406,7 @@ export function Adaptation({
           <Progress workspace={workspace} taskIds={tasks.map((task) => task.id)} />
           <div className="aside-note">
             <Buddy mood={next ? 'supportive' : 'celebrating'} compact />
-            <p>
-              {next ? 'Если шаг непонятен, я помогу разобраться.' : 'Все задачи выполнены. Ты отлично справился!'}
-            </p>
+            <p>{next ? 'Если шаг непонятен, я помогу разобраться.' : 'Все задачи выполнены. Ты отлично справился!'}</p>
             <button type="button" className="text-link" onClick={onOpenBuddy}>
               Спросить Buddy <Icon name="arrow" size={17} />
             </button>
