@@ -66,3 +66,39 @@ func TestCompleteTaskIdempotent(t *testing.T) {
 	err = st.CompleteTask(ctx, "olga", "ghost")
 	require.ErrorIs(t, err, buddy.ErrNotFound)
 }
+
+func TestConcurrentRoleChecklistCompletesOnlyDisplayedTask(t *testing.T) {
+	pool := testPool(t)
+	st := New(pool)
+	service := buddy.NewOnboarding(st)
+	ctx := context.Background()
+	const profile, displayed = "olga", "dev-principles"
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, "DELETE FROM role_checklist_progress WHERE profile_id = $1", profile)
+	})
+	results := make(chan error, 2)
+	for range 2 {
+		go func() {
+			_, err := service.UpdateRoleChecklist(ctx, profile, displayed, true, true)
+			results <- err
+		}()
+	}
+	var successes, rejected int
+	for range 2 {
+		err := <-results
+		switch err {
+		case nil:
+			successes++
+		case buddy.ErrStaleChecklist:
+			rejected++
+		default:
+			t.Fatalf("unexpected completion result: %v", err)
+		}
+	}
+	require.Equal(t, 1, successes)
+	require.Equal(t, 1, rejected)
+	marks, err := service.RoleChecklist(ctx, profile)
+	require.NoError(t, err)
+	require.Contains(t, marks, displayed)
+	require.NotContains(t, marks, "avito-numbers")
+}

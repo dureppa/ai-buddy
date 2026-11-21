@@ -1,3 +1,4 @@
+import { readRoleMarks, saveRoleMark } from './role-checklist-api';
 import { chatSuggestions, chatTopic, isTaskFollowUp } from './chat-suggestions';
 import { taskSelectionResource } from './task-selection';
 import { chatPageContext, currentChecklistTask, isChecklistQuestion, isTaskCompletionMessage } from './current-task';
@@ -43,6 +44,7 @@ import {
   progressFor,
   readWorkspace,
   toggleTask,
+  writeWorkspace,
   type AccessDraft,
   type BuddyGrowthStage,
   type Workspace,
@@ -412,28 +414,73 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     if (alertsOpen && unreadIds) markRead(unreadIds.split(','));
   }, [alertsOpen, markRead, unreadIds]);
 
+  const roleMarksKey = ['role-checklist', profileId] as const;
+  const roleMarks = useQuery({
+    queryKey: roleMarksKey,
+    queryFn: async () => {
+      const legacy = workspaceQuery.data?.completed;
+      if (localStorage.getItem('ai-buddy.workspace.' + profileId) && legacy) {
+        const imported = await readRoleMarks(
+          profileId,
+          legacy.filter((id) => !surveyForTask(id) && !id.startsWith('extra-')),
+        );
+        return imported;
+      }
+      return readRoleMarks(profileId);
+    },
+    enabled: backendEnabled && workspaceQuery.isSuccess,
+  });
+  const planAvailable = surveysQuery.isSuccess && (!backendEnabled || roleMarks.isSuccess);
   const workspace = workspaceQuery.data && {
     ...workspaceQuery.data,
     completed: [
-      ...workspaceQuery.data.completed.filter((id) => !surveyForTask(id)),
+      ...(backendEnabled
+        ? [...(roleMarks.data ?? []), ...workspaceQuery.data.completed.filter((id) => id.startsWith('extra-'))]
+        : workspaceQuery.data.completed.filter((id) => !surveyForTask(id))),
       ...(completedStages ?? []).map(surveyTaskId),
     ],
   };
 
-  const [completionTargetId, setCompletionTargetId] = useState<string | null>();
+  const [offeredTaskId, setOfferedTaskId] = useState<string | null>();
   const completionSending = useRef(false);
   const [serviceShortcut, setServiceShortcut] = useState<{ label: string; to: string }>();
   const catalog = checklistFor(localStorage, profileId);
-  const completionTarget = workspace && catalog.find((item) => item.id === completionTargetId);
+  const currentTask = planAvailable && workspace ? currentChecklistTask(catalog, workspace.completed) : undefined;
+  const completionTarget = currentTask?.id === offeredTaskId ? currentTask : undefined;
   const canCompleteTask =
-    surveysQuery.isSuccess &&
-    completionTarget &&
-    !surveyForTask(completionTarget.id) &&
-    !workspace?.completed.includes(completionTarget.id);
+    completionTarget && !surveyForTask(completionTarget.id) && (!backendEnabled || !completionTarget.custom);
   const taskMutation = useMutation({
     mutationFn: async ({ id, completion }: { id: string; completion?: boolean; title?: string }) => {
-      if (completion && (!checklistFor(localStorage, profileId).some((item) => item.id === id) || surveyForTask(id)))
+      const item = catalog.find((task) => task.id === id);
+      if (!workspace || !planAvailable || !item || surveyForTask(id) || (completion && id !== currentTask?.id))
         throw new Error('Пункт нельзя подтвердить таким способом.');
+      if (backendEnabled && !item.custom) {
+        const completed = await saveRoleMark(
+          profileId,
+          id,
+          completion === true || !workspace.completed.includes(id),
+          completion === true,
+        );
+        await queryClient.cancelQueries({ queryKey: roleMarksKey });
+        queryClient.setQueryData(roleMarksKey, completed);
+        // Keep the same-browser mentor demo in sync with successful server writes.
+        try {
+          const local = readWorkspace(localStorage, profileId);
+          writeWorkspace(localStorage, profileId, {
+            ...local,
+            completed: [...completed, ...local.completed.filter((entry) => entry.startsWith('extra-'))],
+          });
+        } catch {
+          // The server already saved the mark.
+        }
+        return {
+          ...workspace,
+          completed: [
+            ...completed,
+            ...workspace.completed.filter((entry) => entry.startsWith('extra-') || surveyForTask(entry)),
+          ],
+        };
+      }
       return completion ? completeTask(localStorage, profileId, id) : toggleTask(localStorage, profileId, id);
     },
     onSettled: () => {
@@ -448,7 +495,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       }
       queryClient.setQueryData(workspaceKey, updated);
       if (done) setMood('celebrating');
-      if (completion) setActiveTask(undefined);
+      if (completion) setOfferedTaskId(null);
       if (completion)
         setEntries((items) => [
           ...items,
@@ -471,6 +518,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       });
     },
     onError: (_, { completion }) => {
+      if (backendEnabled) void queryClient.invalidateQueries({ queryKey: roleMarksKey });
       setMood('supportive');
       if (completion)
         setEntries((items) => [
@@ -480,7 +528,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
             from: 'buddy',
             reply: {
               kind: 'answer',
-              text: 'Не удалось сохранить отметку. Задача не завершена — попробуй ещё раз.',
+              text: 'Не удалось сохранить отметку. Проверь актуальный план и попробуй ещё раз.',
             },
           },
         ]);
@@ -496,7 +544,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   const recentQuestions = entries.flatMap((entry) => (entry.from === 'user' ? [entry.text] : [])).slice(-3);
   const questions = chatSuggestions(
     catalog,
-    surveysQuery.isSuccess ? workspace?.completed : undefined,
+    planAvailable ? workspace?.completed : undefined,
     taskContext?.id,
     (item) => Boolean(taskSelectionResource(profileId, item).page_ids?.length),
     recentQuestions,
@@ -527,16 +575,8 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     },
     onSuccess: (reply, question) => {
       const context = question.context;
-      const serviceQuestion = context?.selection?.resource?.kind !== 'task' && absenceServiceLink(question.text);
-      setCompletionTargetId(
-        serviceQuestion
-          ? null
-          : context?.selection?.resource?.kind === 'task'
-            ? context.selection.resource.id
-            : isChecklistQuestion(question.text) && context?.checklist?.status === 'in_progress'
-              ? context.checklist.task.id
-              : undefined,
-      );
+      const discussingPlan = context?.selection?.resource?.kind === 'task' || isChecklistQuestion(question.text);
+      setOfferedTaskId(discussingPlan ? currentTask?.id : null);
       const id = nextEntry.current++;
       setEntries((items) => [...items, { id, from: 'buddy', reply }]);
       setAwaitingService(reply.kind === 'clarification' && reply.awaitingService);
@@ -585,7 +625,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  function confirmChatTask(text?: string) {
+  function confirmChatTask(text?: string, expectedId = offeredTaskId) {
     if (
       !workspace ||
       historyLoading ||
@@ -598,13 +638,14 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       return;
     setChatError(undefined);
     lastQuestion.current = undefined;
-    const item =
-      completionTarget && checklistFor(localStorage, profileId).find((task) => task.id === completionTarget.id);
+    const item = currentTask && currentTask.id === expectedId ? currentTask : undefined;
+    if (!text && !item) return;
+    const needsExplicitConfirmation = text && taskContext && taskContext.id !== item?.id;
     setEntries((items) => [
       ...items,
       { id: nextEntry.current++, from: 'user', text: text ?? 'Отметить выполненной: «' + item?.title + '».' },
     ]);
-    if (surveysQuery.isError || !item) {
+    if (!planAvailable || !item || needsExplicitConfirmation || (backendEnabled && item.custom)) {
       setEntries((items) => [
         ...items,
         {
@@ -612,9 +653,12 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
           from: 'buddy',
           reply: {
             kind: 'answer',
-            text: surveysQuery.isError
-              ? 'Не удалось обновить план. Попробуй открыть его заново — пока не буду менять отметки.'
-              : 'Сейчас нет доступного пункта для отметки. Выбери задачу в плане адаптации.',
+            text:
+              needsExplicitConfirmation && item
+                ? 'Сейчас мы обсуждаем другой пункт. Для отметки текущей задачи воспользуйся подсказкой под чатом.'
+                : surveysQuery.isError || roleMarks.isError
+                  ? 'Не удалось обновить план. Попробуй открыть его заново — пока не буду менять отметки.'
+                  : 'Сейчас нет доступного пункта для отметки. Выбери задачу в плане адаптации.',
           },
         },
       ]);
@@ -657,7 +701,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       !currentTaskQuestion &&
       !suggestion &&
       !activeTask &&
-      surveysQuery.isSuccess &&
+      planAvailable &&
       chatTopic(recentQuestions.at(-1) ?? '') === 'task' &&
       isTaskFollowUp(text)
         ? currentChecklistTask(catalog, workspace.completed)
@@ -670,20 +714,20 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
         : undefined;
     setServiceShortcut(shortcut);
     setActiveTask(selection);
-    setCompletionTargetId(null);
+    setOfferedTaskId(null);
     if (shortcut || currentTaskQuestion || (topic && topic !== 'task')) setAwaitingService(false);
     taskQuestionSending.current = true;
     const id = nextEntry.current++;
     setEntries((items) => [...items, { id, from: 'user', text: text.trim() }]);
     answerMutation.mutate({
       text: text.trim(),
-      context: chatPageContext(profileId, workspace, selection, !surveysQuery.isError),
+      context: chatPageContext(profileId, workspace, selection, planAvailable),
     });
   }
 
   function openBuddy() {
     setActiveTask(undefined);
-    setCompletionTargetId(undefined);
+    setOfferedTaskId(undefined);
     setDrawerOpen(true);
   }
   function retryQuestion() {
@@ -703,7 +747,6 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     )
       return;
     taskQuestionSending.current = true;
-    setCompletionTargetId(item.id);
     const question = checklistQuestion(profileId, item);
     const id = nextEntry.current++;
     setEntries((items) => [...items, { id, from: 'user', text: question.text }]);
@@ -712,7 +755,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     setDrawerOpen(true);
     answerMutation.mutate({
       ...question,
-      context: chatPageContext(profileId, workspace, question.context, !surveysQuery.isError),
+      context: chatPageContext(profileId, workspace, question.context, planAvailable),
     });
   }
 
@@ -759,7 +802,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     serviceShortcut,
     completionAction:
       canCompleteTask && completionTarget
-        ? { title: completionTarget.title, onComplete: () => confirmChatTask() }
+        ? { title: completionTarget.title, onComplete: () => confirmChatTask(undefined, completionTarget.id) }
         : undefined,
     onConfirm: (draft: AccessDraft) => confirmation.mutate(draft),
     onDismiss: (draft: AccessDraft) => setDrafts((previous) => ({ ...previous, [draft.id]: { type: 'dismissed' } })),
@@ -771,7 +814,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     ) : undefined,
     onClearContext: () => {
       setActiveTask(undefined);
-      setCompletionTargetId(undefined);
+      setOfferedTaskId(undefined);
     },
     error: chatError,
     onRetry: retryQuestion,

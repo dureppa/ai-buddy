@@ -53,3 +53,36 @@ func (a *API) handleCompleteTask(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, toOnboardingDTO(tasks, next))
 }
+
+func (a *API) handleRoleChecklist(w http.ResponseWriter, r *http.Request) {
+	p, _ := profileFrom(r.Context())
+	var marks []string
+	var err error
+	if r.Method == http.MethodGet {
+		marks, err = a.onboarding.RoleChecklist(r.Context(), p.ID)
+	} else if r.Method == http.MethodPost {
+		var input struct {
+			Completed []string `json:"completed"`
+		}
+		if err := decodeJSON(w, r, &input); err != nil || input.Completed == nil || len(input.Completed) > 100 {
+			writeError(w, buddy.ErrInvalidInput)
+			return
+		}
+		marks, err = a.onboarding.ImportRoleChecklist(r.Context(), p.ID, input.Completed)
+	} else {
+		var input struct {
+			Done        *bool `json:"done"`
+			CurrentOnly bool  `json:"current_only"`
+		}
+		if err := decodeJSON(w, r, &input); err != nil || input.Done == nil {
+			writeError(w, buddy.ErrInvalidInput)
+			return
+		}
+		marks, err = a.onboarding.UpdateRoleChecklist(r.Context(), p.ID, r.PathValue("task_id"), *input.Done, input.CurrentOnly)
+	}
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string][]string{"completed": marks})
+}

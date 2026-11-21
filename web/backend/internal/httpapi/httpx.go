@@ -38,6 +38,8 @@ func mapError(err error) (int, string, string) {
 		return http.StatusForbidden, "forbidden", buddy.ErrForbidden.Error()
 	case errors.Is(err, buddy.ErrNotFound):
 		return http.StatusNotFound, "not_found", buddy.ErrNotFound.Error()
+	case errors.Is(err, buddy.ErrStaleChecklist):
+		return http.StatusConflict, "stale_checklist", buddy.ErrStaleChecklist.Error()
 	case errors.Is(err, buddy.ErrExpiredDraft):
 		return http.StatusConflict, "expired_draft", buddy.ErrExpiredDraft.Error()
 	case errors.Is(err, buddy.ErrUnavailable):

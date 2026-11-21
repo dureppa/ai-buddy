@@ -1,3 +1,4 @@
+import roleChecklist from '../../backend/internal/buddy/role-checklist.json';
 import { surveys, surveyTaskId, type SurveyStage } from './surveys';
 import { profiles, type ProfileId } from './demo-accounts';
 
@@ -1080,15 +1081,19 @@ const items: Blueprint[] = [
 
 export function tasksFor(profileId: ProfileId): Task[] {
   const role = roleByProfile[profileId];
-  return items.map((item) => ({
-    id: item.id,
-    stage: item.stage,
-    icon: item.icon,
-    tone: item.tone,
-    owner: item.owner,
-    due: dueByStage[item.stage],
-    ...item.copy[role],
-  }));
+  const copyById = new Map(items.map((item) => [item.id, item]));
+  return roleChecklist.tasks.map(({ id }) => {
+    const item = copyById.get(id)!;
+    return {
+      id: item.id,
+      stage: item.stage,
+      icon: item.icon,
+      tone: item.tone,
+      owner: item.owner,
+      due: dueByStage[item.stage],
+      ...item.copy[role],
+    };
+  });
 }
 
 export function homeTasks(profileId: ProfileId): Task[] {
