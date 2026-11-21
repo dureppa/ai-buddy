@@ -8,12 +8,12 @@ import {
   type ProfileId,
   type ProductId,
 } from '../../../web/frontend/src/demo-accounts';
-import { catalogVersion, templates, type JobRole } from './catalog';
+import { catalogVersion, templates, type JobRole, type AccessTemplate } from './catalog';
 
 export const inputSchema = z
   .object({
     template_id: z.string().min(1),
-    catalog_version: z.literal(1),
+    catalog_version: z.number().int().positive(),
     system: z.string().trim().min(1).max(120),
     resource_key: z.string().trim().min(1).max(160),
     justification: z
@@ -69,12 +69,17 @@ export function readAccessAccount(cookie: string): AccountId | null {
     ?.slice('ai_buddy_account='.length);
   return id && (isProfileId(id) || isStaffId(id)) ? id : null;
 }
-export function parseInput(raw: unknown): RequestInput {
+export function parseInput(raw: unknown, liveTemplate?: AccessTemplate, version = catalogVersion): RequestInput {
   const result = inputSchema.safeParse(raw);
   if (!result.success) throw new Error(result.error.issues[0]?.message || 'Проверьте поля заявки.');
   const input = result.data;
-  const template = templates.find((item) => item.id === input.template_id);
-  if (!template || input.catalog_version !== catalogVersion)
+  const template = liveTemplate ?? templates.find((item) => item.id === input.template_id);
+  if (
+    !template ||
+    template.id !== input.template_id ||
+    (liveTemplate && template.system !== input.system) ||
+    input.catalog_version !== version
+  )
     throw new Error('Каталог изменился. Выберите ресурс заново.');
   if (!template.levels.includes(input.permission))
     throw new Error('Этот уровень прав недоступен для выбранного ресурса.');

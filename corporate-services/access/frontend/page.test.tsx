@@ -177,3 +177,109 @@ it('rejects unknown preset links without creating a request', async () => {
   expect(api.submit).not.toHaveBeenCalled();
   window.history.replaceState(null, '', '/');
 });
+
+const bi: LiveTemplate = {
+  ...templates.find((value) => value.id === 'bi')!,
+  resources: [
+    { resource_key: 'bi-id-1', fields: { workspace: 'Пространство доставки' } },
+    { resource_key: 'bi-id-2', fields: {} },
+  ],
+};
+function field(name: string) {
+  return [...container.querySelectorAll('label')].find((label) => label.textContent?.startsWith(name))!;
+}
+async function chooseResource(id: string) {
+  const select = field('Ключ ресурса').querySelector('select')!;
+  await act(async () => {
+    select.value = id;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+}
+it('switches dependent BI fields and submits the catalog identifiers after review', async () => {
+  const catalog = await api.catalog();
+  api.catalog.mockResolvedValue({ ...catalog, version: 2, templates: [bi, template] });
+  api.submit.mockResolvedValue(record);
+  await mount();
+  await click(template.title);
+  await chooseResource('delivery.orders_mart');
+  await click('Отмена');
+  await click(bi.title);
+  expect(field('Система или проект').querySelector('input')?.value).toBe('BI');
+  expect(field('Ключ ресурса').querySelector('select')?.value).toBe('');
+  expect(field('Рабочее пространство').querySelector('input')?.disabled).toBe(true);
+  expect(field('Ключ ресурса').textContent).toContain('Пространство доставки');
+  const search = field('Поиск ресурса').querySelector('input')!;
+  async function searchFor(value: string) {
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, value);
+      search.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+  await searchFor('нет такого');
+  await hasText('По этому запросу ничего не найдено.');
+  await searchFor('доставки');
+  expect([...field('Ключ ресурса').querySelectorAll('option')].map((option) => option.value)).toEqual(['', 'bi-id-1']);
+  await searchFor('');
+  await chooseResource('bi-id-1');
+  expect(field('Рабочее пространство').querySelector('input')?.value).toBe('Пространство доставки');
+  expect(field('Рабочее пространство').querySelector('input')?.readOnly).toBe(true);
+  await chooseResource('bi-id-2');
+  expect(field('Рабочее пространство').querySelector('input')?.value).toBe('');
+  expect(field('Рабочее пространство').querySelector('input')?.readOnly).toBe(false);
+  await chooseResource('bi-id-1');
+  const textarea = container.querySelector('textarea')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+      textarea,
+      record.input.justification,
+    );
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await submitForm();
+  await hasText('Проверьте заявку');
+  expect(api.submit).not.toHaveBeenCalled();
+  await submitForm();
+  expect(api.submit).toHaveBeenCalledWith(
+    expect.objectContaining({
+      template_id: 'bi',
+      system: 'BI',
+      resource_key: 'bi-id-1',
+      catalog_version: 2,
+      fields: { workspace: 'Пространство доставки' },
+    }),
+    expect.any(String),
+  );
+});
+
+it('shows a scoped empty catalog without allowing an unknown resource to be submitted', async () => {
+  const catalog = await api.catalog();
+  api.catalog.mockResolvedValue({ ...catalog, templates: [{ ...bi, resources: [] }] });
+  await mount();
+  await click(bi.title);
+  await hasText('у вашего профиля нет доступных ресурсов');
+  expect(field('Ключ ресурса').querySelector('select')?.disabled).toBe(true);
+  expect((await button('Продолжить')).disabled).toBe(true);
+  await submitForm();
+  expect(api.submit).not.toHaveBeenCalled();
+});
+
+it('opens an editable preset when the catalog does not specify the workspace', async () => {
+  window.history.replaceState(null, '', '/?template=bi&profile=olga');
+  const catalog = await api.catalog();
+  api.catalog.mockResolvedValue({ ...catalog, templates: [{ ...bi, resources: [bi.resources[1]] }] });
+  await mount();
+  await button('Продолжить');
+  expect(field('Ключ ресурса').querySelector('select')?.value).toBe('bi-id-2');
+  expect(field('Рабочее пространство').querySelector('input')?.value).toBe('');
+  expect(api.submit).not.toHaveBeenCalled();
+});
+
+it('shows a catalog error without displaying an empty result or guessing resources', async () => {
+  api.catalog.mockRejectedValueOnce(new Error('Сервис временно недоступен.'));
+  await mount();
+  await hasText('Сервис временно недоступен.');
+  expect(container.textContent).not.toContain('Ресурсы не найдены.');
+  expect(container.querySelector('.access-card')).toBeNull();
+  await click('Повторить');
+  await button(template.title);
+});
