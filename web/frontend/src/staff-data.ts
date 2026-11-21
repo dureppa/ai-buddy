@@ -10,6 +10,7 @@ import {
   type ProfileId,
   type StaffId,
 } from './demo-accounts';
+import type { ChecklistPlan } from './role-checklist-api';
 import { readDemoSession } from './demo-session';
 import { readWorkspace, type StoragePort } from './demo';
 
@@ -87,23 +88,27 @@ export function readStaffId(storage: Pick<Storage, 'getItem'>): StaffId | null {
 
 export type ChecklistEntry = Task & { custom: boolean; materialIds: string[]; done: boolean };
 
-export function internOverview(storage: StoragePort, staff: StaffId) {
-  const id = products[staffAccounts[staff].productId].intern;
-  const checklist = checklistFor(storage, id);
-  const completed = checklist.filter((item) => item.done).length;
-  return [
-    {
+export function internOverview(storage: StoragePort, staff: StaffId, plans?: readonly ChecklistPlan[]) {
+  const ids = plans
+    ? plans.map((plan) => plan.profile_id).filter(isProfileId)
+    : [products[staffAccounts[staff].productId].intern];
+  return ids.map((id) => {
+    const plan = plans?.find((entry) => entry.profile_id === id);
+    const checklist = checklistFor(storage, id, plan);
+    const completed = plan?.completed.length ?? checklist.filter((item) => item.done).length;
+    const total = plan?.total ?? checklist.length;
+    return {
       id,
       profile: profiles[id],
       progress: {
         completed,
-        remaining: checklist.length - completed,
-        percent: checklist.length ? Math.round((completed / checklist.length) * 100) : 0,
+        remaining: total - completed,
+        percent: plan?.percent ?? (total ? Math.round((completed / total) * 100) : 0),
       },
       checklist,
       next: checklist.find((item) => !item.done),
-    },
-  ];
+    };
+  });
 }
 
 export function readMaterials(storage: StoragePort): StaffMaterial[] {
@@ -223,8 +228,8 @@ function internOf(staff: StaffId) {
   return products[staffAccounts[staff].productId].intern;
 }
 
-export function checklistFor(storage: StoragePort, profile: ProfileId): ChecklistEntry[] {
-  const workspace = readWorkspace(storage, profile);
+export function checklistFor(storage: StoragePort, profile: ProfileId, plan?: ChecklistPlan): ChecklistEntry[] {
+  const completed = plan?.completed ?? readWorkspace(storage, profile).completed;
   const edits = readEdits(storage);
   const links = new Map(
     edits.links.filter((link) => link.profileId === profile).map((link) => [link.taskId, link.materialIds]),
@@ -233,29 +238,30 @@ export function checklistFor(storage: StoragePort, profile: ProfileId): Checklis
     ...task,
     custom: false,
     materialIds: links.get(task.id) ?? [],
-    done: workspace.completed.includes(task.id),
+    done: completed.includes(task.id),
   }));
-  const extras = edits.extras
-    .filter((item) => item.profileId === profile)
-    .map((item) => ({
-      id: item.id,
-      title: item.title,
-      summary: item.summary,
-      details: item.summary,
-      due: stages.find((stage) => stage.id === item.stage)?.name ?? item.stage,
-      owner: 'Команда',
-      stage: item.stage,
-      icon: 'book' as const,
-      tone: 'lilac' as const,
-      custom: true,
-      materialIds: item.materialIds,
-      done: workspace.completed.includes(item.id),
-    }));
+  const extras = (plan?.extras ?? edits.extras.filter((item) => item.profileId === profile)).map((item) => ({
+    id: item.id,
+    title: item.title,
+    summary: item.summary,
+    details: item.summary,
+    due: stages.find((stage) => stage.id === item.stage)?.name ?? item.stage,
+    owner: 'Команда',
+    stage: item.stage,
+    icon: 'book' as const,
+    tone: 'lilac' as const,
+    custom: true,
+    materialIds:
+      links.get(item.id) ??
+      edits.extras.find((extra) => extra.id === item.id && extra.profileId === profile)?.materialIds ??
+      [],
+    done: completed.includes(item.id),
+  }));
   return [...base, ...extras];
 }
 
-export function materialsForTask(storage: StoragePort, profile: ProfileId, taskId: string) {
-  const item = checklistFor(storage, profile).find((entry) => entry.id === taskId);
+export function materialsForTask(storage: StoragePort, profile: ProfileId, taskId: string, plan?: ChecklistPlan) {
+  const item = checklistFor(storage, profile, plan).find((entry) => entry.id === taskId);
   if (!item) return [];
   const available = new Map(internMaterials(storage, profile).map((material) => [material.id, material]));
   return item.materialIds.flatMap((id) => {
@@ -282,16 +288,22 @@ export function removeChecklistItem(storage: StoragePort, staff: StaffId, taskId
   writeEdits(storage, { ...edits, extras: edits.extras.filter((item) => item.id !== taskId) });
 }
 
-export function setTaskMaterials(storage: StoragePort, staff: StaffId, taskId: string, materialIds: readonly string[]) {
-  const profileId = internOf(staff);
-  const checklist = checklistFor(storage, profileId);
+export function setTaskMaterials(
+  storage: StoragePort,
+  staff: StaffId,
+  taskId: string,
+  materialIds: readonly string[],
+  plan?: ChecklistPlan,
+) {
+  const profileId = plan && isProfileId(plan.profile_id) ? plan.profile_id : internOf(staff);
+  const checklist = checklistFor(storage, profileId, plan);
   const task = checklist.find((item) => item.id === taskId);
   if (!task) throw new Error('Пункт чек-листа не найден.');
   const allowed = new Set(internMaterials(storage, profileId).map((material) => material.id));
   const unique = [...new Set(materialIds)];
   if (unique.some((id) => !allowed.has(id))) throw new Error('Можно указать только материалы этого стажёра.');
   const edits = readEdits(storage);
-  if (task.custom) {
+  if (task.custom && !plan) {
     writeEdits(storage, {
       ...edits,
       extras: edits.extras.map((item) => (item.id === taskId ? { ...item, materialIds: unique } : item)),

@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/dureppa/ai-buddy/web/backend/internal/buddy"
 )
@@ -55,34 +56,90 @@ func (a *API) handleCompleteTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) handleRoleChecklist(w http.ResponseWriter, r *http.Request) {
-	p, _ := profileFrom(r.Context())
-	var marks []string
-	var err error
-	if r.Method == http.MethodGet {
-		marks, err = a.onboarding.RoleChecklist(r.Context(), p.ID)
-	} else if r.Method == http.MethodPost {
-		var input struct {
-			Completed []string `json:"completed"`
-		}
-		if err := decodeJSON(w, r, &input); err != nil || input.Completed == nil || len(input.Completed) > 100 {
-			writeError(w, buddy.ErrInvalidInput)
+	actor, _ := profileFrom(r.Context())
+	ctx := r.Context()
+	targets, err := a.onboarding.ChecklistTargets(ctx, actor)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	profile := r.URL.Query().Get("profile_id")
+	if profile == "" {
+		if r.Method == http.MethodGet && actor.IsOnboardingStaff() {
+			plans := make([]buddy.ChecklistProgress, 0, len(targets))
+			for _, id := range targets {
+				plan, err := a.onboarding.ChecklistSnapshot(ctx, id)
+				if err != nil {
+					writeError(w, err)
+					return
+				}
+				plans = append(plans, plan)
+			}
+			writeJSON(w, http.StatusOK, map[string]any{"plans": plans})
 			return
 		}
-		marks, err = a.onboarding.ImportRoleChecklist(r.Context(), p.ID, input.Completed)
-	} else {
+		profile = actor.ID
+	}
+	if !slices.Contains(targets, profile) {
+		writeError(w, buddy.ErrForbidden)
+		return
+	}
+	switch r.Method {
+	case http.MethodPost:
+		if r.URL.Path == "/api/v1/onboarding/role-checklist/import" {
+			if actor.IsOnboardingStaff() {
+				writeError(w, buddy.ErrForbidden)
+				return
+			}
+			var input struct {
+				Completed []string `json:"completed"`
+			}
+			if decodeJSON(w, r, &input) != nil || input.Completed == nil || len(input.Completed) > 100 {
+				writeError(w, buddy.ErrInvalidInput)
+				return
+			}
+			_, err = a.onboarding.ImportRoleChecklist(ctx, profile, input.Completed)
+		} else {
+			if !actor.IsOnboardingStaff() {
+				writeError(w, buddy.ErrForbidden)
+				return
+			}
+			var input buddy.ChecklistExtraInput
+			if decodeJSON(w, r, &input) != nil {
+				writeError(w, buddy.ErrInvalidInput)
+				return
+			}
+			err = a.onboarding.AddChecklistExtra(ctx, profile, input)
+		}
+	case http.MethodDelete:
+		if !actor.IsOnboardingStaff() {
+			writeError(w, buddy.ErrForbidden)
+			return
+		}
+		err = a.onboarding.DeleteChecklistExtra(ctx, profile, r.PathValue("task_id"))
+	case http.MethodPut:
+		if actor.IsOnboardingStaff() {
+			writeError(w, buddy.ErrForbidden)
+			return
+		}
 		var input struct {
 			Done        *bool `json:"done"`
 			CurrentOnly bool  `json:"current_only"`
 		}
-		if err := decodeJSON(w, r, &input); err != nil || input.Done == nil {
+		if decodeJSON(w, r, &input) != nil || input.Done == nil {
 			writeError(w, buddy.ErrInvalidInput)
 			return
 		}
-		marks, err = a.onboarding.UpdateRoleChecklist(r.Context(), p.ID, r.PathValue("task_id"), *input.Done, input.CurrentOnly)
+		err = a.onboarding.RecordChecklistMark(ctx, profile, r.PathValue("task_id"), *input.Done, input.CurrentOnly)
 	}
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string][]string{"completed": marks})
+	plan, err := a.onboarding.ChecklistSnapshot(ctx, profile)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, plan)
 }

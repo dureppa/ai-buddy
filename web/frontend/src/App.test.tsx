@@ -10,14 +10,19 @@ import { readWorkspace, writeWorkspace } from './demo';
 import { tasksFor } from './checklist';
 import { demoSessionKey } from './demo-session';
 import { profiles, type ProfileId } from './demo-accounts';
-import { surveyForTask, surveys } from './surveys';
-import { readRoleMarks, saveRoleMark } from './role-checklist-api';
+import { surveyForTask, surveyTaskId, surveys, type SurveyStage } from './surveys';
+import { changeTeamPlan, readRoleMarks, readTeamPlans, saveRoleMark, type ChecklistPlan } from './role-checklist-api';
 import { readServiceQuestions } from './service-questions';
 import { readMaterials, saveMaterial, setTaskMaterials } from './staff-data';
 import { toolViews } from '../../../tools/shared/frontend/WorkToolViews';
 import { scheduleKey, type ScheduleEvent } from './schedule';
 
-vi.mock('./role-checklist-api', () => ({ readRoleMarks: vi.fn(), saveRoleMark: vi.fn() }));
+vi.mock('./role-checklist-api', () => ({
+  readRoleMarks: vi.fn(),
+  saveRoleMark: vi.fn(),
+  readTeamPlans: vi.fn(),
+  changeTeamPlan: vi.fn(),
+}));
 
 const backendMode = vi.hoisted(() => ({ enabled: true }));
 vi.mock('./backend', () => ({
@@ -73,6 +78,17 @@ let root: Root;
 let client: QueryClient;
 let container: HTMLDivElement;
 
+function snapshot(profile: ProfileId, completed: string[], extras: ChecklistPlan['extras'] = []): ChecklistPlan {
+  const total = tasksFor(profile).length + extras.length;
+  return { profile_id: profile, completed, extras, total, percent: Math.round((completed.length / total) * 100) };
+}
+
+async function serverPlan(profile: ProfileId, completed: string[]) {
+  const response = await vi.mocked(apiFetch).getMockImplementation()?.(profile, '/api/v1/onboarding/surveys');
+  const stages = (await response?.json()) as SurveyStage[] | undefined;
+  return snapshot(profile, [...completed.filter((id) => !surveyForTask(id)), ...(stages ?? []).map(surveyTaskId)]);
+}
+
 beforeEach(() => {
   backendMode.enabled = true;
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -106,9 +122,9 @@ beforeEach(() => {
   vi.mocked(readBackendConversation).mockReset().mockResolvedValue([]);
   vi.mocked(readRoleMarks)
     .mockReset()
-    .mockImplementation(async (profile) =>
-      readWorkspace(localStorage, profile).completed.filter((id) => !surveyForTask(id) && !id.startsWith('extra-')),
-    );
+    .mockImplementation(async (profile) => serverPlan(profile, readWorkspace(localStorage, profile).completed));
+  vi.mocked(readTeamPlans).mockReset().mockResolvedValue([]);
+  vi.mocked(changeTeamPlan).mockReset();
   vi.mocked(saveRoleMark)
     .mockReset()
     .mockImplementation(async (profile, id, done) => {
@@ -116,7 +132,7 @@ beforeEach(() => {
       const completed = workspace.completed.filter((entry) => entry !== id);
       if (done) completed.push(id);
       writeWorkspace(localStorage, profile, { ...workspace, completed });
-      return completed.filter((entry) => !surveyForTask(entry) && !entry.startsWith('extra-'));
+      return serverPlan(profile, completed);
     });
   vi.mocked(askBackend).mockReset();
   container = document.createElement('div');
@@ -298,8 +314,41 @@ it.each([
   await vi.waitFor(() => expect(container.textContent).not.toContain('Встреча с командой теста'));
 });
 
-it('shows the task a mentor adds in the intern’s workspace after signing out', async () => {
+it('shares staff edits and intern marks across profiles and reloads', async () => {
   localStorage.setItem(demoSessionKey, 'mentor');
+  let olga = snapshot('olga', ['meet-team', surveyTaskId('first')]);
+  const sasha = snapshot(
+    'sasha',
+    tasksFor('sasha').map(({ id }) => id),
+  );
+  vi.mocked(readTeamPlans).mockImplementation(async () => [olga, sasha]);
+  vi.mocked(readRoleMarks).mockImplementation(async () => olga);
+  vi.mocked(changeTeamPlan).mockImplementation(async (staff, profile, change) => {
+    expect(staff).toBe('mentor');
+    expect(profile).toBe('olga');
+    if (typeof change === 'string') {
+      olga = snapshot(
+        'olga',
+        olga.completed.filter((id) => id !== change),
+      );
+    } else {
+      olga = snapshot('olga', olga.completed, [{ ...change, id: 'extra-server' }]);
+    }
+    return olga;
+  });
+  vi.mocked(saveRoleMark).mockImplementation(async (profile, id, done) => {
+    expect(profile).toBe('olga');
+    expect(done).toBe(true);
+    olga = snapshot('olga', [...olga.completed, id], olga.extras);
+    return olga;
+  });
+  async function reopen(account: 'mentor' | 'olga', route: string) {
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    client.clear();
+    localStorage.setItem(demoSessionKey, account);
+    await mount(route);
+  }
   saveMaterial(localStorage, 'mentor', {
     title: 'Учебный отчёт',
     description: 'Пример для стажёра.',
@@ -308,7 +357,20 @@ it('shows the task a mentor adds in the intern’s workspace after signing out',
     source: { kind: 'link', href: 'https://example.com/report' },
   });
   await mount('/staff');
-  await click(await waitForElement(() => container.querySelector<HTMLButtonElement>('.staff-intern')));
+  const internCard = (name: string) =>
+    waitForElement(() =>
+      [...container.querySelectorAll<HTMLButtonElement>('.staff-intern')].find((item) =>
+        item.textContent?.includes(name),
+      ),
+    );
+  expect((await internCard(profiles.sasha.fullName)).textContent).toContain('100%');
+  await click(await internCard(profiles.sasha.fullName));
+  expect(container.querySelector('.staff-checklist')?.textContent).toContain('100% выполнено');
+  await click(await button('Мои стажёры'));
+  expect((await internCard(profiles.olga.fullName)).textContent).toContain(
+    `${olga.completed.length} из ${olga.total} задач`,
+  );
+  await click(await internCard(profiles.olga.fullName));
   await click(await button('Добавить пункт'));
 
   const title = await waitForElement(() => container.querySelector<HTMLInputElement>('input[name="title"]'));
@@ -340,8 +402,28 @@ it('shows the task a mentor adds in the intern’s workspace after signing out',
     container.querySelector<HTMLButtonElement>('button[role="checkbox"][aria-label="Проверить витрину заказов"]'),
   );
   expect(task.getAttribute('aria-checked')).toBe('false');
+  expect(container.querySelector('.progress-number')?.textContent).toContain(`${olga.percent}%`);
+  await click(task);
+  await vi.waitFor(() => expect(task.getAttribute('aria-checked')).toBe('true'));
   await click(await waitForElement(() => task.closest('li')?.querySelector<HTMLButtonElement>('.task-link')));
   await waitForElement(() => container.querySelector<HTMLAnchorElement>('dialog a[href="https://example.com/report"]'));
+  await reopen('mentor', '/staff');
+  expect((await internCard(profiles.olga.fullName)).textContent).toContain(
+    `${olga.completed.length} из ${olga.total} задач`,
+  );
+  await click(await internCard(profiles.olga.fullName));
+  const customTask = await waitForElement(() =>
+    [...container.querySelectorAll<HTMLButtonElement>('.task-link')].find((item) =>
+      item.textContent?.includes('Проверить витрину заказов'),
+    ),
+  );
+  expect(customTask.closest('li')?.classList.contains('task-row--done')).toBe(true);
+  await click(customTask);
+  await click(await button('Удалить пункт'));
+  await reopen('olga', '/onboarding');
+  await waitForElement(() => container.querySelector('.adaptation-layout'));
+  expect(container.textContent).not.toContain('Проверить витрину заказов');
+  expect(container.querySelector('.progress-number')?.textContent).toContain(`${olga.percent}%`);
 });
 
 it('retries the team guide after a failed generation and shows the team-specific cards', async () => {
@@ -1353,10 +1435,10 @@ it('completes the real current task after discussing a different one and restore
   const tasks = tasksFor('olga');
   const first = tasks.findIndex(({ id }) => id === 'avito-numbers');
   let serverMarks = tasks.slice(0, first).map(({ id }) => id);
-  vi.mocked(readRoleMarks).mockImplementation(async () => serverMarks);
+  vi.mocked(readRoleMarks).mockImplementation(async () => snapshot('olga', serverMarks));
   vi.mocked(saveRoleMark).mockImplementationOnce(async (_profile, id) => {
     serverMarks = [...serverMarks, id];
-    return serverMarks;
+    return snapshot('olga', serverMarks);
   });
   vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Прочитай памятку.' });
   await mount('/onboarding?task=practice-memo');
@@ -1381,7 +1463,7 @@ it('completes the real current task after discussing a different one and restore
   await waitForElement(() => container.querySelector('[role="log"]')?.textContent?.includes('отмечен выполненным'));
   expect(saveRoleMark).toHaveBeenCalledExactlyOnceWith('olga', 'avito-numbers', true, true);
   expect(serverMarks).not.toContain('practice-memo');
-  expect(readWorkspace(localStorage, 'olga').completed).toContain('avito-numbers');
+  expect(readWorkspace(localStorage, 'olga').completed).not.toContain('avito-numbers');
   writeWorkspace(localStorage, 'olga', { completed: [], requests: [] });
   await act(async () => root.unmount());
   root = createRoot(container);
@@ -1406,7 +1488,7 @@ it('refreshes the plan after a rejected stale confirmation without sending the n
   vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Текущий пункт.' });
   vi.mocked(saveRoleMark).mockImplementationOnce(async () => {
     const completed = [...readWorkspace(localStorage, 'olga').completed, 'dev-principles'];
-    vi.mocked(readRoleMarks).mockResolvedValue(completed);
+    vi.mocked(readRoleMarks).mockResolvedValue(snapshot('olga', completed));
     throw new Error('stale_checklist');
   });
   await mount('/chat');
@@ -1590,7 +1672,7 @@ it('switches to work questions after the API confirms the last survey', async ()
   );
   submitted = true;
   await act(async () => {
-    await client.invalidateQueries({ queryKey: ['internship-surveys', 'maria'] });
+    await client.invalidateQueries({ queryKey: ['role-checklist', 'maria'] });
   });
   await waitForElement(() =>
     container.querySelector('.chat-topic')?.textContent?.includes('Какие инструменты нужны моей команде?')

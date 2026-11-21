@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ProfileId } from './data';
+import type { AccountId, ProfileId } from './demo-accounts';
 import type { BuddyReply } from './demo';
 import type { ChatPageContext } from './selection-context';
 
@@ -27,7 +27,7 @@ const historySchema = z.object({
 });
 const sessions = new Map<string, Promise<string>>();
 
-export async function sessionToken(profile: ProfileId, prefix = '/api'): Promise<string> {
+export async function sessionToken(profile: AccountId, prefix = '/api'): Promise<string> {
   const key = prefix + ':' + profile;
   const existing = sessions.get(key);
   if (existing) return existing;
@@ -52,7 +52,7 @@ export async function sessionToken(profile: ProfileId, prefix = '/api'): Promise
 }
 
 export async function apiFetch(
-  profile: ProfileId,
+  profile: AccountId,
   path: string,
   init: RequestInit = {},
   prefix = '/api',

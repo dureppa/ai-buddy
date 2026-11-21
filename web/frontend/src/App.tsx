@@ -1,4 +1,4 @@
-import { readRoleMarks, saveRoleMark } from './role-checklist-api';
+import { readRoleMarks, saveRoleMark, type ChecklistPlan } from './role-checklist-api';
 import { chatSuggestions, chatTopic, isTaskFollowUp } from './chat-suggestions';
 import { taskSelectionResource } from './task-selection';
 import { chatPageContext, currentChecklistTask, isChecklistQuestion, isTaskCompletionMessage } from './current-task';
@@ -44,10 +44,8 @@ import {
   progressFor,
   readWorkspace,
   toggleTask,
-  writeWorkspace,
   type AccessDraft,
   type BuddyGrowthStage,
-  type Workspace,
 } from './demo';
 import { demoSessionKey, endDemoSession, readDemoSession, startDemoSession } from './demo-session';
 import { saveServiceQuestion } from './service-questions';
@@ -74,12 +72,14 @@ function TaskMaterialList({
   profileId,
   taskId,
   compact = false,
+  plan,
 }: {
   profileId: ProfileId;
   taskId: string;
+  plan?: ChecklistPlan;
   compact?: boolean;
 }) {
-  const materials = materialsForTask(localStorage, profileId, taskId);
+  const materials = materialsForTask(localStorage, profileId, taskId, plan);
   if (!materials.length) return null;
   if (compact)
     return (
@@ -430,21 +430,22 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     },
     enabled: backendEnabled && workspaceQuery.isSuccess,
   });
-  const planAvailable = surveysQuery.isSuccess && (!backendEnabled || roleMarks.isSuccess);
+  const planAvailable = backendEnabled ? roleMarks.isSuccess : surveysQuery.isSuccess;
+  const plan = roleMarks.data;
   const workspace = workspaceQuery.data && {
     ...workspaceQuery.data,
-    completed: [
-      ...(backendEnabled
-        ? [...(roleMarks.data ?? []), ...workspaceQuery.data.completed.filter((id) => id.startsWith('extra-'))]
-        : workspaceQuery.data.completed.filter((id) => !surveyForTask(id))),
-      ...(completedStages ?? []).map(surveyTaskId),
-    ],
+    completed: backendEnabled
+      ? (plan?.completed ?? [])
+      : [
+          ...workspaceQuery.data.completed.filter((id) => !surveyForTask(id)),
+          ...(completedStages ?? []).map(surveyTaskId),
+        ],
   };
 
   const [offeredTaskId, setOfferedTaskId] = useState<string | null>();
   const completionSending = useRef(false);
   const [serviceShortcut, setServiceShortcut] = useState<{ label: string; to: string }>();
-  const catalog = checklistFor(localStorage, profileId);
+  const catalog = checklistFor(localStorage, profileId, plan);
   const currentTask = planAvailable && workspace ? currentChecklistTask(catalog, workspace.completed) : undefined;
   const completionTarget = currentTask?.id === offeredTaskId ? currentTask : undefined;
   const canCompleteTask =
@@ -454,46 +455,34 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       const item = catalog.find((task) => task.id === id);
       if (!workspace || !planAvailable || !item || surveyForTask(id) || (completion && id !== currentTask?.id))
         throw new Error('Пункт нельзя подтвердить таким способом.');
-      if (backendEnabled && !item.custom) {
-        const completed = await saveRoleMark(
+      if (backendEnabled) {
+        const updated = await saveRoleMark(
           profileId,
           id,
           completion === true || !workspace.completed.includes(id),
           completion === true,
         );
-        await queryClient.cancelQueries({ queryKey: roleMarksKey });
-        queryClient.setQueryData(roleMarksKey, completed);
-        // Keep the same-browser mentor demo in sync with successful server writes.
-        try {
-          const local = readWorkspace(localStorage, profileId);
-          writeWorkspace(localStorage, profileId, {
-            ...local,
-            completed: [...completed, ...local.completed.filter((entry) => entry.startsWith('extra-'))],
-          });
-        } catch {
-          // The server already saved the mark.
-        }
-        return {
-          ...workspace,
-          completed: [
-            ...completed,
-            ...workspace.completed.filter((entry) => entry.startsWith('extra-') || surveyForTask(entry)),
-          ],
-        };
+        return { updated: { ...workspace, completed: updated.completed }, savedPlan: updated };
       }
-      return completion ? completeTask(localStorage, profileId, id) : toggleTask(localStorage, profileId, id);
+      const updated = completion ? completeTask(localStorage, profileId, id) : toggleTask(localStorage, profileId, id);
+      return { updated };
     },
     onSettled: () => {
       completionSending.current = false;
     },
-    onSuccess: (updated, { id, completion, title }) => {
-      const previous = queryClient.getQueryData<Workspace>(workspaceKey);
+    onSuccess: async ({ updated, savedPlan }, { id, completion, title }) => {
+      const previous = workspace;
       const done = updated.completed.includes(id);
       const nextStage = buddyGrowthStage(profileId, updated);
       if (previous && nextStage !== buddyGrowthStage(profileId, previous)) {
         setGrownStage(done ? nextStage : null);
       }
-      queryClient.setQueryData(workspaceKey, updated);
+      if (savedPlan) {
+        await queryClient.cancelQueries({ queryKey: roleMarksKey });
+        queryClient.setQueryData(roleMarksKey, savedPlan);
+      } else {
+        queryClient.setQueryData(workspaceKey, updated);
+      }
       if (done) setMood('celebrating');
       if (completion) setOfferedTaskId(null);
       if (completion)
@@ -511,7 +500,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
       setToast({
         tone: 'success',
         message: done
-          ? progressFor(updated).remaining === 0
+          ? (savedPlan ? savedPlan.completed.length === savedPlan.total : progressFor(updated).remaining === 0)
             ? 'Все шаги выполнены. Buddy поздравляет тебя!'
             : 'Задача отмечена выполненной.'
           : 'Задача возвращена в план.',
@@ -721,7 +710,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     setEntries((items) => [...items, { id, from: 'user', text: text.trim() }]);
     answerMutation.mutate({
       text: text.trim(),
-      context: chatPageContext(profileId, workspace, selection, planAvailable),
+      context: chatPageContext(profileId, workspace, selection, planAvailable, catalog),
     });
   }
 
@@ -755,14 +744,12 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     setDrawerOpen(true);
     answerMutation.mutate({
       ...question,
-      context: chatPageContext(profileId, workspace, question.context, planAvailable),
+      context: chatPageContext(profileId, workspace, question.context, planAvailable, catalog),
     });
   }
 
   const params = new URLSearchParams(location.search);
-  const task =
-    location.pathname === '/onboarding' &&
-    checklistFor(localStorage, profileId).find((item) => item.id === params.get('task'));
+  const task = location.pathname === '/onboarding' && catalog.find((item) => item.id === params.get('task'));
   const person =
     location.pathname === '/team' &&
     [...teamContacts(profileId), ...teamColleagues(profileId)].find((item) => item.id === params.get('person'));
@@ -810,7 +797,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     surveyDone: completedStages?.includes(profile.stageId) ?? false,
     taskContext,
     contextMaterials: taskContext ? (
-      <TaskMaterialList profileId={profileId} taskId={taskContext.id} compact />
+      <TaskMaterialList profileId={profileId} taskId={taskContext.id} plan={plan} compact />
     ) : undefined,
     onClearContext: () => {
       setActiveTask(undefined);
@@ -956,7 +943,22 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                 />
                 <Route path="/product-guide" element={<ProductGuide profileId={profileId} />} />
                 <Route path="/onboarding/tasks/:taskId" element={<OnboardingTaskPage profileId={profileId} />} />
-                <Route path="/onboarding" element={<Adaptation profileId={profileId} {...checklist} />} />
+                <Route
+                  path="/onboarding"
+                  element={
+                    backendEnabled && !planAvailable ? (
+                      roleMarks.isError ? (
+                        <button className="button button--white" onClick={() => void roleMarks.refetch()}>
+                          Повторить загрузку чек-листа
+                        </button>
+                      ) : (
+                        <p role="status">Загружаем чек-лист…</p>
+                      )
+                    ) : (
+                      <Adaptation profileId={profileId} {...checklist} catalog={catalog} plan={plan} />
+                    )
+                  }
+                />
                 <Route
                   path="/events"
                   element={
@@ -1070,7 +1072,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
         >
           {shownDetail.kind === 'task' && (
             <div className="detail-content">
-              <TaskMaterialList profileId={profileId} taskId={shownDetail.item.id} />
+              <TaskMaterialList profileId={profileId} taskId={shownDetail.item.id} plan={plan} />
               <p>{shownDetail.item.details}</p>
               <dl>
                 <dt>Срок</dt>
@@ -1180,6 +1182,7 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
                   queryClient.setQueryData<SurveyStage[]>(surveysKey, (previous) => [
                     ...new Set([...(previous ?? []), stage]),
                   ]);
+                  if (backendEnabled) await queryClient.invalidateQueries({ queryKey: roleMarksKey });
                   void queryClient.invalidateQueries({ queryKey: notificationsKey });
                   closeDetail();
                   setMood('celebrating');
