@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   profiles,
+  primaryProfile,
   staffAccounts,
   isProfileId,
   isStaffId,
@@ -30,7 +31,7 @@ export type RequestInput = z.infer<typeof inputSchema>;
 export const requestSchema = z.object({
   id: z.string().uuid(),
   number: z.string(),
-  profile_id: z.enum(['olga', 'sasha', 'timur', 'maria']),
+  profile_id: z.custom<ProfileId>((value) => typeof value === 'string' && isProfileId(value)),
   product_id: z.enum(['delivery', 'travel', 'autoteca', 'help']),
   input: inputSchema,
   status: z.enum(['submitted', 'approved', 'rejected', 'cancelled']),
@@ -56,7 +57,9 @@ export function accountContext(account: AccountId): {
     return {
       name: profiles[account].fullName,
       productId: profiles[account].productId,
-      role: ({ olga: 'analyst', sasha: 'backend', timur: 'tester', maria: 'designer' } as const)[account],
+      role: ({ olga: 'analyst', sasha: 'backend', timur: 'tester', maria: 'designer' } as const)[
+        primaryProfile(account)
+      ],
     };
   const staff = staffAccounts[account];
   return { name: staff.name, productId: staff.productId, role: null };

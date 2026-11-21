@@ -2,7 +2,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { backendEnabled } from './backend';
 import { changeTeamPlan, readTeamPlans, type ChecklistPlan } from './role-checklist-api';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { isProfileId, products, profiles, staffAccounts, type ProfileId, type StaffId } from './demo-accounts';
+import {
+  teamInterns,
+  isProfileId,
+  products,
+  profiles,
+  staffAccounts,
+  type ProfileId,
+  type StaffId,
+} from './demo-accounts';
 import { readDemoSession } from './demo-session';
 import {
   addChecklistItem,
@@ -75,7 +83,7 @@ function MaterialForm({
   groups: readonly string[];
   onSaved: (group: string) => void;
 }) {
-  const internId = products[staffAccounts[staff].productId].intern;
+  const internIds = teamInterns(staffAccounts[staff].productId);
   const initialGroup = edit?.group ?? group ?? groups[0] ?? 'Чаты';
   const [kind, setKind] = useState<'link' | 'file'>(edit?.source.kind ?? 'link');
   const [custom, setCustom] = useState(() => !groups.includes(initialGroup));
@@ -197,10 +205,17 @@ function MaterialForm({
       )}
       <fieldset>
         <legend>Кому показать</legend>
-        <label className="staff-check">
-          <input type="checkbox" name="audience" value={internId} defaultChecked />
-          {profiles[internId].fullName}
-        </label>
+        {internIds.map((internId) => (
+          <label className="staff-check" key={internId}>
+            <input
+              type="checkbox"
+              name="audience"
+              value={internId}
+              defaultChecked={edit ? edit.audience.includes(internId) : true}
+            />
+            {profiles[internId].fullName}
+          </label>
+        ))}
       </fieldset>
       {error && (
         <p className="staff-error" role="alert">
@@ -456,15 +471,19 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
       );
       void queryClient.invalidateQueries({ queryKey: ['role-checklist', intern] });
     } else {
-      if (typeof change === 'string') removeChecklistItem(localStorage, id, change);
-      else addChecklistItem(localStorage, id, change);
+      if (typeof change === 'string') removeChecklistItem(localStorage, id, change, intern);
+      else addChecklistItem(localStorage, id, change, intern);
       setLocalRevision((value) => value + 1);
     }
   }
-  const ownMaterials = materials.filter(
-    (material) => material.author === id && material.audience.includes(product.intern),
-  );
-  const visibleMaterials = publishedForIntern(localStorage, product.intern);
+  const ownMaterials = materials.filter((material) => material.author === id);
+  const visibleMaterials = [
+    ...new Map(
+      teamInterns(account.productId)
+        .flatMap((intern) => publishedForIntern(localStorage, intern))
+        .map((material) => [material.id, material]),
+    ).values(),
+  ];
   const baseline = baselineFor(product.intern);
   const groupOptions = materialGroupChoices([
     ...baseline.map((item) => item.group),
@@ -568,7 +587,7 @@ export function StaffWorkspace({ id, onExit }: { id: StaffId; onExit: () => void
                   (material) => material.id,
                 );
                 const materialIds = attach ? [...savedIds, materialId] : savedIds.filter((id) => id !== materialId);
-                setTaskMaterials(localStorage, id, taskId, materialIds, currentPlan);
+                setTaskMaterials(localStorage, id, taskId, materialIds, currentPlan, current.id);
                 setLocalRevision((value) => value + 1);
                 setNotice({ message: attach ? 'Материал прикреплён.' : 'Материал откреплён.' });
               }}

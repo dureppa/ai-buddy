@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { stages, tasksFor, type StageId, type Task } from './checklist';
 import {
   products,
+  teamInterns,
   profiles,
   staffAccounts,
   isStaffId,
@@ -91,7 +92,7 @@ export type ChecklistEntry = Task & { custom: boolean; materialIds: string[]; do
 export function internOverview(storage: StoragePort, staff: StaffId, plans?: readonly ChecklistPlan[]) {
   const ids = plans
     ? plans.map((plan) => plan.profile_id).filter(isProfileId)
-    : [products[staffAccounts[staff].productId].intern];
+    : teamInterns(staffAccounts[staff].productId);
   return ids.map((id) => {
     const plan = plans?.find((entry) => entry.profile_id === id);
     const checklist = checklistFor(storage, id, plan);
@@ -119,8 +120,9 @@ export function readMaterials(storage: StoragePort): StaffMaterial[] {
       const parsed = materialSchema.safeParse(entry);
       if (!parsed.success) return [];
       const material = parsed.data;
-      const intern = products[staffAccounts[material.author].productId].intern;
-      return material.audience.includes(intern) ? [{ ...material, audience: [intern] }] : [];
+      const allowed = teamInterns(staffAccounts[material.author].productId);
+      const audience = material.audience.filter((id) => allowed.includes(id));
+      return audience.length ? [{ ...material, audience }] : [];
     });
   } catch {
     return [];
@@ -162,8 +164,8 @@ export function saveMaterial(storage: StoragePort, author: StaffId, input: Mater
   }
   const parsed = materialSchema.safeParse({ ...input, id: id ?? newMaterialId(), author });
   if (!parsed.success) throw new Error('Проверь название, группу, пояснение, аудиторию и ссылку или файл.');
-  const intern = products[staffAccounts[author].productId].intern;
-  if (parsed.data.audience.some((profile) => profile !== intern)) {
+  const allowed = teamInterns(staffAccounts[author].productId);
+  if (parsed.data.audience.some((profile) => !allowed.includes(profile))) {
     throw new Error('Можно публиковать только для своих стажёров.');
   }
   const data = { ...parsed.data, audience: [...new Set(parsed.data.audience)] };
@@ -224,8 +226,12 @@ function writeEdits(storage: StoragePort, edits: { extras: ChecklistExtra[]; lin
   storage.setItem(checklistEditsKey, JSON.stringify(edits));
 }
 
-function internOf(staff: StaffId) {
-  return products[staffAccounts[staff].productId].intern;
+function internOf(staff: StaffId, selected?: ProfileId) {
+  const profile = selected ?? products[staffAccounts[staff].productId].intern;
+  if (!teamInterns(staffAccounts[staff].productId).includes(profile)) {
+    throw new Error('Можно изменять только чек-листы своих стажёров.');
+  }
+  return profile;
 }
 
 export function checklistFor(storage: StoragePort, profile: ProfileId, plan?: ChecklistPlan): ChecklistEntry[] {
@@ -270,8 +276,13 @@ export function materialsForTask(storage: StoragePort, profile: ProfileId, taskI
   });
 }
 
-export function addChecklistItem(storage: StoragePort, staff: StaffId, input: ChecklistItemInput) {
-  const profileId = internOf(staff);
+export function addChecklistItem(
+  storage: StoragePort,
+  staff: StaffId,
+  input: ChecklistItemInput,
+  selected?: ProfileId,
+) {
+  const profileId = internOf(staff, selected);
   const edits = readEdits(storage);
   const parsed = extraSchema.safeParse({ ...input, id: newExtraId(), profileId, materialIds: [] });
   if (!parsed.success) throw new Error('Проверь название, пояснение и период.');
@@ -279,8 +290,8 @@ export function addChecklistItem(storage: StoragePort, staff: StaffId, input: Ch
   return parsed.data;
 }
 
-export function removeChecklistItem(storage: StoragePort, staff: StaffId, taskId: string) {
-  const profileId = internOf(staff);
+export function removeChecklistItem(storage: StoragePort, staff: StaffId, taskId: string, selected?: ProfileId) {
+  const profileId = internOf(staff, selected);
   const edits = readEdits(storage);
   if (!edits.extras.some((item) => item.id === taskId && item.profileId === profileId)) {
     throw new Error('Можно удалить только добавленный пункт.');
@@ -294,8 +305,10 @@ export function setTaskMaterials(
   taskId: string,
   materialIds: readonly string[],
   plan?: ChecklistPlan,
+  selected?: ProfileId,
 ) {
-  const profileId = plan && isProfileId(plan.profile_id) ? plan.profile_id : internOf(staff);
+  const profileId = internOf(staff, selected ?? (plan && isProfileId(plan.profile_id) ? plan.profile_id : undefined));
+  if (plan && plan.profile_id !== profileId) throw new Error('Чек-лист принадлежит другому стажёру.');
   const checklist = checklistFor(storage, profileId, plan);
   const task = checklist.find((item) => item.id === taskId);
   if (!task) throw new Error('Пункт чек-листа не найден.');

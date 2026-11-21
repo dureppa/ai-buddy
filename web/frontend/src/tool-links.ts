@@ -1,6 +1,6 @@
 import { backendEnabled } from './backend';
 import type { Tone } from './data';
-import { profiles, type ProfileId } from './demo-accounts';
+import { primaryProfile, profiles, type ProfileId } from './demo-accounts';
 
 type ToolCard = {
   id: string;
@@ -54,7 +54,7 @@ const mattermost: ToolGuide = {
   instruction: 'В поиске каналов Mattermost введи название своей команды.',
 };
 
-const roleTools: Record<ProfileId, readonly ToolGuide[]> = {
+const roleTools: Record<ReturnType<typeof primaryProfile>, readonly ToolGuide[]> = {
   olga: [
     {
       id: 'redash',
@@ -180,15 +180,15 @@ export const workToolsOrigin = import.meta.env.VITE_WORK_TOOLS_URL?.replace(/\/$
 export function toolsFor(profileId: ProfileId): Tool[] {
   const knowledge = new URL(confluenceService.url);
   if (!knowledge.searchParams.has('page')) knowledge.searchParams.set('page', 'team-' + profiles[profileId].productId);
-  const ownIds = new Set(roleTools[profileId].map((tool) => tool.id));
+  const ownIds = new Set(roleTools[primaryProfile(profileId)].map((tool) => tool.id));
   const otherGuides = Object.values(roleTools)
     .flat()
     .filter((tool) => !ownIds.has(tool.id));
   // Code review is occasional work for analysts and designers.
-  if (profileId === 'olga' || profileId === 'maria') {
+  if (primaryProfile(profileId) === 'olga' || primaryProfile(profileId) === 'maria') {
     otherGuides.sort((a, b) => Number(a.id === 'bitbucket') - Number(b.id === 'bitbucket'));
   }
-  const guides = [...roleTools[profileId], mattermost, ...otherGuides].map((tool) => {
+  const guides = [...roleTools[primaryProfile(profileId)], mattermost, ...otherGuides].map((tool) => {
     const guide =
       ownIds.has(tool.id) || tool.id === 'mattermost'
         ? tool

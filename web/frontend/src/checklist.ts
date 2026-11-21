@@ -1,6 +1,6 @@
 import roleChecklist from '../../backend/internal/buddy/role-checklist.json';
 import { surveys, surveyTaskId, type SurveyStage } from './surveys';
-import { profiles, type ProfileId } from './demo-accounts';
+import { primaryProfile, profiles, type ProfileId } from './demo-accounts';
 
 export const stages = [
   { id: 'week-1', name: '1 неделя', dates: 'Команда, доступы и первые инструменты', tone: 'mint' },
@@ -34,7 +34,7 @@ const roleByProfile = {
   maria: 'design',
 } as const;
 
-type RoleId = (typeof roleByProfile)[ProfileId];
+type RoleId = (typeof roleByProfile)[keyof typeof roleByProfile];
 type Copy = { title: string; summary: string; details: string };
 type Blueprint = {
   id: string;
@@ -1080,7 +1080,7 @@ const items: Blueprint[] = [
 ];
 
 export function tasksFor(profileId: ProfileId): Task[] {
-  const role = roleByProfile[profileId];
+  const role = roleByProfile[primaryProfile(profileId)];
   const copyById = new Map(items.map((item) => [item.id, item]));
   return roleChecklist.tasks.map(({ id }) => {
     const item = copyById.get(id)!;
