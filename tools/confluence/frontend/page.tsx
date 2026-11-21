@@ -27,6 +27,28 @@ export function KnowledgeArticle({ page }: { page: KnowledgePage }) {
     </article>
   );
 }
+export function RelatedPages({ page, pages }: { page: KnowledgePage; pages: KnowledgePage[] }) {
+  const related = pages.filter(
+    (item) =>
+      item.id !== page.id &&
+      (item.id === page.parent_id ||
+        item.parent_id === page.id ||
+        (page.parent_id && page.parent_id === item.parent_id)),
+  );
+  if (related.length === 0) return null;
+  return (
+    <nav className="knowledge-article" aria-label="Связанные материалы">
+      <h2>Связанные материалы</h2>
+      <ul>
+        {related.map((item) => (
+          <li key={item.id}>
+            <a href={'?page=' + encodeURIComponent(item.id)}>{item.title}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
 export function ConfluencePage({ profile }: { profile: ProfileId }) {
   const api = useMemo(() => knowledgeClient(profile), [profile]);
   const product = products[profiles[profile].productId];
@@ -169,7 +191,12 @@ export function ConfluencePage({ profile }: { profile: ProfileId }) {
               </button>
             </div>
           )}
-          {page && <KnowledgeArticle page={page} />}
+          {page && (
+            <>
+              <KnowledgeArticle page={page} />
+              <RelatedPages page={page} pages={pages} />
+            </>
+          )}
         </main>
       </div>
     </div>
