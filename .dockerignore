@@ -1,4 +1,6 @@
 .git
+.load-tools
+.load-results
 **/.DS_Store
 **/.env
 **/.env.*

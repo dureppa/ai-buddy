@@ -44,6 +44,7 @@ node_modules
 
 # Local load-test output and temporary check files
 /.load-results/
+/.load-tools/
 
 # Server-only credentials and nginx authentication
 /.deploy/

@@ -115,9 +115,9 @@ jobs:
       - run: test -f README.md && test -f AGENTS.md && test -f justfile
       - run: test -f .github/pull_request_template.md && test -f .github/CODEOWNERS
       - run: for script in ops/deploy/*.sh; do bash -n "$script"; done
-      - run: for script in load-test.sh ops/checks/load-suite.sh; do sh -n "$script"; done
-      - name: Run offline load tests from a clean checkout
-        run: LOAD_HISTORY=1 sh load-test.sh 2 2
+      - run: for script in load_test.sh ops/checks/load-suite.sh; do sh -n "$script"; done
+      - name: Run local load tests from a clean checkout
+        run: LOAD_HISTORY=1 ./load_test.sh 2 2
       - run: docker compose config --quiet && docker compose --profile hr --profile jira config --quiet && docker compose -f docker-compose.yml -f docker-compose.server.yml --profile hr --profile jira config --quiet
       - run: python3 -c "import re, subprocess; paths = subprocess.check_output(['git', 'ls-files', '-z']).decode().split(chr(0)); assert not any(re.search(r'(^|/)(dist|\.venv)/', p) for p in paths), 'Tracked build or environment artifacts'"
       - run: node -e "const fs=require('fs'); for (const p of ['package.json','package-lock.json','web/package.json','extension/package.json','ai-agent/pyproject.toml','web/backend/go.mod']) { if (!fs.existsSync(p)) throw new Error('Missing '+p) }"
