@@ -6,7 +6,8 @@ import { useId, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { stages, type Person, type ProfileId, type Task, profiles } from './data';
 import { homeSectionTitle, homeTasks } from './checklist';
-import { checklistFor } from './staff-data';
+import type { ChecklistEntry } from './staff-data';
+import type { ChecklistPlan } from './role-checklist-api';
 import { products, teamColleagues, teamContacts } from './demo-accounts';
 import { buddyGrowthStage, progressFor, type BuddyGrowthStage, type Workspace } from './demo';
 import { Avatar, Buddy, EmptyState, Icon, PageIntro } from './ui';
@@ -99,14 +100,25 @@ function TaskRow({
   );
 }
 
-function Progress({ workspace, taskIds }: { workspace: Workspace; taskIds?: readonly string[] }) {
+function Progress({
+  workspace,
+  taskIds,
+  plan,
+}: {
+  workspace: Workspace;
+  taskIds?: readonly string[];
+  plan?: ChecklistPlan;
+}) {
   const base = progressFor(workspace);
-  const completed = taskIds ? taskIds.filter((id) => workspace.completed.includes(id)).length : base.completed;
-  const remaining = taskIds ? taskIds.length - completed : base.remaining;
+  const completed =
+    plan?.completed.length ??
+    (taskIds ? taskIds.filter((id) => workspace.completed.includes(id)).length : base.completed);
+  const remaining = plan ? plan.total - completed : taskIds ? taskIds.length - completed : base.remaining;
   const progress = {
     completed,
     remaining,
-    percent: taskIds ? (taskIds.length ? Math.round((completed / taskIds.length) * 100) : 0) : base.percent,
+    percent:
+      plan?.percent ?? (taskIds ? (taskIds.length ? Math.round((completed / taskIds.length) * 100) : 0) : base.percent),
   };
   return (
     <section className="progress-card" aria-label="Прогресс адаптации">
@@ -320,7 +332,8 @@ const adaptationTabs = [
 ] as const;
 
 export function Adaptation({
-  profileId,
+  catalog,
+  plan,
   workspace,
   onOpen,
   onToggle,
@@ -328,8 +341,8 @@ export function Adaptation({
   onAsk,
   asking,
   onOpenBuddy,
-}: ChecklistProps) {
-  const tasks = checklistFor(localStorage, profileId).map((task) => ({
+}: ChecklistProps & { catalog: ChecklistEntry[]; plan?: ChecklistPlan }) {
+  const tasks = catalog.map((task) => ({
     ...task,
     summary: task.materialIds.length ? task.summary + ' · Материалы: ' + task.materialIds.length : task.summary,
   }));
@@ -467,7 +480,7 @@ export function Adaptation({
               </ol>
             </section>
             <aside>
-              <Progress workspace={workspace} taskIds={tasks.map((task) => task.id)} />
+              <Progress workspace={workspace} taskIds={tasks.map((task) => task.id)} plan={plan} />
               <div className="aside-note">
                 <Buddy mood={next ? 'supportive' : 'celebrating'} compact />
                 <p>

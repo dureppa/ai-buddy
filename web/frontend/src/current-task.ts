@@ -14,8 +14,9 @@ export function chatPageContext(
   workspace: Workspace,
   selected?: ExplanationContext,
   available = true,
+  catalog: readonly Task[] = checklistFor(localStorage, profile),
 ): ChatPageContext {
-  const task = currentChecklistTask(checklistFor(localStorage, profile), workspace.completed);
+  const task = currentChecklistTask(catalog, workspace.completed);
   const url = new URL(window.location.href);
   url.search = '';
   url.hash = '';

@@ -330,6 +330,9 @@ it('switches adaptation tabs by keyboard and keeps the task filter selected', as
   const openPanel = container.querySelector('[role="tabpanel"]:not([hidden])');
   expect(openPanel?.id).toBe(materials?.getAttribute('aria-controls'));
   expect(openPanel?.textContent).toContain(chat);
+  const groups = [...(openPanel?.querySelectorAll('.material-groups h2') ?? [])];
+  expect(groups.length).toBeGreaterThan(1);
+  expect(groups.at(-1)?.textContent).toBe('Чаты');
   expect(button('Осталось')).toBeUndefined();
 
   await act(async () => materials?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })));

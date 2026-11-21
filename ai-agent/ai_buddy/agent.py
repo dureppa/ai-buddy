@@ -2,6 +2,7 @@
 
 import json
 import re
+import unicodedata
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -394,8 +395,9 @@ async def direct_loop(
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": PROMPT},
     ]
-    messages.extend(item.model_dump() for item in history or [])
-    if page_url is not None:
+    if not conversation:
+        messages.extend(item.model_dump() for item in history or [])
+    if page_url is not None and not conversation:
         messages.append(
             {
                 "role": "user",
@@ -653,19 +655,37 @@ async def direct_loop(
                     return receipt
 
 
-def conversational_only(question: str) -> bool:
-    text = re.sub(r"\s+", " ", question.strip())
-    text = re.sub(
-        r"^(?:привет|здравствуй(?:те)?|buddy|бадди)[,! .]+(?=\S)",
-        "",
-        text,
-        flags=re.IGNORECASE,
+# Whole greeting phrases and common transliterations, never fuzzy word matches.
+GREETING = (
+    r"(?:приве+т(?:ик)?|здравствуй(?:те)?|добрый (?:день|вечер)|доброе утро|"
+    r"hi+|hel+o+|hey+|good (?:morning|afternoon|evening)|"
+    r"хел+о+у?|ха[йи]|"
+    r"ни[ -]?хао|n[iǐ][ -]?h[aǎ]o|你[ ]?好|您好|"
+    r"hola|бонжур|bonjour|salut|hallo|guten (?:tag|morgen|abend)|ol[áa]|ciao|"
+    r"konnichiwa|konichiwa|конничи?ва|こんにちは|안녕하세요|annyeonghaseyo|"
+    r"namaste|намасте|नमस्ते|привіт|сәлем|"
+    r"сал[ая]м(?:[ -]+алейкум)?|ас[ -]?сал[ая]му[ -]+алейкум|"
+    r"salam(?:[ -]+alaikum)?|assalamu[ -]+alaikum|مرحبا|السلام عليكم)"
+)
+GREETING_PUNCTUATION = " ,.?!:;…¡¿。，！？؛،؟"
+GREETING_SEPARATOR = rf"[{re.escape(GREETING_PUNCTUATION)}]+"
+GREETING_PREFIX = re.compile(rf"^(?:{GREETING}|buddy|бадди){GREETING_SEPARATOR}(?=\S)")
+
+
+def normalized_conversation(question: str) -> str:
+    return " ".join(unicodedata.normalize("NFKC", question).casefold().split()).strip(
+        GREETING_PUNCTUATION
     )
+
+
+def conversational_only(question: str) -> bool:
+    text = normalized_conversation(question)
+    if re.fullmatch(rf"{GREETING}(?:{GREETING_SEPARATOR}(?:buddy|бадди))?", text):
+        return True
+    text = GREETING_PREFIX.sub("", text, count=1)
     return (
         re.fullmatch(
-            r"(?:привет|здравствуй(?:те)?|добрый (?:день|вечер)|доброе утро|"
-            r"сал[ая]м(?:[\s-]+алейкум)?|ас[\s-]?сал[ая]му[\s-]+алейкум|"
-            r"salam(?:[\s-]+alaikum)?|assalamu[\s-]+alaikum|"
+            r"(?:"
             r"как (?:твои )?дела|как ты|как (?:у тебя )?настроение|как поживаешь|как прош[её]л день|"
             r"(?:ты|вы) (?:тут|здесь|на связи|онлайн)|ау|алло|ты меня (?:слышишь|видишь)|"
             r"кто ты|ты кто|ты (?:бот|человек)|как тебя зовут|как к тебе обращаться|"
@@ -673,7 +693,7 @@ def conversational_only(question: str) -> bool:
             r"(?:мне (?:страшно|тревожно|грустно|тяжело)|я (?:волнуюсь|переживаю|устал(?:а)?))"
             r"(?: (?:перед первым (?:рабочим )?дн[её]м|на новом месте|сегодня))?|"
             r"(?:можешь )?(?:поддержи(?: меня)?|подбодри(?: меня)?)|"
-            r"спасибо(?: большое)?|благодарю|пока|до свидания|hi|hello|thanks|thank you)[\s!.?]*",
+            r"спасибо(?: большое)?|благодарю|пока|до свидания|thanks|thank you)",
             text,
             re.IGNORECASE,
         )
@@ -682,8 +702,8 @@ def conversational_only(question: str) -> bool:
 
 
 def narrow_focus(question: str) -> str:
-    text = re.sub(r"\s+", " ", question.casefold()).strip(" ?!.")
-    text = re.sub(r"^(?:привет[,!]?\s+|подскажи[,!]?\s+|скажи[,!]?\s+)", "", text)
+    text = GREETING_PREFIX.sub("", normalized_conversation(question), count=1)
+    text = re.sub(r"^(?:подскажи|скажи)[,!]?\s+", "", text)
     if re.fullmatch(
         r"(?:кто (?:мой |моя |у меня )?наставник|как зовут (?:моего )?наставника|"
         r"как связаться с (?:моим )?наставником)(?: и как (?:с ним )?связаться)?",
