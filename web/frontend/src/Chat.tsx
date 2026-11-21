@@ -2,12 +2,11 @@ import { AgentAnswer } from './AgentAnswer';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { chatDestination } from './chat-links';
-import { services, suggestions, type ProfileId } from './data';
+import { services, type ProfileId } from './data';
 import type { AccessDraft, BuddyReply } from './demo';
 import { Buddy, Icon } from './ui';
 
 export type ChatEntry = { id: number; from: 'user'; text: string } | { id: number; from: 'buddy'; reply: BuddyReply };
-const taskSuggestions = ['С чего начать этот пункт?', 'Какие материалы нужны?', 'Объясни простыми словами'];
 
 export type DraftState = { type: 'dismissed' } | { type: 'confirmed'; number: string };
 
@@ -15,6 +14,7 @@ export type ChatProps = {
   name: string;
   profileId: ProfileId;
   entries: ChatEntry[];
+  suggestedQuestions: readonly string[];
   waiting: boolean;
   confirming: boolean;
   drafts: Record<string, DraftState>;
@@ -83,6 +83,7 @@ export function ChatWindow({
   name,
   profileId,
   entries,
+  suggestedQuestions,
   waiting,
   confirming,
   drafts,
@@ -261,7 +262,7 @@ export function ChatWindow({
           </div>
         )}
         <div className="suggestions" aria-label="Предложенные вопросы">
-          {(taskContext ? taskSuggestions : suggestions).slice(0, entries.length ? 2 : 4).map((question) => (
+          {suggestedQuestions.slice(0, entries.length ? 2 : 4).map((question) => (
             <button type="button" className="filter" key={question} disabled={waiting} onClick={() => onSend(question)}>
               {question}
             </button>
@@ -312,7 +313,7 @@ export function ChatPage(props: ChatProps) {
           </span>
           <h2>С чего начать</h2>
           <p>Выбери вопрос или напиши свой.</p>
-          {(props.taskContext ? taskSuggestions : suggestions).map((question) => (
+          {props.suggestedQuestions.map((question) => (
             <button
               type="button"
               className="chat-topic"

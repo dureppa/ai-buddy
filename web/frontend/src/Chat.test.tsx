@@ -9,6 +9,7 @@ function renderChat(overrides: Partial<ComponentProps<typeof ChatPage>> = {}) {
       name="Ольга"
       profileId="olga"
       entries={[]}
+      suggestedQuestions={['Кто мой наставник?']}
       waiting={false}
       confirming={false}
       drafts={{}}

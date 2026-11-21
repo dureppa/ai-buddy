@@ -84,12 +84,4 @@ export const services = [
   },
 ] as const;
 
-export const suggestions = [
-  'С чего начать сегодня?',
-  'Кто мой наставник?',
-  'Какие инструменты нужны моей команде?',
-  'Где найти документы?',
-  'Как оформить отгул?',
-];
-
 export type Service = (typeof services)[number];

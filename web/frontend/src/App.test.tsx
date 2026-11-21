@@ -1449,3 +1449,81 @@ it('shows completion only for a task question and hides it two seconds after sav
   await vi.waitFor(() => expect(readWorkspace(localStorage, 'olga')).toEqual(saved));
   expect(container.querySelector('.chat-task-completion')).toBeNull();
 });
+
+it('updates both suggestion lists and sends the freshly selected task after checklist completion', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Вот текущий пункт.' });
+  await mount('/chat');
+  const topics = () => [...container.querySelectorAll<HTMLButtonElement>('.chat-topic')];
+  const chips = () => [...container.querySelectorAll<HTMLButtonElement>('.suggestions .filter')];
+  const labels = (buttons: HTMLButtonElement[]) => buttons.map((item) => item.textContent?.trim());
+
+  const question = await waitForElement(() => {
+    const first = topics()[0];
+    return first?.textContent?.includes('С чего начать сегодня?') && !first.disabled ? first : null;
+  });
+  expect(labels(chips())).toEqual(labels(topics()).slice(0, chips().length));
+  const oldHelp = labels(chips())[1];
+  await click(question);
+  const firstContext = vi.mocked(askBackend).mock.calls[0][2];
+  expect(firstContext?.checklist).toMatchObject({ task: { id: 'dev-principles' } });
+
+  await click(await button('Отметить выполненной'));
+  await waitForElement(() => (labels(chips())[1] !== oldHelp ? true : null));
+  expect(labels(chips())).toEqual(labels(topics()).slice(0, chips().length));
+  const nextHelp = chips()[1];
+  expect(nextHelp.textContent).toContain('Изучи Авито в цифрах');
+  await click(nextHelp);
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(2));
+  const nextContext = vi.mocked(askBackend).mock.calls[1][2];
+  expect(nextContext?.selection?.resource).toMatchObject({ kind: 'task', label: 'Изучи Авито в цифрах' });
+  expect(nextContext?.checklist).toMatchObject({ task: { label: 'Изучи Авито в цифрах' } });
+});
+
+it('offers only general questions and sends an unavailable snapshot when survey API fails', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Анна Ким.' });
+  vi.mocked(apiFetch).mockImplementation(async (_profile, path) => {
+    if (path === '/api/v1/onboarding/surveys') throw new Error('Service unavailable');
+    return defaultAPIResponse(path);
+  });
+  await mount('/chat');
+  const mentorQuestion = await button('Кто мой наставник?');
+  await vi.waitFor(async () => {
+    await act(async () => {});
+    expect(mentorQuestion.disabled).toBe(false);
+  });
+  expect([...container.querySelectorAll('.chat-topic')].map((button) => button.textContent?.trim())).toEqual([
+    'Кто мой наставник?',
+    'Какие инструменты нужны моей команде?',
+    'Где найти документы?',
+  ]);
+  await click(mentorQuestion);
+  expect(vi.mocked(askBackend).mock.calls[0][2]).toMatchObject({ checklist: { status: 'unavailable' } });
+});
+
+it('switches to work questions after the API confirms the last survey', async () => {
+  localStorage.setItem(demoSessionKey, 'maria');
+  let submitted = false;
+  vi.mocked(apiFetch).mockImplementation(async (_profile, path) =>
+    path === '/api/v1/onboarding/surveys'
+      ? Response.json(submitted ? ['first', 'midpoint', 'final'] : ['first', 'midpoint'])
+      : defaultAPIResponse(path),
+  );
+  await mount('/chat');
+  await waitForElement(() =>
+    container.querySelector('.chat-topic')?.textContent?.includes(surveys.final.title) ? true : null,
+  );
+  submitted = true;
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['internship-surveys', 'maria'] });
+  });
+  await waitForElement(() =>
+    container.querySelector('.chat-topic')?.textContent?.includes('Какие инструменты нужны моей команде?')
+      ? true
+      : null,
+  );
+  expect(container.querySelector('.suggestions button')?.textContent).toBe('Какие инструменты нужны моей команде?');
+  expect(container.querySelector('.chat-aside')?.textContent).not.toContain(surveys.final.title);
+  expect(askBackend).not.toHaveBeenCalled();
+});
