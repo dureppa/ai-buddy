@@ -3,7 +3,9 @@ import { z } from 'zod';
 import { apiFetch } from '../../../web/frontend/src/backend';
 import type { ProfileId } from '../../../web/frontend/src/demo-accounts';
 
-export const WorkToolTransport = createContext(apiFetch);
+type WorkToolFetch = (profile: ProfileId, path: string, init?: RequestInit) => Promise<Response>;
+
+export const WorkToolTransport = createContext<WorkToolFetch>(apiFetch);
 export const useWorkToolTransport = () => useContext(WorkToolTransport);
 
 const sessions = new Map<string, Promise<string>>();
