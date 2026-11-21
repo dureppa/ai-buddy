@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from ai_buddy.agent import Trace, direct_loop, finalize
 from ai_buddy.errors import ErrorCode, ServiceError
 from ai_buddy.mcp_client import Gateway
-from ai_buddy.schemas import Selection, SelectionResource
+from ai_buddy.schemas import HistoryMessage, Selection, SelectionResource
 from tests.helpers import FakeSession, context, result, settings
 
 FIXTURES = json.loads(
@@ -153,7 +153,10 @@ def test_explicit_selection_reads(
                 assert {"get_team_context", "get_work_tools"} <= {
                     name for name, _, _ in session.calls
                 }
-                assert "три короткие части" in str(messages)
+                assert (
+                    "Ответь непосредственно на последнее сообщение пользователя"
+                    in str(messages)
+                )
                 assert not names & {"get_task_context", "get_task_evidence"}
             assert "local-task" in str(messages) if resource["kind"] == "task" else True
             suffix = " [" + next(iter(trace.sources)) + "]" if trace.sources else ""
@@ -371,3 +374,56 @@ def test_attached_confluence_pages_are_read_for_local_task() -> None:
 def test_attached_page_limits(resource: dict[str, Any]) -> None:
     with pytest.raises(ValidationError):
         SelectionResource.model_validate(resource)
+
+
+def test_task_followup_asks_for_blockers_instead_of_full_explanation() -> None:
+    async def run() -> None:
+        gateway = Gateway(SelectionSession(), context(), settings())
+        await gateway.discover()
+        trace = Trace(raise_tool_errors=True)
+        question = "Что может помешать выполнить задачу?"
+        selection = Selection(
+            text="Изучи Авито в цифрах",
+            title="Пункт чек-листа",
+            resource=SelectionResource.model_validate(
+                {
+                    "kind": "task",
+                    "id": "avito-in-numbers",
+                    "label": "Изучи Авито в цифрах",
+                }
+            ),
+        )
+
+        async def chat(
+            messages: list[dict[str, Any]], tools: list[dict[str, Any]]
+        ) -> dict[str, Any]:
+            instructions = "\n".join(
+                m["content"] for m in messages if m["role"] == "system"
+            )
+            assert "назови только\nвозможные препятствия" in instructions
+            assert "1–2 коротких абзацев" in instructions
+            assert "только по явному запросу" in instructions
+            assert "три короткие части" not in instructions
+            assert messages[-1]["content"] == question
+            assert not {item["function"]["name"] for item in tools} & {
+                "prepare_service_action",
+                "submit_access_request",
+            }
+            return {
+                "role": "assistant",
+                "content": "Возможное препятствие — отсутствие нужного инструмента. Проверь каталог [work-tools:demo].",
+            }
+
+        trace.raw_answer = await direct_loop(
+            gateway,
+            question,
+            chat,
+            trace,
+            history=[HistoryMessage(role="user", content="Дай полный разбор пункта.")],
+            selection=selection,
+            recover_context=True,
+        )
+        finalize(trace)
+        assert "отсутствие нужного инструмента" in trace.answer
+
+    asyncio.run(run())
