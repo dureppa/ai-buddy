@@ -316,16 +316,31 @@ it('preserves a recent attachment from another tab and refreshes on checklist st
   expect(button('Прикрепить ' + chat, catalog())).toBeTruthy();
 });
 
-it('renders team materials after both the checklist and progress, including when filtered', async () => {
+it('switches adaptation tabs by keyboard and keeps the task filter selected', async () => {
   await openInternAdaptation();
-  const tasks = container.querySelector('.adaptation-layout');
-  const materials = container.querySelector('.intern-materials');
-  expect(tasks?.nextElementSibling).toBe(materials);
-  expect(materials?.textContent).toContain(chat);
+  const tasks = button('Задачи');
+  const materials = button('Материалы');
+  expect(tasks?.getAttribute('aria-selected')).toBe('true');
+  expect(materials?.tabIndex).toBe(-1);
   await click(button('Осталось'));
+
+  await act(async () => tasks?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })));
+  expect(document.activeElement).toBe(materials);
+  expect(materials?.getAttribute('aria-selected')).toBe('true');
+  const openPanel = container.querySelector('[role="tabpanel"]:not([hidden])');
+  expect(openPanel?.id).toBe(materials?.getAttribute('aria-controls'));
+  expect(openPanel?.textContent).toContain(chat);
+  const groups = [...(openPanel?.querySelectorAll('.material-groups h2') ?? [])];
+  expect(groups.length).toBeGreaterThan(1);
+  expect(groups.at(-1)?.textContent).toBe('Чаты');
+  expect(button('Осталось')).toBeUndefined();
+
+  await act(async () => materials?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })));
+  expect(document.activeElement).toBe(tasks);
+  expect(tasks?.tabIndex).toBe(0);
   expect(button('Осталось')?.getAttribute('aria-pressed')).toBe('true');
-  expect(tasks?.nextElementSibling).toBe(materials);
-  expect(materials?.textContent).toContain(chat);
+  await click(materials);
+  expect(materials?.getAttribute('aria-selected')).toBe('true');
 });
 
 it('shows checklist confirmations across navigation and expires the newest toast', async () => {

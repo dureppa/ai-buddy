@@ -398,7 +398,10 @@ function ProfileMaterials({ profileId }: { profileId: ProfileId }) {
   }, [profileId]);
   return (
     <section className="intern-materials" aria-label="Материалы от команды">
-      <MaterialGroups items={items} idPrefix="intern-materials" />
+      <MaterialGroups
+        items={[...items].sort((a, b) => Number(a.group === 'Чаты') - Number(b.group === 'Чаты'))}
+        idPrefix="intern-materials"
+      />
     </section>
   );
 }
