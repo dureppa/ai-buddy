@@ -219,3 +219,15 @@ def test_work_tools_openapi_references_and_schemas() -> None:
                 visit(child)
 
     visit(doc)
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Как сверить воронку между Redash и Trino?",
+        "Где инструкция Confluence по ошибкам Grafana?",
+        "Что значит отсутствие фикстуры VIN в Postman и как оформить дефект в TMS?",
+    ],
+)
+def test_work_instructions_include_knowledge_search(question: str) -> None:
+    assert recovery_tools(question) == ("get_work_tool_context", "search_knowledge")

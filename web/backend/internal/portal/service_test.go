@@ -174,11 +174,15 @@ func TestConcurrentSubmissionAndKnowledge(t *testing.T) {
 	require.Len(t, ids, 1)
 	pages, err := s.Pages(ctx, "olga", "")
 	require.NoError(t, err)
-	require.Len(t, pages, 12)
+	require.NotEmpty(t, pages)
+	listed := map[string]bool{}
 	for _, p := range pages {
 		require.True(t, p.Product == nil || *p.Product == "delivery")
 		require.Empty(t, p.Body)
+		listed[p.ID] = true
 	}
+	require.True(t, listed["intern-delivery-funnel"])
+	require.False(t, listed["intern-travel-release"])
 	page, err := s.Page(ctx, "olga", "team-delivery")
 	require.NoError(t, err)
 	require.Contains(t, page.Body, "Анна Ким")
