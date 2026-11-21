@@ -36,10 +36,9 @@ it('targets the unfinished task of a group already in progress', () => {
 it('prioritizes a selected unfinished task and offers materials when readable', () => {
   const selected = secondWeek[0];
   const result = chatSuggestions(catalog, [], selected.id, (task: Task) => task.id === selected.id);
-  expect(result.slice(0, 3)).toEqual([
+  expect(result.slice(0, 2)).toEqual([
     { text: 'С чего начать этот пункт?', task: selected },
     { text: 'Какие материалы нужны?', task: selected },
-    { text: 'Где могут быть сложности?', task: selected },
   ]);
   expect(questions([], selected.id).map(({ text }) => text)).not.toContain('Какие материалы нужны?');
 });
@@ -59,4 +58,28 @@ it('uses the same safe questions for an unavailable or missing plan', () => {
     'Какие инструменты нужны моей команде?',
     'Где найти документы?',
   ]);
+});
+
+it('ranks follow-ups for the latest topic even when a task remains selected', () => {
+  const recent = ['Какие инструменты доступны для моей роли?', 'Какие события у меня завтра?'];
+  const result = chatSuggestions(catalog, [], firstWeek[0].id, noMaterials, recent);
+  expect(result[0]).toEqual({ text: 'Что в моём календаре на этой неделе?' });
+  expect(result.some(({ task }) => task)).toBe(false);
+  expect(result.some(({ text }) => recent.includes(text))).toBe(false);
+  expect(chatSuggestions(catalog, [], firstWeek[0].id, noMaterials, [...recent, 'Где найти документы?'])[0].text).toBe(
+    'Где найти путеводитель по продукту?',
+  );
+});
+
+it('continues a blocker question with a way to verify the result', () => {
+  const result = chatSuggestions(catalog, [], firstWeek[0].id, noMaterials, ['Что может помешать выполнить задачу?']);
+  expect(result[0].text).toContain('Как понять');
+  expect(result[0].task?.id).toBe(firstWeek[0].id);
+});
+
+it('suggests distinct help for access and reading tasks', () => {
+  const access = { ...firstWeek[0], icon: 'key' as const };
+  const reading = { ...firstWeek[1], icon: 'book' as const };
+  expect(chatSuggestions([access], [], access.id, noMaterials)[1].text).toMatch(/^Какие доступы/);
+  expect(chatSuggestions([reading], [], reading.id, noMaterials)[1].text).toMatch(/^На что обратить внимание/);
 });

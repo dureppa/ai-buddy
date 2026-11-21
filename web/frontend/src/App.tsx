@@ -1,6 +1,6 @@
-import { chatSuggestions } from './chat-suggestions';
+import { chatSuggestions, chatTopic } from './chat-suggestions';
 import { taskSelectionResource } from './task-selection';
-import { chatPageContext, isChecklistQuestion, isTaskCompletionMessage } from './current-task';
+import { chatPageContext, currentChecklistTask, isChecklistQuestion, isTaskCompletionMessage } from './current-task';
 import { checklistQuestion } from './checklist-question';
 import type { ChatPageContext, ExplanationContext } from './selection-context';
 import { BuddyPanel } from './BuddyPanel';
@@ -495,11 +495,13 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
   const selectedResource = activeTask?.selection.resource;
   const taskContext =
     selectedResource?.kind === 'task' ? { id: selectedResource.id, title: selectedResource.label } : undefined;
+  const recentQuestions = entries.flatMap((entry) => (entry.from === 'user' ? [entry.text] : [])).slice(-3);
   const questions = chatSuggestions(
     catalog,
     surveysQuery.isSuccess ? workspace?.completed : undefined,
     taskContext?.id,
     (item) => Boolean(taskSelectionResource(profileId, item).page_ids?.length),
+    recentQuestions,
   );
   const [chatError, setChatError] = useState<string>();
   const lastQuestion = useRef<{ text: string; context?: ChatPageContext } | undefined>(undefined);
@@ -654,13 +656,27 @@ function WorkspaceShell({ profileId, onExit }: { profileId: ProfileId; onExit: (
     const suggestion = questions.find((question) => question.text === text.trim());
     const shortcut = suggestion?.task ? undefined : absenceServiceLink(text);
     const currentTaskQuestion = !suggestion?.task && isChecklistQuestion(text);
-    const selection = suggestion?.task
-      ? checklistQuestion(profileId, suggestion.task).context
-      : shortcut || currentTaskQuestion || suggestion
+    const topic = chatTopic(text);
+    const clearTask =
+      shortcut || currentTaskQuestion || (suggestion && !suggestion.task) || (topic && topic !== 'task');
+    const followUpTask =
+      !clearTask &&
+      !activeTask &&
+      surveysQuery.isSuccess &&
+      chatTopic(recentQuestions.at(-1) ?? '') === 'task' &&
+      /^(?:что может помешать выполнить (?:задачу|этот пункт)|где могут быть сложности|какие материалы нужны)[?!.]*$/i.test(
+        text.trim(),
+      )
+        ? currentChecklistTask(catalog, workspace.completed)
+        : undefined;
+    const suggestedTask = suggestion?.task ?? followUpTask;
+    const selection = suggestedTask
+      ? checklistQuestion(profileId, suggestedTask).context
+      : clearTask
         ? undefined
         : activeTask;
     setServiceShortcut(shortcut);
-    if (shortcut || currentTaskQuestion || (suggestion && !suggestion.task)) {
+    if (clearTask && !suggestion?.task) {
       setActiveTask(undefined);
       setCompletionTargetId(null);
       setAwaitingService(false);

@@ -1463,15 +1463,15 @@ it('updates both suggestion lists and sends the freshly selected task after chec
     return first?.textContent?.includes('С чего начать сегодня?') && !first.disabled ? first : null;
   });
   expect(labels(chips())).toEqual(labels(topics()).slice(0, chips().length));
-  const oldHelp = labels(chips())[1];
   await click(question);
   const firstContext = vi.mocked(askBackend).mock.calls[0][2];
   expect(firstContext?.checklist).toMatchObject({ task: { id: 'dev-principles' } });
 
   await click(await button('Отметить выполненной'));
-  await waitForElement(() => (labels(chips())[1] !== oldHelp ? true : null));
+  const nextHelp = await waitForElement(() =>
+    chips().find((item) => item.textContent?.includes('Изучи Авито в цифрах')),
+  );
   expect(labels(chips())).toEqual(labels(topics()).slice(0, chips().length));
-  const nextHelp = chips()[1];
   expect(nextHelp.textContent).toContain('Изучи Авито в цифрах');
   await click(nextHelp);
   await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(2));
@@ -1526,4 +1526,24 @@ it('switches to work questions after the API confirms the last survey', async ()
   expect(container.querySelector('.suggestions button')?.textContent).toBe('Какие инструменты нужны моей команде?');
   expect(container.querySelector('.chat-aside')?.textContent).not.toContain(surveys.final.title);
   expect(askBackend).not.toHaveBeenCalled();
+});
+
+it('replaces task suggestions in both places after a topic switch and sends no old selection', async () => {
+  localStorage.setItem(demoSessionKey, 'olga');
+  vi.mocked(askBackend).mockResolvedValue({ kind: 'answer', text: 'Ответ.' });
+  await mount('/chat');
+  await click(await button('С чего начать сегодня?'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(1));
+  await enterMessage('Что может помешать выполнить задачу?');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(askBackend).mock.calls[1][2]?.selection?.resource?.kind).toBe('task');
+  await enterMessage('Где найти документы?');
+  await click(await button('Отправить сообщение'));
+  await vi.waitFor(() => expect(askBackend).toHaveBeenCalledTimes(3));
+  expect(vi.mocked(askBackend).mock.calls[2][2]?.selection).toBeUndefined();
+  await waitForElement(
+    () => container.querySelector('.chat-topic')?.textContent?.includes('Где найти путеводитель') || null,
+  );
+  expect(container.querySelector('.suggestions button')?.textContent).toBe('Где найти путеводитель по продукту?');
 });
