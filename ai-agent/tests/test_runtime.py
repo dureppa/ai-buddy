@@ -419,6 +419,9 @@ def test_recovery_tool_failure_keeps_domain_error(
     ("message", "reply"),
     [
         ("салам алейкум", "Ва алейкум ассалам!"),
+        ("hello", "Hello!"),
+        ("ＨＥＬＬＯ, Buddy…", "Hello!"),
+        ("нихао！", "你好！"),
         ("ты тут?", "Да, я тут. Чем помочь?"),
         ("Чем можешь помочь?", "Помогу разобраться с задачами и инструментами."),
     ],
@@ -474,5 +477,9 @@ def test_deepseek_greeting_skips_knowledge_search_and_returns_no_sources(
     assert answer.json["reply"] == {"text": reply, "references": []}
     assert len(sent) == 1
     assert not sent[0].get("tools")
+    assert not any(
+        "https://buddy.example/onboarding" in item["content"]
+        for item in sent[0]["messages"]
+    )
     assert not factory.session.calls
     assert factory.active == factory.closed
