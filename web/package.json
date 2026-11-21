@@ -14,9 +14,11 @@
     "build": "tsc -p frontend/tsconfig.json && vite build --config frontend/vite.config.ts",
     "typecheck": "tsc -p frontend/tsconfig.json",
     "test": "vitest run frontend",
+    "test:load": "vitest run frontend/src/load.test.tsx --reporter=verbose",
     "test:coverage": "vitest run frontend --coverage --coverage.include='frontend/src/**/*.{ts,tsx}' --coverage.exclude='**/*.test.*' --coverage.exclude='**/*.d.ts' --coverage.reporter=text --coverage.reporter=lcov --coverage.thresholds.lines=85"
   },
   "devDependencies": {
+    "@types/node": "^24.19.2",
     "@vitest/coverage-v8": "4.1.12",
     "jsdom": "28.1.0"
   }

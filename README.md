@@ -212,7 +212,8 @@ npm run dev --workspace=@ai-buddy/web -- --host 127.0.0.1 --strictPort
 
 Полная проверка: `just check`. По частям: `just frontend-check`, `just python-check`, `just go-check`.
 
-Нагрузочные тесты без обращений к LLM: `just load-test` или `just load-test 1000 8`.
+Нагрузочные тесты frontend, Go и Python без обращений к LLM: `just load-test 120 8`
+или `just load-test 1000 16`. Только frontend: `just load-frontend 1000 16`.
 Сервисы и ключ модели не нужны. RPS, p50/p95/p99 и границы замера описаны в
 [инструкции](docs/load-testing.md). Go benchmark: `just load-bench`.
 

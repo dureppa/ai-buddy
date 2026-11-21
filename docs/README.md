@@ -36,7 +36,7 @@
 - [Go → Python и MCP](integrations/go-python-mcp.md)
 - [Оценка знаний](integrations/knowledge-assessment.md)
 - [Стандарты разработки](engineering.md), [материалы Авито](avito-sources.md)
-- [Нагрузочные тесты Go и Python без обращений к LLM](load-testing.md)
+- [Нагрузочные тесты frontend, Go и Python без обращений к LLM](load-testing.md)
 - [Чек-лист сдачи](submission-checklist.md)
 - [Пробелы ответов](ai/answer-gaps.md), [контроль качества](ai/quality-control.md)
 - [Инструменты направлений](specs/009-agent-role-tools.md), [проверка прогона](ai/role-tools-check.md)
