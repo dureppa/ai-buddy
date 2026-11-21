@@ -63,7 +63,7 @@ const templateSchema = z.object({
   resources: z.array(resourceSchema),
 });
 export const catalogSchema = z.object({
-  version: z.literal(1),
+  version: z.number().int().positive(),
   templates: z.array(templateSchema),
   context: z.object({
     profile_id: z.string(),

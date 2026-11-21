@@ -124,7 +124,15 @@ it('persists requests and reports corrupt or unavailable storage', () => {
 });
 it('renders flexible fields and a complete summary without claiming granted rights', () => {
   const template = templates.find((item) => item.id === 'environments')!;
-  const html = renderToStaticMarkup(createElement(AccessForm, { template, onClose: () => {}, onSubmit: () => {} }));
+  const html = renderToStaticMarkup(
+    createElement(AccessForm, {
+      template: { ...template, resources: [] },
+      version: 1,
+      unavailable: false,
+      onClose: () => {},
+      onSubmit: () => {},
+    }),
+  );
   expect(html).toContain('Namespace / проект');
   expect(html).toContain('Администрирование');
   expect(html).toContain('Обоснование доступа');

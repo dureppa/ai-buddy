@@ -3,7 +3,7 @@ import { readServiceProfileQuery } from '../../../web/frontend/src/service-sessi
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { profiles, products, isProfileId, type AccountId } from '../../../web/frontend/src/demo-accounts';
 import { Icon } from '../../../web/frontend/src/ui';
-import { catalogVersion, permissions, templates, type AccessTemplate } from './catalog';
+import { permissions, templates, type AccessTemplate } from './catalog';
 import {
   accountContext,
   readAccessAccount,
@@ -46,16 +46,20 @@ export function AccessForm({
   onSubmit,
   onClose,
   initialInput,
+  version,
+  unavailable,
 }: {
+  version: number;
+  unavailable: boolean;
   initialInput?: RequestInput;
-  template: AccessTemplate & { resources?: LiveTemplate['resources'] };
+  template: LiveTemplate;
   onSubmit: (input: RequestInput) => void | Promise<void>;
   onClose: () => void;
 }) {
   const [input, setInput] = useState<RequestInput>(
     initialInput || {
       template_id: template.id,
-      catalog_version: catalogVersion,
+      catalog_version: version,
       system: template.system,
       resource_key: '',
       justification: '',
@@ -65,14 +69,39 @@ export function AccessForm({
     },
   );
   const [pending, setPending] = useState(false);
-  const [review, setReview] = useState(Boolean(initialInput));
+  const [resourceQuery, setResourceQuery] = useState('');
+  const resource = template.resources.find((item) => item.resource_key === input.resource_key);
+  const matchingResources = template.resources.filter(
+    (item) =>
+      item === resource ||
+      [item.resource_key, ...Object.values(item.fields)]
+        .join(' ')
+        .toLowerCase()
+        .includes(resourceQuery.trim().toLowerCase()),
+  );
+  function validate(candidate: RequestInput) {
+    const parsed = parseInput(candidate, template, version);
+    if (!resource || Object.entries(resource.fields).some(([key, value]) => parsed.fields[key] !== value))
+      throw new Error('Выберите доступный ресурс и проверьте его параметры.');
+    return parsed;
+  }
+  const [review, setReview] = useState(() => {
+    if (!initialInput) return false;
+    try {
+      validate(initialInput);
+      return true;
+    } catch {
+      return false;
+    }
+  });
   const [error, setError] = useState('');
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError('');
     setPending(true);
     try {
-      const parsed = parseInput(input);
+      if (unavailable) return;
+      const parsed = validate(input);
       if (!review) {
         setInput(parsed);
         setReview(true);
@@ -87,44 +116,40 @@ export function AccessForm({
     <Dialog title={review ? 'Проверьте заявку' : template.title} onClose={onClose}>
       <form onSubmit={(event) => void submit(event)}>
         {review ? (
-          <RequestSummary input={input} />
+          <RequestSummary input={input} template={template} />
         ) : (
           <fieldset className="access-fields">
             <label>
               Система или проект
-              <input
-                required
-                maxLength={120}
-                value={input.system}
-                onChange={(e) => setInput({ ...input, system: e.target.value })}
-              />
+              <input value={template.system} readOnly />
+            </label>
+            <label>
+              Поиск ресурса
+              <input type="search" value={resourceQuery} onChange={(event) => setResourceQuery(event.target.value)} />
             </label>
             <label>
               Ключ ресурса
-              {template.resources ? (
-                <select
-                  required
-                  value={input.resource_key}
-                  onChange={(e) => {
-                    const resource = template.resources?.find((item) => item.resource_key === e.target.value);
-                    setInput({ ...input, resource_key: e.target.value, fields: { ...resource?.fields } });
-                  }}
-                >
-                  <option value="">Выберите ресурс вашей команды</option>
-                  {template.resources.map((item) => (
-                    <option key={item.resource_key}>{item.resource_key}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  required
-                  maxLength={160}
-                  placeholder={template.keyHint}
-                  value={input.resource_key}
-                  onChange={(e) => setInput({ ...input, resource_key: e.target.value })}
-                />
-              )}
-              <small>Точное имя проекта, доски, схемы или набора данных.</small>
+              <select
+                required
+                disabled={matchingResources.length === 0}
+                value={resource?.resource_key ?? ''}
+                onChange={(event) => {
+                  const selected = template.resources.find((item) => item.resource_key === event.target.value);
+                  setInput({ ...input, resource_key: selected?.resource_key ?? '', fields: { ...selected?.fields } });
+                }}
+              >
+                <option value="">Выберите ресурс вашей команды</option>
+                {matchingResources.map((item) => (
+                  <option key={item.resource_key} value={item.resource_key}>
+                    {[item.fields.workspace, item.resource_key].filter(Boolean).join(' · ')}
+                  </option>
+                ))}
+              </select>
+              {template.resources.length === 0 ? (
+                <small>Для этой системы у вашего профиля нет доступных ресурсов.</small>
+              ) : matchingResources.length === 0 ? (
+                <small>По этому запросу ничего не найдено.</small>
+              ) : null}
             </label>
             <div className="access-field-row">
               <label>
@@ -155,9 +180,12 @@ export function AccessForm({
             {template.fields.map((field) => (
               <label key={field.key}>
                 {field.label}
-                {field.options ? (
+                {resource?.fields[field.key] !== undefined ? (
+                  <input value={resource.fields[field.key]} readOnly />
+                ) : field.options?.length ? (
                   <select
                     required
+                    disabled={!resource}
                     value={input.fields[field.key] || ''}
                     onChange={(e) => setInput({ ...input, fields: { ...input.fields, [field.key]: e.target.value } })}
                   >
@@ -169,6 +197,7 @@ export function AccessForm({
                 ) : (
                   <input
                     required
+                    disabled={!resource}
                     type={field.key.endsWith('_url') ? 'url' : 'text'}
                     maxLength={500}
                     placeholder={field.placeholder}
@@ -195,16 +224,20 @@ export function AccessForm({
         {input.permission === 'admin' && (
           <p className="access-notice">Администрирование требует отдельного согласования владельцем системы.</p>
         )}
-        {error && (
+        {(error || unavailable) && (
           <p className="access-error" role="alert">
-            {error}
+            {unavailable ? 'Каталог временно недоступен. Закройте форму и обновите каталог.' : error}
           </p>
         )}
         <div className="access-actions">
           <button type="button" onClick={() => (review ? setReview(false) : onClose())}>
             {review ? 'Изменить поля' : 'Отмена'}
           </button>
-          <button className="access-primary" type="submit" disabled={pending}>
+          <button
+            className="access-primary"
+            type="submit"
+            disabled={pending || unavailable || template.resources.length === 0}
+          >
             {pending ? 'Отправляем…' : review ? 'Отправить заявку' : 'Продолжить'}
           </button>
         </div>
@@ -212,8 +245,13 @@ export function AccessForm({
     </Dialog>
   );
 }
-export function RequestSummary({ input }: { input: RequestInput }) {
-  const template = templates.find((item) => item.id === input.template_id);
+export function RequestSummary({
+  input,
+  template = templates.find((item) => item.id === input.template_id),
+}: {
+  input: RequestInput;
+  template?: AccessTemplate;
+}) {
   return (
     <dl className="access-summary">
       <dt>Система</dt>
@@ -335,7 +373,9 @@ function Portal({ account }: { account: AccountId }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [pending, setPending] = useState(true);
-  const [template, setTemplate] = useState<LiveTemplate>();
+  const [templateId, setTemplateId] = useState<string>();
+  const [version, setVersion] = useState<number>();
+  const template = liveTemplates.find((item) => item.id === templateId);
   const [initialInput, setInitialInput] = useState<RequestInput>();
   const presetHandled = useRef(false);
   const [selected, setSelected] = useState<string | undefined>(
@@ -357,6 +397,7 @@ function Portal({ account }: { account: AccountId }) {
           role: catalog.context.job_role === 'staff' ? null : catalog.context.job_role,
         });
         setLiveTemplates(catalog.templates as LiveTemplate[]);
+        setVersion(catalog.version);
         setRequests(records);
         if (!presetHandled.current) {
           presetHandled.current = true;
@@ -368,8 +409,8 @@ function Portal({ account }: { account: AccountId }) {
                 throw new Error('Откройте ссылку из своего аккаунта стажёра.');
               const chosen = catalog.templates.find((item) => item.id === target) as LiveTemplate | undefined;
               if (!chosen) throw new Error('Этот раздел доступов недоступен вашему профилю.');
-              setInitialInput(prefilledRequest(account, chosen));
-              setTemplate(chosen);
+              setInitialInput(prefilledRequest(account, chosen, catalog.version));
+              setTemplateId(chosen.id);
             } catch (e) {
               setError(e instanceof Error ? e.message : 'Не удалось заполнить заявку.');
             }
@@ -398,7 +439,7 @@ function Portal({ account }: { account: AccountId }) {
   async function submit(input: RequestInput) {
     await api.submit(input, operationKey);
     setOperationKey(newOperationKey());
-    setTemplate(undefined);
+    setTemplateId(undefined);
     setTab('requests');
     setStatus('all');
     setNotice('Заявка сохранена. Её номер и статус доступны в списке.');
@@ -502,10 +543,11 @@ function Portal({ account }: { account: AccountId }) {
                 <button
                   className="access-card"
                   key={item.id}
-                  disabled={!isProfileId(account) || pending}
+                  disabled={!isProfileId(account) || pending || Boolean(error && version === undefined)}
                   onClick={() => {
                     setOperationKey(newOperationKey());
-                    setTemplate(item);
+                    setInitialInput(undefined);
+                    setTemplateId(item.id);
                     setNotice('');
                   }}
                 >
@@ -520,7 +562,7 @@ function Portal({ account }: { account: AccountId }) {
                 </button>
               ))}
             </div>
-            {catalog.length === 0 && (
+            {catalog.length === 0 && !pending && !error && (
               <div className="access-empty">Ресурсы не найдены. Попробуйте другое название.</div>
             )}
           </>
@@ -571,13 +613,20 @@ function Portal({ account }: { account: AccountId }) {
           </>
         )}
       </main>
-      {template && (
+      {template && version !== undefined && (
         <AccessForm
+          key={template.id + '-' + version}
           template={template}
-          initialInput={initialInput?.template_id === template.id ? initialInput : undefined}
+          version={version}
+          unavailable={Boolean(error)}
+          initialInput={
+            initialInput?.template_id === template.id && initialInput.catalog_version === version
+              ? initialInput
+              : undefined
+          }
           onSubmit={submit}
           onClose={() => {
-            setTemplate(undefined);
+            setTemplateId(undefined);
             setInitialInput(undefined);
           }}
         />
