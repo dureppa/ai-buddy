@@ -42,6 +42,9 @@ node_modules
 /web/backend/bin/
 /web/backend/coverage.out
 
+# Local load-test output and temporary check files
+/.load-results/
+
 # Server-only credentials and nginx authentication
 /.deploy/
 

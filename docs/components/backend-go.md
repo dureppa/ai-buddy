@@ -213,6 +213,12 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f web/backend/seeds/demo.sql
 ## Проверка
 
 ### Автоматические тесты
+
+Конкурентные HTTP-прогоны: `internal/httpapi/load_test.go`, команда
+`just load-test`. Используются хранилища в памяти и отдельная заглушка чата;
+БД и модель не вызываются. `just load-bench` измеряет обработку чтения чек-листа.
+[Параметры и границы](../load-testing.md).
+
 ```bash
 cd web/backend
 go test -race ./...

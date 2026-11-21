@@ -64,6 +64,11 @@ uv run --locked flask --app ai_buddy:create_app run --host 127.0.0.1 --port 8001
 
 Проверки: `just python-check` из корня или команды Ruff, mypy и pytest из [engineering](../engineering.md). Покрытие этого контура — в [coverage](../coverage.md).
 
+`tests/test_load.py` проверяет конкурентные ходы Flask с настоящим DirectRunner,
+тестовым HTTP transport модели и отдельными MCP-сессиями. Сеть заблокирована,
+реальные ключи не используются. Запуск обоих контуров: `just load-test`;
+[сценарии и метрики](../load-testing.md). Короткий прогон входит в обычный pytest/CI.
+
 ## Приветствия
 
 Чистые приветствия, включая «салам алейкум», благодарности и прощания получают

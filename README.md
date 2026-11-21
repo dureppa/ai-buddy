@@ -212,6 +212,10 @@ npm run dev --workspace=@ai-buddy/web -- --host 127.0.0.1 --strictPort
 
 Полная проверка: `just check`. По частям: `just frontend-check`, `just python-check`, `just go-check`.
 
+Нагрузочные тесты без обращений к LLM: `just load-test` или `just load-test 1000 8`.
+Сервисы и ключ модели не нужны. RPS, p50/p95/p99 и границы замера описаны в
+[инструкции](docs/load-testing.md). Go benchmark: `just load-bench`.
+
 Порог покрытия — выше 80% отдельно для веба, Go API и Python-агента, без усреднения. Последний замер: веб 92,30% строк, Python и Go выше порога. Команды, точные числа и методика для Go — в [отчёте покрытия](docs/coverage.md).
 
 ## Состав

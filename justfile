@@ -2,6 +2,14 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 default: check
 
+# Isolated HTTP handlers; no running servers, databases or paid model calls.
+load-test requests="2000" workers="16":
+	cd web/backend && LOAD_REQUESTS={{quote(requests)}} LOAD_WORKERS={{quote(workers)}} go test ./internal/httpapi -run '^TestBackendLoad$' -count=1 -v -timeout=10m
+	cd ai-agent && LOAD_REQUESTS={{quote(requests)}} LOAD_WORKERS={{quote(workers)}} uv run --locked pytest tests/test_load.py -q -s
+
+load-bench:
+	cd web/backend && go test ./internal/httpapi -run '^$' -bench '^BenchmarkBackend' -benchmem -benchtime=3s -cpu=1,4,16
+
 frontend-typecheck:
 	npm run typecheck --workspaces
 
