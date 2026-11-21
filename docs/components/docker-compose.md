@@ -67,3 +67,10 @@ docker compose --profile hr --profile jira down
 `just external-check` запускает 24 сервиса на временном стенде и проверяет демовход, HTTP и доступ к базам при выключенном Buddy. Затем проверяет HTTP-вызовы из Buddy.
 
 `PUBLIC_HR_ORIGIN` задаёт корпоративные ссылки в обеих сборках (web и hr-web). `PUBLIC_WEB_ORIGIN` становится `VITE_BUDDY_URL` в hr-web: относительные источники панели пояснения возвращают в Buddy, а не на одноимённый путь HR-сайта. Цели Docker web/hr-web и команды запуска сохранены.
+
+Внешние сайты используют gzip для JavaScript, CSS и SVG в `hr-web.conf`.
+Файлы `/assets/` с восьмизначным хешем Vite кешируются на год; HTML,
+неверсионированные файлы и API этот срок не получают. Парольная защита
+наследуется и для кешируемых ресурсов. `TEST_NGINX=1 uv run --locked pytest tests/test_static_assets.py` из `ai-agent/` проверяет настоящий nginx в
+одноразовом контейнере с тестовыми файлами; Python CI включает этот тест.
+Проверка не запускает Buddy и не обращается к модели.

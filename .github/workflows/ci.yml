@@ -49,6 +49,8 @@ jobs:
           enable-cache: true
           cache-dependency-glob: ai-agent/uv.lock
       - working-directory: ai-agent
+        env:
+          TEST_NGINX: "1"
         run: |
           uv sync --locked
           uv run --locked ruff format --check . ../ops/deploy

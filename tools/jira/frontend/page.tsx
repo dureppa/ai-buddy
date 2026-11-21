@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { profiles } from '../../../web/frontend/src/demo-accounts';
-import { boardSchema, filterIssues, jiraClient, priorities, statuses, type Issue, type IssueInput } from './api';
-import type { z } from 'zod';
+import { filterIssues, jiraClient, priorities, statuses, type Issue, type IssueInput } from './api';
 import './style.css';
 
 function setLocation(space?: string, board?: string, issue?: string) {
@@ -13,75 +13,85 @@ function setLocation(space?: string, board?: string, issue?: string) {
   window.history.replaceState(null, '', url);
 }
 export function JiraPage({ profile }: { profile: keyof typeof profiles }) {
+  const [client] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: { queries: { retry: false, staleTime: Infinity, refetchOnWindowFocus: false } },
+      }),
+  );
+  return (
+    <QueryClientProvider client={client}>
+      <JiraWorkspace key={profile} profile={profile} />
+    </QueryClientProvider>
+  );
+}
+function JiraWorkspace({ profile }: { profile: keyof typeof profiles }) {
   const api = useMemo(() => jiraClient(profile), [profile]);
+  const client = useQueryClient();
   const initial = new URLSearchParams(window.location.search);
-  const [spaces, setSpaces] = useState<{ id: string; name: string }[]>([]);
-  const [boards, setBoards] = useState<{ id: string; name: string; key: string }[]>([]);
-  const [spaceId, setSpace] = useState(initial.get('space') || '');
-  const [boardId, setBoardId] = useState(initial.get('board') || '');
-  const [board, setBoard] = useState<z.infer<typeof boardSchema>>();
+  const [requestedSpace, setSpace] = useState(initial.get('space') || '');
+  const [requestedBoard, setBoardId] = useState(initial.get('board') || '');
   const [selected, setSelected] = useState<Issue | 'new'>();
   const [query, setQuery] = useState('');
   const [mine, setMine] = useState(false);
-  const [pending, setPending] = useState(true);
-  const [error, setError] = useState('');
-  const [revision, setRevision] = useState(0);
+  const [navigationError, setNavigationError] = useState('');
+  const [saved, setSaved] = useState(false);
+  const spacesQuery = useQuery({ queryKey: ['jira', profile, 'spaces'], queryFn: api.spaces });
+  const spaces = spacesQuery.data || [];
+  const spaceId = requestedSpace || spaces[0]?.id || '';
+  const boardsQuery = useQuery({
+    queryKey: ['jira', profile, 'boards', spaceId],
+    queryFn: () => api.boards(spaceId),
+    enabled: spacesQuery.isSuccess && spaces.length > 0 && !!spaceId,
+  });
+  const boards = boardsQuery.data || [];
+  const boardId = requestedBoard || boards[0]?.id || '';
+  const boardKey = ['jira', profile, 'board', spaceId, boardId];
+  const boardQuery = useQuery({
+    queryKey: boardKey,
+    staleTime: 0,
+    queryFn: async () => {
+      const result = await api.board(boardId);
+      if (result.space_id !== spaceId) throw new Error('Доска не относится к выбранному пространству.');
+      return result;
+    },
+    enabled: boardsQuery.isSuccess && boards.length > 0 && !!boardId,
+  });
+  const board = boardQuery.data;
+  const pending = spacesQuery.isFetching || boardsQuery.isFetching || boardQuery.isFetching;
+  const failure = spacesQuery.error || boardsQuery.error || boardQuery.error;
+  const error = failure?.message || navigationError;
   useEffect(() => {
-    let active = true;
-    setPending(true);
-    setError('');
-    setBoard(undefined);
-    setBoards([]);
-    setSelected(undefined);
-    (async () => {
-      const allSpaces = await api.spaces();
-      if (!active) return;
-      setSpaces(allSpaces);
-      const space = spaceId || allSpaces[0]?.id;
-      if (!space) return;
-      const allBoards = await api.boards(space);
-      if (!active) return;
-      setBoards(allBoards);
-      setSpace(space);
-      const id = boardId || allBoards[0]?.id;
-      if (!id) {
-        setLocation(space);
-        return;
-      }
-      const result = await api.board(id);
-      if (result.space_id !== space) throw new Error('Доска не относится к выбранному пространству.');
-      if (!active) return;
-      setBoard(result);
-      setBoardId(id);
-      setLocation(space, id, initial.get('issue') || undefined);
-      const issueId = initial.get('issue');
-      if (issueId) {
-        const found = result.issues.find((i) => i.id === issueId);
-        if (!found) throw new Error('Задача не найдена на доске.');
-        setSelected(found);
-      }
-    })()
-      .catch((e: unknown) => {
-        if (active) setError(e instanceof Error ? e.message : 'Не удалось загрузить Jira.');
-      })
-      .finally(() => {
-        if (active) setPending(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [api, spaceId, boardId, revision]);
+    if (!board) return;
+    const issueId = new URLSearchParams(window.location.search).get('issue');
+    setLocation(spaceId, board.id, issueId || undefined);
+    if (issueId) {
+      const found = board.issues.find((issue) => issue.id === issueId);
+      setSelected(found);
+      setNavigationError(found ? '' : 'Задача не найдена на доске.');
+    }
+  }, [board, spaceId]);
+  function retry() {
+    void client.invalidateQueries({ queryKey: ['jira', profile] });
+  }
   const issues = filterIssues(board?.issues || [], query, mine, profile);
   function chooseSpace(id: string) {
     setLocation(id);
+    setSelected(undefined);
+    setNavigationError('');
+    setSaved(false);
     setSpace(id);
     setBoardId('');
   }
   function chooseBoard(id: string) {
     setLocation(spaceId, id);
+    setSelected(undefined);
+    setNavigationError('');
+    setSaved(false);
     setBoardId(id);
   }
   function open(issue: Issue | 'new') {
+    setSaved(false);
     setSelected(issue);
     setLocation(spaceId, boardId, issue === 'new' ? undefined : issue.id);
   }
@@ -138,10 +148,11 @@ export function JiraPage({ profile }: { profile: keyof typeof profiles }) {
               + Создать задачу
             </button>
           </div>
+          {saved && <p role="status">Задача сохранена.</p>}
           {pending && <p role="status">Загружаем рабочее пространство…</p>}
           {error && (
             <div className="jira-error" role="alert">
-              {error} <button onClick={() => setRevision((v) => v + 1)}>Повторить</button>
+              {error} <button onClick={retry}>Повторить</button>
             </div>
           )}
           {!pending && !error && !board && (
@@ -209,7 +220,8 @@ export function JiraPage({ profile }: { profile: keyof typeof profiles }) {
           onSave={async (input) => {
             await api.save(board.id, input, selected === 'new' ? undefined : selected.id);
             close();
-            setRevision((v) => v + 1);
+            setSaved(true);
+            void client.invalidateQueries({ queryKey: boardKey, exact: true });
           }}
         />
       )}
