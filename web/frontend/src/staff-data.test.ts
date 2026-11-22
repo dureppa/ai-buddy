@@ -220,9 +220,9 @@ it.each(Object.values(products))('keeps all three $name interns independent', (p
   expect(materialsForTask(storage, third, 'meet-team')).toEqual([]);
   expect(checklistFor(storage, third).some((item) => item.id === extra.id)).toBe(false);
   expect(() => removeChecklistItem(storage, product.manager, extra.id, third)).toThrow();
-  toggleTask(storage, second, 'meet-team');
-  expect(checklistFor(storage, second).find((item) => item.id === 'meet-team')?.done).toBe(true);
-  expect(checklistFor(storage, third).find((item) => item.id === 'meet-team')?.done).toBe(false);
+  toggleTask(storage, second, 'book-recommendations');
+  expect(checklistFor(storage, second).find((item) => item.id === 'book-recommendations')?.done).toBe(true);
+  expect(checklistFor(storage, third).find((item) => item.id === 'book-recommendations')?.done).toBe(false);
   setTaskMaterials(storage, product.mentor, extra.id, [], undefined, second);
   expect(materialsForTask(storage, second, extra.id)).toEqual([]);
   removeChecklistItem(storage, product.mentor, extra.id, second);
@@ -253,4 +253,39 @@ it('rejects checklist changes and attachments outside the staff team', () => {
   expect(() => removeChecklistItem(storage, 'manager', 'extra-any', 'travel-pavel')).toThrow('своих стажёров');
   expect(JSON.stringify(storage.getItem('ai-buddy.checklist-edits'))).toBe(before);
   expect(() => saveMaterial(storage, 'manager', { ...input, audience: ['travel-pavel'] })).toThrow('своих стажёров');
+});
+
+it('seeds different nonzero progress for the eight added interns', () => {
+  const storage = memoryStorage();
+  const expected = [11, 23, 34, 45, 57, 68, 77, 86];
+  const interns = Object.values(products).flatMap((product) =>
+    internOverview(storage, product.manager).filter((intern) => intern.id !== product.intern),
+  );
+  expect(interns.map((intern) => intern.progress.percent)).toEqual(expected);
+  for (const intern of interns) {
+    expect(intern.progress.completed).toBe(intern.checklist.filter((task) => task.done).length);
+    expect(intern.checklist.filter((task) => task.id.startsWith('internship-survey')).every((task) => !task.done)).toBe(
+      true,
+    );
+  }
+});
+
+it.each(Object.values(products))('keeps the original $name intern first regardless of API ordering', (product) => {
+  const storage = memoryStorage();
+  const ids = teamInterns(profiles[product.intern].productId);
+  const plans = [...ids].reverse().map((profile_id) => ({
+    profile_id,
+    completed: [],
+    extras: [],
+    total: 44,
+    percent: 0,
+  }));
+  for (const staff of [product.manager, product.mentor]) {
+    expect(internOverview(storage, staff)[0].id).toBe(product.intern);
+    expect(internOverview(storage, staff, plans).map((intern) => intern.id)).toEqual([
+      product.intern,
+      ...plans.map((plan) => plan.profile_id).filter((id) => id !== product.intern),
+    ]);
+  }
+  expect(plans.map((plan) => plan.profile_id)).toEqual([...ids].reverse());
 });

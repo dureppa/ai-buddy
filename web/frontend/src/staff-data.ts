@@ -93,6 +93,8 @@ export function internOverview(storage: StoragePort, staff: StaffId, plans?: rea
   const ids = plans
     ? plans.map((plan) => plan.profile_id).filter(isProfileId)
     : teamInterns(staffAccounts[staff].productId);
+  const primary = products[staffAccounts[staff].productId].intern;
+  ids.sort((a, b) => Number(b === primary) - Number(a === primary));
   return ids.map((id) => {
     const plan = plans?.find((entry) => entry.profile_id === id);
     const checklist = checklistFor(storage, id, plan);
