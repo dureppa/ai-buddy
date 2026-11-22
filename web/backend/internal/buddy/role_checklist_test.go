@@ -29,3 +29,17 @@ func TestRoleChecklistMatchesExpectedCurrentID(t *testing.T) {
 		t.Fatalf("legacy task accepted: %v", err)
 	}
 }
+
+func TestAdditionalInternsHaveDistinctInitialProgress(t *testing.T) {
+	profiles := []string{"delivery-ivan", "delivery-elena", "travel-pavel", "travel-sofia", "autoteca-egor", "autoteca-alisa", "help-mark", "help-eva"}
+	expected := []int{11, 23, 34, 45, 57, 68, 77, 86}
+	for i, profile := range profiles {
+		progress := checklistProgress(profile, roleMarks(profile, nil), nil, nil)
+		if progress.Percent != expected[i] {
+			t.Errorf("%s: got %d%%, want %d%%", profile, progress.Percent, expected[i])
+		}
+		if len(roleMarks(profile, []string{})) != 0 {
+			t.Errorf("%s: saved progress must take precedence", profile)
+		}
+	}
+}
