@@ -13,6 +13,10 @@
 
 Компоненты:
 
+- [Подробное руководство по Go-бэкенду](backend-go/README.md): пакеты, запросы, авторизация, чат, действия, БД и API.
+- [Работа с Go-бэкендом](backend-go/operations.md): запуск, миграции, тесты и диагностика.
+- [Развитие Go-бэкенда](backend-go/roadmap.md): технологии, приоритеты и критерии внедрения.
+
 - [Веб](components/web.md), [расширение](components/extension.md), [Go](components/backend-go.md), [Python](components/ai-python.md), [MCP](components/python-mcp.md)
 - [Docker Compose](components/docker-compose.md), [сервер](components/server-deployment.md), [поставка](components/continuous-delivery.md)
 - [Действия агента](components/service-actions.md)
